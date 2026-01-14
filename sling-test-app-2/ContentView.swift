@@ -1,21 +1,35 @@
-//
-//  ContentView.swift
-//  sling-test-app-2
-//
-//  Created by Simon Amor on 14/01/2026.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @State private var selectedTab: Tab = .home
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header (always visible)
+                HeaderView()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                
+                // Tab Content
+                switch selectedTab {
+                case .home:
+                    HomeView()
+                case .transfer:
+                    TransferView()
+                case .spend:
+                    SpendView()
+                case .invest:
+                    InvestView()
+                }
+                
+                // Bottom Navigation
+                BottomNavView(selectedTab: $selectedTab)
+            }
         }
-        .padding()
     }
 }
 
