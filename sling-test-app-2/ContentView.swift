@@ -20,10 +20,10 @@ struct ContentView: View {
                     HomeView()
                 case .transfer:
                     TransferView()
-                case .spend:
-                    SpendView()
                 case .invest:
                     InvestView()
+                case .activity:
+                    ActivityView()
                 }
                 
                 // Bottom Navigation

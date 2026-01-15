@@ -3,24 +3,15 @@ import SwiftUI
 enum Tab: String, CaseIterable {
     case home = "Home"
     case transfer = "Transfer"
-    case spend = "Spend"
     case invest = "Invest"
+    case activity = "Activity"
     
-    var icon: String {
+    var iconName: String {
         switch self {
-        case .home: return "house"
-        case .transfer: return "arrow.up.arrow.down"
-        case .spend: return "creditcard"
-        case .invest: return "chart.line.uptrend.xyaxis"
-        }
-    }
-    
-    var iconFilled: String {
-        switch self {
-        case .home: return "house.fill"
-        case .transfer: return "arrow.up.arrow.down"
-        case .spend: return "creditcard.fill"
-        case .invest: return "chart.line.uptrend.xyaxis"
+        case .home: return "NavHome"
+        case .transfer: return "NavTransfer"
+        case .invest: return "NavInvest"
+        case .activity: return "NavActivity"
         }
     }
 }
@@ -36,8 +27,15 @@ struct BottomNavView: View {
                 Spacer()
             }
         }
-        .padding(.vertical, 12)
-        .background(Color(hex: "F5F5F5"))
+        .padding(.top, 12)
+        .padding(.bottom, 32)
+        .background(Color.white)
+        .overlay(
+            Rectangle()
+                .fill(Color(hex: "F7F7F7"))
+                .frame(height: 1),
+            alignment: .top
+        )
     }
 }
 
@@ -56,13 +54,16 @@ struct TabButton: View {
             }
         }) {
             VStack(spacing: 4) {
-                Image(systemName: isSelected ? tab.iconFilled : tab.icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(isSelected ? Color(hex: "FF6B35") : Color(hex: "8E8E93"))
+                Image(tab.iconName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+                    .foregroundColor(isSelected ? Color(hex: "FF5113") : Color(hex: "7B7B7B"))
                 
                 Text(tab.rawValue)
-                    .font(.custom("Inter-Regular", size: 12))
-                    .foregroundColor(isSelected ? Color(hex: "FF6B35") : Color(hex: "8E8E93"))
+                    .font(.custom("Inter-Regular", size: 10))
+                    .foregroundColor(isSelected ? Color(hex: "FF5113") : Color(hex: "7B7B7B"))
             }
         }
     }
