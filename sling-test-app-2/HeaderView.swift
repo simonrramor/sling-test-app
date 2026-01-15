@@ -5,11 +5,14 @@ struct HeaderView: View {
         HStack {
             // Profile Picture with Verified Badge
             ZStack(alignment: .topTrailing) {
-                Image("ProfilePhoto")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                Circle()
+                    .fill(Color(hex: "FFD700"))
                     .frame(width: 44, height: 44)
-                    .clipShape(Circle())
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.white)
+                    )
                     .overlay(
                         Circle()
                             .stroke(Color.black.opacity(0.06), lineWidth: 1)
