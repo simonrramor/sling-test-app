@@ -26,7 +26,7 @@ struct SpendView: View {
                 HStack(spacing: 8) {
                     Button(action: {}) {
                         Text("Show details")
-                            .font(.custom("Inter18pt-Bold", size: 16))
+                            .font(.custom("Inter-Bold", size: 16))
                             .foregroundColor(Color(hex: "080808"))
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
@@ -39,7 +39,7 @@ struct SpendView: View {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 16))
                             Text("Lock")
-                                .font(.custom("Inter18pt-Bold", size: 16))
+                                .font(.custom("Inter-Bold", size: 16))
                         }
                         .foregroundColor(Color(hex: "080808"))
                         .frame(maxWidth: .infinity)
@@ -53,11 +53,11 @@ struct SpendView: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Spent this month (1st Dec – 1st Jan)")
-                        .font(.custom("Inter28pt-Medium", size: 16))
+                        .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(Color(hex: "7B7B7B"))
                     
                     Text("$3,430")
-                        .font(.custom("Inter18pt-Bold", size: 33))
+                        .font(.custom("Inter-Bold", size: 33))
                         .foregroundColor(Color(hex: "080808"))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -109,7 +109,7 @@ struct DebitCardWidget: View {
                         }
                         
                         Text("9543")
-                            .font(.custom("Inter28pt-Medium", size: 16))
+                            .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(.white.opacity(0.8))
                         
                         Image(systemName: "creditcard.fill")
@@ -165,11 +165,11 @@ struct CategoryCard: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(category.name)
-                    .font(.custom("Inter28pt-Medium", size: 14))
+                    .font(.custom("Inter-Medium", size: 14))
                     .foregroundColor(Color(hex: "7B7B7B"))
                 
                 Text(category.amount)
-                    .font(.custom("Inter18pt-Bold", size: 16))
+                    .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(.black)
             }
         }

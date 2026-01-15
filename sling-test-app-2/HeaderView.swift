@@ -33,7 +33,7 @@ struct HeaderView: View {
                 // Invite Button
                 Button(action: {}) {
                     Text("Invite")
-                        .font(.custom("Inter18pt-Bold", size: 14))
+                        .font(.custom("Inter-Bold", size: 14))
                         .foregroundColor(Color(hex: "080808"))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)

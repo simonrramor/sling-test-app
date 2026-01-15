@@ -17,7 +17,7 @@ struct TransactionListView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Section Header
             Text("Today")
-                .font(.custom("Inter28pt-Medium", size: 16))
+                .font(.custom("Inter-Medium", size: 16))
                 .foregroundColor(.gray)
                 .padding(.horizontal, 20)
             
@@ -53,14 +53,14 @@ struct TransactionRow: View {
             
             // Name
             Text(transaction.name)
-                .font(.custom("Inter18pt-Bold", size: 16))
+                .font(.custom("Inter-Bold", size: 16))
                 .foregroundColor(.primary)
             
             Spacer()
             
             // Amount
             Text(String(format: "-£%.2f", abs(transaction.amount)))
-                .font(.custom("Inter18pt-Bold", size: 16))
+                .font(.custom("Inter-Bold", size: 16))
                 .foregroundColor(.primary)
         }
     }

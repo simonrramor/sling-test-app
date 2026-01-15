@@ -81,11 +81,11 @@ struct TransferActionRow: View {
                 // Text content
                 VStack(alignment: .leading, spacing: 0) {
                     Text(action.title)
-                        .font(.custom("Inter18pt-Bold", size: 16))
+                        .font(.custom("Inter-Bold", size: 16))
                         .foregroundColor(Color(hex: "080808"))
                     
                     Text(action.subtitle)
-                        .font(.custom("Inter18pt-Regular", size: 14))
+                        .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(Color(hex: "7B7B7B"))
                 }
                 

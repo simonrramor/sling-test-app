@@ -27,7 +27,7 @@ struct InvestView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text("Your portfolio")
-                            .font(.custom("Inter28pt-Medium", size: 16))
+                            .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(Color(hex: "7B7B7B"))
                         
                         Image(systemName: "arrow.up")
@@ -35,12 +35,12 @@ struct InvestView: View {
                             .foregroundColor(Color(hex: "57CE43"))
                         
                         Text("$0.13")
-                            .font(.custom("Inter28pt-Medium", size: 16))
+                            .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(Color(hex: "57CE43"))
                     }
                     
                     Text("$2,541.01")
-                        .font(.custom("Inter18pt-Bold", size: 33))
+                        .font(.custom("Inter-Bold", size: 33))
                         .foregroundColor(Color(hex: "080808"))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -59,7 +59,7 @@ struct InvestView: View {
                             selectedPeriod = period
                         }) {
                             Text(period)
-                                .font(.custom(selectedPeriod == period ? "Inter28pt-Medium" : "Inter18pt-Regular", size: 14))
+                                .font(.custom(selectedPeriod == period ? "Inter-Medium" : "Inter-Regular", size: 14))
                                 .foregroundColor(selectedPeriod == period ? Color(hex: "080808") : Color(hex: "7B7B7B"))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
@@ -78,7 +78,7 @@ struct InvestView: View {
                 // Your Stocks Section
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Your stocks")
-                        .font(.custom("Inter18pt-Bold", size: 16))
+                        .font(.custom("Inter-Bold", size: 16))
                         .foregroundColor(Color(hex: "7B7B7B"))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
@@ -153,11 +153,11 @@ struct StockRow: View {
             // Name and Symbol
             VStack(alignment: .leading, spacing: 2) {
                 Text(stock.name)
-                    .font(.custom("Inter18pt-Bold", size: 16))
+                    .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(Color(hex: "080808"))
                 
                 Text(stock.symbol)
-                    .font(.custom("Inter18pt-Regular", size: 14))
+                    .font(.custom("Inter-Regular", size: 14))
                     .foregroundColor(Color(hex: "7B7B7B"))
             }
             
@@ -166,14 +166,14 @@ struct StockRow: View {
             // Price and Change
             VStack(alignment: .trailing, spacing: 2) {
                 Text(stock.price)
-                    .font(.custom("Inter18pt-Bold", size: 16))
+                    .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(Color(hex: "080808"))
                 
                 HStack(spacing: 4) {
                     Image(systemName: stock.isPositive ? "arrow.up" : "arrow.down")
                         .font(.system(size: 10, weight: .bold))
                     Text(stock.change)
-                        .font(.custom("Inter18pt-Regular", size: 14))
+                        .font(.custom("Inter-Regular", size: 14))
                 }
                 .foregroundColor(stock.isPositive ? Color(hex: "57CE43") : Color(hex: "E30000"))
             }

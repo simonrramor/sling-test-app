@@ -61,7 +61,7 @@ struct TabButton: View {
                     .foregroundColor(isSelected ? Color(hex: "FF6B35") : Color(hex: "8E8E93"))
                 
                 Text(tab.rawValue)
-                    .font(.custom("Inter18pt-Regular", size: 12))
+                    .font(.custom("Inter-Regular", size: 12))
                     .foregroundColor(isSelected ? Color(hex: "FF6B35") : Color(hex: "8E8E93"))
             }
         }
