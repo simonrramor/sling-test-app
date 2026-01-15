@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "${icon##Nav}.svg",
+      "filename" : "transfer.svg",
       "idiom" : "universal"
     }
   ],

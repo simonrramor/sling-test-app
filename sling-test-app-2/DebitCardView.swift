@@ -42,6 +42,7 @@ struct DebitCardView: View {
                             Image(systemName: "ellipsis")
                                 .foregroundColor(.white.opacity(0.8))
                                 .rotationEffect(.degrees(90))
+                                .accessibilityHidden(true)
                         }
                         
                         Text("114.90 USDP")
@@ -64,6 +65,7 @@ struct DebitCardView: View {
                             Text(showCardNumber ? "4532 1234 5678 9543" : "•••• 9543")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white.opacity(0.9))
+                                .accessibilityLabel(showCardNumber ? "Card number: 4532 1234 5678 9543" : "Card number hidden, ending in 9543")
                             
                             Button(action: {
                                 withAnimation {
@@ -74,6 +76,7 @@ struct DebitCardView: View {
                                     .font(.system(size: 14))
                                     .foregroundColor(.white.opacity(0.8))
                             }
+                            .accessibilityLabel(showCardNumber ? "Hide card number" : "Show card number")
                         }
                         
                         // VISA logo

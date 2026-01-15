@@ -5,8 +5,6 @@ struct TransferAction: Identifiable {
     let title: String
     let subtitle: String
     let iconName: String
-    let iconColor: Color
-    let backgroundColor: Color
 }
 
 struct TransferView: View {
@@ -14,37 +12,27 @@ struct TransferView: View {
         TransferAction(
             title: "Send",
             subtitle: "Pay anyone on Sling in seconds",
-            iconName: "paperplane.fill",
-            iconColor: Color(hex: "74CDFF"),
-            backgroundColor: Color(hex: "E8F8FF")
+            iconName: "TransferSend"
         ),
         TransferAction(
             title: "Request",
             subtitle: "Ask someone to pay you back",
-            iconName: "arrow.down.circle.fill",
-            iconColor: Color(hex: "78D381"),
-            backgroundColor: Color(hex: "E9FAEB")
+            iconName: "TransferRequest"
         ),
         TransferAction(
             title: "Transfer",
             subtitle: "Move money between your accounts",
-            iconName: "arrow.left.arrow.right",
-            iconColor: Color(hex: "FF74E0"),
-            backgroundColor: Color(hex: "FFE8F9")
+            iconName: "TransferTransfer"
         ),
         TransferAction(
             title: "Withdraw",
             subtitle: "Bank, card or mobile money",
-            iconName: "arrow.down.to.line",
-            iconColor: Color(hex: "9874FF"),
-            backgroundColor: Color(hex: "F2ECFF")
+            iconName: "TransferWithdraw"
         ),
         TransferAction(
             title: "Receive your salary",
             subtitle: "Get paid into Sling",
-            iconName: "banknote.fill",
-            iconColor: Color(hex: "7B7B7B"),
-            backgroundColor: Color(hex: "F7F7F7")
+            iconName: "TransferSalary"
         )
     ]
     
@@ -67,16 +55,11 @@ struct TransferActionRow: View {
     var body: some View {
         Button(action: {}) {
             HStack(spacing: 16) {
-                // Icon with background
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(action.backgroundColor)
-                        .frame(width: 44, height: 44)
-                    
-                    Image(systemName: action.iconName)
-                        .font(.system(size: 18))
-                        .foregroundColor(action.iconColor)
-                }
+                // Icon from Figma
+                Image(action.iconName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 44, height: 44)
                 
                 // Text content
                 VStack(alignment: .leading, spacing: 0) {

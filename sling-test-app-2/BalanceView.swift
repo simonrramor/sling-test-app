@@ -9,8 +9,7 @@ struct BalanceView: View {
             
             Text("$2,541.01")
                 .font(.custom("Inter-Bold", size: 36))
-                .bold()
-                .foregroundColor(.black)
+                .foregroundColor(Color(hex: "080808"))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 16)

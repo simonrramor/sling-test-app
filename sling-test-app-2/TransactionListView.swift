@@ -50,6 +50,7 @@ struct TransactionRow: View {
                         .foregroundColor(.white)
                         .font(.system(size: 22))
                 )
+                .accessibilityHidden(true)
             
             // Name
             Text(transaction.name)

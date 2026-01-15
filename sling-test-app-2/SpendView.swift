@@ -10,9 +10,9 @@ struct SpendCategory: Identifiable {
 
 struct SpendView: View {
     let categories = [
-        SpendCategory(name: "Groceries", amount: "$1,0321", iconName: "cart.fill", iconColor: Color(hex: "78D381")),
-        SpendCategory(name: "Transport", amount: "$1,0321", iconName: "car.fill", iconColor: Color(hex: "74CDFF")),
-        SpendCategory(name: "Shopping", amount: "$1,0321", iconName: "bag.fill", iconColor: Color(hex: "FFC774"))
+        SpendCategory(name: "Groceries", amount: "$1,032", iconName: "cart.fill", iconColor: Color(hex: "78D381")),
+        SpendCategory(name: "Transport", amount: "$1,032", iconName: "car.fill", iconColor: Color(hex: "74CDFF")),
+        SpendCategory(name: "Shopping", amount: "$1,032", iconName: "bag.fill", iconColor: Color(hex: "FFC774"))
     ]
     
     var body: some View {

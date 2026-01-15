@@ -66,6 +66,8 @@ struct InvestView: View {
                                 .background(selectedPeriod == period ? Color(hex: "F7F7F7") : Color.clear)
                                 .cornerRadius(8)
                         }
+                        .accessibilityLabel("\(period) time period")
+                        .accessibilityAddTraits(selectedPeriod == period ? .isSelected : [])
                         
                         if period != periods.last {
                             Spacer()
@@ -149,6 +151,7 @@ struct StockRow: View {
                         .font(.system(size: 20))
                         .foregroundColor(.black)
                 )
+                .accessibilityHidden(true)
             
             // Name and Symbol
             VStack(alignment: .leading, spacing: 2) {

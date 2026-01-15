@@ -29,6 +29,8 @@ struct HeaderView: View {
                 }
                 .offset(x: 2, y: -1)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Profile, verified")
             
             Spacer()
             
@@ -49,10 +51,11 @@ struct HeaderView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color(hex: "080808"))
-                        .frame(width: 36, height: 36)
+                        .frame(width: 44, height: 44)
                         .background(Color(hex: "EDEDED"))
                         .cornerRadius(12)
                 }
+                .accessibilityLabel("Search")
             }
         }
     }

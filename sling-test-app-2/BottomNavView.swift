@@ -3,30 +3,20 @@ import SwiftUI
 enum Tab: String, CaseIterable {
     case home = "Home"
     case transfer = "Transfer"
+    case card = "Card"
     case invest = "Invest"
-    case activity = "Activity"
-    
-    var iconName: String {
-        switch self {
-        case .home: return "NavHome"
-        case .transfer: return "NavTransfer"
-        case .invest: return "NavInvest"
-        case .activity: return "NavActivity"
-        }
-    }
 }
 
 struct BottomNavView: View {
     @Binding var selectedTab: Tab
     
     var body: some View {
-        HStack {
+        HStack(spacing: 16) {
             ForEach(Tab.allCases, id: \.self) { tab in
-                Spacer()
                 TabButton(tab: tab, selectedTab: $selectedTab)
-                Spacer()
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(.top, 12)
         .padding(.bottom, 32)
         .background(Color.white)
@@ -47,6 +37,15 @@ struct TabButton: View {
         selectedTab == tab
     }
     
+    var iconName: String {
+        switch tab {
+        case .home: return "NavHome"
+        case .transfer: return "NavTransfer"
+        case .card: return "NavCard"
+        case .invest: return "NavInvest"
+        }
+    }
+    
     var body: some View {
         Button(action: {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -54,7 +53,7 @@ struct TabButton: View {
             }
         }) {
             VStack(spacing: 4) {
-                Image(tab.iconName)
+                Image(iconName)
                     .renderingMode(.template)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -65,6 +64,7 @@ struct TabButton: View {
                     .font(.custom("Inter-Regular", size: 10))
                     .foregroundColor(isSelected ? Color(hex: "FF5113") : Color(hex: "7B7B7B"))
             }
+            .frame(width: 80)
         }
     }
 }
