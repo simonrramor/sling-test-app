@@ -203,16 +203,25 @@ struct ScreenshotModeView: View {
         
         currentIndex = capturedCount
         
-        // Wait for render, then signal capture
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            // Print marker for external capture tool
-            print("📸 APPSHOT_CAPTURE:\(screens[currentIndex].id):\(screens[currentIndex].name)")
+        // Wait for screen to render
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            // HIDE the overlay before capture
+            isAutoCapturing = false
+            hideControls = true
             
-            capturedCount += 1
-            
-            // Next screen
+            // Wait for overlay to disappear, then signal capture
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                captureNext()
+                // Print marker for external capture tool
+                print("📸 APPSHOT_CAPTURE:\(screens[currentIndex].id):\(screens[currentIndex].name)")
+                
+                // Show overlay again and continue
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isAutoCapturing = true
+                    capturedCount += 1
+                    
+                    // Next screen
+                    captureNext()
+                }
             }
         }
     }
