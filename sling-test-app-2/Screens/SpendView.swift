@@ -28,13 +28,21 @@ struct SpendView: View {
                     cardContent
                 } else {
                     // Empty state
-                    CardEmptyStateCard(onGetCard: {
-                        withAnimation {
-                            hasCard = true
-                        }
-                    })
-                    .padding(.horizontal, 24)
-                    .padding(.top, 24)
+                    VStack(spacing: 0) {
+                        // Card illustration from Figma
+                        Image("CardEmptyIllustration")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 16)
+                        
+                        CardEmptyStateCard(onGetCard: {
+                            withAnimation {
+                                hasCard = true
+                            }
+                        })
+                        .padding(.horizontal, 24)
+                    }
                 }
             }
         }
@@ -149,70 +157,44 @@ struct CardEmptyStateCard: View {
     var onGetCard: () -> Void
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Card illustration
-            ZStack {
-                // Background card (tilted left)
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(hex: "E0E0E0"))
-                    .frame(width: 100, height: 65)
-                    .rotationEffect(.degrees(-8))
-                    .offset(x: -15)
-                
-                // Foreground card (tilted right)
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(hex: "080808"))
-                    .frame(width: 100, height: 65)
-                    .rotationEffect(.degrees(8))
-                    .offset(x: 15)
-                    .overlay(
-                        Image("VisaLogo")
-                            .resizable()
-                            .renderingMode(.template)
-                            .foregroundColor(.white)
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 30)
-                            .offset(x: 15, y: 15)
-                        , alignment: .bottomTrailing
-                    )
-            }
-            .frame(height: 90)
-            
+        VStack(spacing: 32) {
             // Text content
             VStack(spacing: 8) {
-                Text("Get your Sling card")
-                    .font(.custom("Inter-Bold", size: 18))
+                Text("Create your Sling Card today")
+                    .font(.custom("Inter-Bold", size: 32))
+                    .tracking(-0.64)
+                    .lineSpacing(1)
                     .foregroundColor(Color(hex: "080808"))
                     .multilineTextAlignment(.center)
+                    .frame(maxWidth: 313)
                 
-                Text("Spend anywhere Visa is accepted. Track your spending and earn rewards on every purchase.")
-                    .font(.custom("Inter-Regular", size: 14))
+                Text("Get your new virtual debit card, and start spending digital dollars around the world, with no fees.")
+                    .font(.custom("Inter-Regular", size: 16))
+                    .tracking(-0.32)
+                    .lineSpacing(8)
                     .foregroundColor(Color(hex: "7B7B7B"))
                     .multilineTextAlignment(.center)
             }
             
-            // Get card button
+            // Create card button
             Button(action: {
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
                 onGetCard()
             }) {
-                Text("Get your card")
-                    .font(.custom("Inter-Bold", size: 14))
+                Text("Create Sling Card")
+                    .font(.custom("Inter-Bold", size: 16))
+                    .tracking(-0.32)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color(hex: "080808"))
-                    .cornerRadius(12)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color(hex: "000000"))
+                    .cornerRadius(20)
             }
         }
-        .padding(.horizontal, 32)
-        .padding(.vertical, 32)
+        .padding(.horizontal, 40)
+        .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color(hex: "F7F7F7"))
-        )
     }
 }
 

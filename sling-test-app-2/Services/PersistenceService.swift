@@ -135,9 +135,18 @@ class PersistenceService {
     // MARK: - Clear All Data (for testing)
     
     func clearAllData() {
+        // Clear iCloud data
         iCloud.removeObject(forKey: portfolioKey)
         iCloud.removeObject(forKey: activitiesKey)
         iCloud.synchronize()
+        
+        // Clear UserDefaults / AppStorage values
+        UserDefaults.standard.removeObject(forKey: "hasCard")
+        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+        UserDefaults.standard.removeObject(forKey: "pendingRequests")
+        UserDefaults.standard.removeObject(forKey: "sentRequests")
+        UserDefaults.standard.synchronize()
+        
         print("PersistenceService: Cleared all persisted data")
     }
 }
