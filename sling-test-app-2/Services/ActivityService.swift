@@ -255,6 +255,149 @@ class ActivityService: ObservableObject {
         )
     }
     
+    /// Convenience method for card payment at merchant
+    func recordCardPayment(
+        merchantName: String,
+        merchantAvatar: String,
+        amount: Double
+    ) {
+        let formattedAmount = String(format: "-£%.2f", amount)
+        
+        addActivity(
+            avatar: merchantAvatar,
+            titleLeft: merchantName,
+            subtitleLeft: "Card payment",
+            titleRight: formattedAmount,
+            subtitleRight: ""
+        )
+    }
+    
+    /// Convenience method for receiving money (P2P inbound)
+    func recordReceivedMoney(
+        fromContactName: String,
+        fromContactAvatar: String,
+        amount: Double
+    ) {
+        let formattedAmount = String(format: "+£%.2f", amount)
+        
+        addActivity(
+            avatar: fromContactAvatar,
+            titleLeft: fromContactName,
+            subtitleLeft: "Received",
+            titleRight: formattedAmount,
+            subtitleRight: ""
+        )
+    }
+    
+    /// Convenience method for top up transactions
+    func recordTopUp(
+        amount: Double,
+        source: String = "Bank Transfer"
+    ) {
+        let formattedAmount = String(format: "+£%.2f", amount)
+        
+        addActivity(
+            avatar: "🏦",
+            titleLeft: "Top Up",
+            subtitleLeft: source,
+            titleRight: formattedAmount,
+            subtitleRight: ""
+        )
+    }
+    
+    /// Convenience method for withdrawal transactions
+    func recordWithdrawal(
+        amount: Double,
+        method: String = "ATM"
+    ) {
+        let formattedAmount = String(format: "-£%.2f", amount)
+        
+        addActivity(
+            avatar: "💳",
+            titleLeft: "Withdrawal",
+            subtitleLeft: method,
+            titleRight: formattedAmount,
+            subtitleRight: ""
+        )
+    }
+    
+    // MARK: - Test Data Generation
+    
+    private let sampleMerchants: [(name: String, avatar: String)] = [
+        ("Tesco", "🛒"),
+        ("Amazon", "📦"),
+        ("Uber", "🚗"),
+        ("Deliveroo", "🍔"),
+        ("Netflix", "🎬"),
+        ("Spotify", "🎵"),
+        ("Costa", "☕️"),
+        ("Apple", "🍎"),
+        ("TfL", "🚇"),
+        ("Sainsbury's", "🛍️")
+    ]
+    
+    private let sampleContacts: [(name: String, avatar: String)] = [
+        ("Emma", "E"),
+        ("James", "J"),
+        ("Sarah", "S"),
+        ("Michael", "M"),
+        ("Lucy", "L"),
+        ("Tom", "T"),
+        ("Sophie", "S"),
+        ("Ben", "B")
+    ]
+    
+    /// Generate a single random card payment
+    func generateCardPayment() {
+        let merchant = sampleMerchants.randomElement()!
+        let amount = Double.random(in: 2.50...85.00)
+        recordCardPayment(merchantName: merchant.name, merchantAvatar: merchant.avatar, amount: amount)
+    }
+    
+    /// Generate a single random P2P outbound (send money)
+    func generateP2POutbound() {
+        let contact = sampleContacts.randomElement()!
+        let amount = Double.random(in: 5.00...100.00)
+        recordSendMoney(toContactName: contact.name, toContactAvatar: contact.avatar, amount: amount)
+    }
+    
+    /// Generate a single random P2P inbound (receive money)
+    func generateP2PInbound() {
+        let contact = sampleContacts.randomElement()!
+        let amount = Double.random(in: 5.00...150.00)
+        recordReceivedMoney(fromContactName: contact.name, fromContactAvatar: contact.avatar, amount: amount)
+    }
+    
+    /// Generate a single random top up
+    func generateTopUp() {
+        let sources = ["Bank Transfer", "Apple Pay", "Debit Card"]
+        let amount = Double.random(in: 20.00...500.00)
+        recordTopUp(amount: amount, source: sources.randomElement()!)
+    }
+    
+    /// Generate a single random withdrawal
+    func generateWithdrawal() {
+        let methods = ["ATM", "Bank Transfer", "Cash Back"]
+        let amount = Double.random(in: 10.00...200.00)
+        recordWithdrawal(amount: amount, method: methods.randomElement()!)
+    }
+    
+    /// Generate a random mix of transactions
+    func generateRandomMix(count: Int = 8) {
+        let generators: [() -> Void] = [
+            generateCardPayment,
+            generateP2POutbound,
+            generateP2PInbound,
+            generateTopUp,
+            generateWithdrawal
+        ]
+        
+        for _ in 0..<count {
+            let generator = generators.randomElement()!
+            generator()
+        }
+    }
+    
     func fetchActivities(force: Bool = false) async {
         // Skip fetch if already fetched and not forced (e.g., pull-to-refresh)
         if hasFetchedOnce && !force {

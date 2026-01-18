@@ -9,6 +9,7 @@ struct BuyConfirmView: View {
     var onComplete: () -> Void = {}
     
     @State private var showPendingScreen = false
+    @State private var isButtonLoading = false
     
     // Get current stock price from service
     var stockPrice: Double {
@@ -85,6 +86,8 @@ struct BuyConfirmView: View {
                 }
                 .padding(.horizontal, 24)
                 .frame(height: 64)
+                .opacity(isButtonLoading ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
@@ -92,6 +95,8 @@ struct BuyConfirmView: View {
                 Text(String(format: "£%.0f", amount))
                     .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(Color(hex: "080808"))
+                    .opacity(isButtonLoading ? 0 : 1)
+                    .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
@@ -145,44 +150,53 @@ struct BuyConfirmView: View {
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 16)
+                .opacity(isButtonLoading ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Buy button
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    
+                // Buy button with animation
+                AnimatedLoadingButton(
+                    title: "Buy \(formattedShares) \(stock.symbol)",
+                    isLoadingBinding: $isButtonLoading
+                ) {
                     // Execute the purchase through PortfolioService
-                    PortfolioService.shared.buy(
+                    let success = PortfolioService.shared.buy(
                         iconName: stock.iconName,
                         symbol: stock.symbol,
                         shares: numberOfShares,
                         pricePerShare: stockPrice
                     )
                     
-                    // Record the transaction in activity feed
-                    ActivityService.shared.recordBuyStock(
-                        stockName: stock.name,
-                        stockIcon: stock.iconName,
-                        amount: amount,
-                        shares: numberOfShares,
-                        symbol: stock.symbol
-                    )
-                    
-                    // Show pending screen
-                    showPendingScreen = true
-                }) {
-                    Text("Buy \(formattedShares) \(stock.symbol)")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color(hex: "FF5113"))
-                        .cornerRadius(20)
+                    // Only record activity and show success if purchase succeeded
+                    if success {
+                        // Record the transaction in activity feed
+                        ActivityService.shared.recordBuyStock(
+                            stockName: stock.name,
+                            stockIcon: stock.iconName,
+                            amount: amount,
+                            shares: numberOfShares,
+                            symbol: stock.symbol
+                        )
+                        
+                        // Show pending screen
+                        showPendingScreen = true
+                    } else {
+                        // Reset loading state if purchase failed
+                        isButtonLoading = false
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
+            
+            // Centered amount overlay (appears when loading)
+            if isButtonLoading {
+                Text(String(format: "£%.0f", amount))
+                    .font(.custom("Inter-Bold", size: 62))
+                    .foregroundColor(Color(hex: "080808"))
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
         .overlay {
             if showPendingScreen {
                 BuyPendingView(

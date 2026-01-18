@@ -189,6 +189,7 @@ struct PendingRequestsCard: View {
 
 struct HomeEmptyStateCard: View {
     var onAddTransactions: () -> Void
+    @State private var showTransactionOptions = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -212,7 +213,7 @@ struct HomeEmptyStateCard: View {
             Button(action: {
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
-                onAddTransactions()
+                showTransactionOptions = true
             }) {
                 Text("Add transactions")
                     .font(.custom("Inter-Bold", size: 14))
@@ -221,6 +222,27 @@ struct HomeEmptyStateCard: View {
                     .padding(.vertical, 8)
                     .background(Color(hex: "EDEDED"))
                     .cornerRadius(12)
+            }
+            .confirmationDialog("Add Transaction", isPresented: $showTransactionOptions, titleVisibility: .visible) {
+                Button("Card Payment") {
+                    ActivityService.shared.generateCardPayment()
+                }
+                Button("P2P Outbound (Send)") {
+                    ActivityService.shared.generateP2POutbound()
+                }
+                Button("P2P Inbound (Receive)") {
+                    ActivityService.shared.generateP2PInbound()
+                }
+                Button("Top Up") {
+                    ActivityService.shared.generateTopUp()
+                }
+                Button("Withdrawal") {
+                    ActivityService.shared.generateWithdrawal()
+                }
+                Button("Random Mix (8 transactions)") {
+                    ActivityService.shared.generateRandomMix()
+                }
+                Button("Cancel", role: .cancel) { }
             }
         }
         .padding(.horizontal, 48)
