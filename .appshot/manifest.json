@@ -1,0 +1,70 @@
+{
+  "appName": "Sling",
+  "version": "1.0",
+  "exportedAt": "2026-01-18T19:06:00Z",
+  "screens": [
+    {
+      "id": "home",
+      "name": "Home",
+      "file": "screens/01_home.png",
+      "navigatesTo": ["invest", "spend", "settings"],
+      "description": "Main home screen with balance and quick actions"
+    },
+    {
+      "id": "invest",
+      "name": "Invest",
+      "file": "screens/02_tab2.png",
+      "navigatesTo": ["invest_detail"],
+      "description": "Investment portfolio and stock list"
+    },
+    {
+      "id": "spend",
+      "name": "Spend",
+      "file": "screens/03_tab3.png",
+      "navigatesTo": ["spend_detail"],
+      "description": "Spending overview and transactions"
+    },
+    {
+      "id": "activity",
+      "name": "Activity",
+      "file": "screens/04_tab4.png",
+      "navigatesTo": [],
+      "description": "Recent activity and notifications"
+    },
+    {
+      "id": "detail1",
+      "name": "Quick Action",
+      "file": "screens/05_detail1.png",
+      "navigatesTo": [],
+      "description": "Quick action detail view"
+    },
+    {
+      "id": "detail2",
+      "name": "Transaction",
+      "file": "screens/06_detail2.png",
+      "navigatesTo": [],
+      "description": "Transaction detail view"
+    },
+    {
+      "id": "invest_detail",
+      "name": "Stock Detail",
+      "file": "screens/07_invest_detail.png",
+      "navigatesTo": [],
+      "description": "Individual stock detail with chart"
+    },
+    {
+      "id": "spend_detail",
+      "name": "Spending Detail",
+      "file": "screens/08_spend_detail.png",
+      "navigatesTo": [],
+      "description": "Detailed spending breakdown"
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "file": "screens/09_settings.png",
+      "navigatesTo": [],
+      "description": "App settings and preferences"
+    }
+  ]
+}
