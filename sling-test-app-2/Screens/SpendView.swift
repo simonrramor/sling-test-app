@@ -55,8 +55,10 @@ struct SpendView: View {
     
     private var cardContent: some View {
         VStack(spacing: 0) {
-            DebitCardWidget(isLocked: isCardLocked)
-                .padding(.horizontal, 24)
+            // 3D Interactive Card
+            Card3DView(isLocked: $isCardLocked)
+                .frame(height: 240)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 24)
             
