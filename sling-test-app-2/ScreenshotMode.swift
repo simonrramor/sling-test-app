@@ -44,8 +44,8 @@ struct ScreenshotModeView: View {
             screens[currentIndex].view
                 .id(currentIndex)
             
-            // Screenshot mode controls (can be hidden)
-            if !hideControls {
+            // Screenshot mode controls (hidden during auto-capture)
+            if !hideControls && !isAutoCapturing {
                 VStack {
                     // Top bar
                     HStack {
@@ -130,31 +130,7 @@ struct ScreenshotModeView: View {
                     }
             }
             
-            // Auto-capture progress overlay
-            if isAutoCapturing {
-                Color.black.opacity(0.7)
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(2)
-                        .tint(.white)
-                    
-                    Text("Capturing Screenshots...")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    Text("\(capturedCount) / \(screens.count)")
-                        .font(.title.bold())
-                        .foregroundColor(.white)
-                    
-                    Text(screens[min(capturedCount, screens.count - 1)].name)
-                        .foregroundColor(.gray)
-                }
-                .padding(40)
-                .background(.ultraThinMaterial)
-                .cornerRadius(24)
-            }
+            // No overlay during auto-capture - clean screenshots only
         }
         .onAppear {
             // Auto-start capture if launched with --screenshot-mode
@@ -203,25 +179,16 @@ struct ScreenshotModeView: View {
         
         currentIndex = capturedCount
         
-        // Wait for screen to render
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            // HIDE the overlay before capture
-            isAutoCapturing = false
-            hideControls = true
+        // Wait for screen to fully render (no overlay shown during this time)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            // Print marker for external capture tool
+            print("📸 APPSHOT_CAPTURE:\(screens[currentIndex].id):\(screens[currentIndex].name)")
             
-            // Wait for overlay to disappear, then signal capture
+            capturedCount += 1
+            
+            // Next screen
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                // Print marker for external capture tool
-                print("📸 APPSHOT_CAPTURE:\(screens[currentIndex].id):\(screens[currentIndex].name)")
-                
-                // Show overlay again and continue
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    isAutoCapturing = true
-                    capturedCount += 1
-                    
-                    // Next screen
-                    captureNext()
-                }
+                captureNext()
             }
         }
     }
