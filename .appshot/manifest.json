@@ -1,70 +1,119 @@
 {
   "appName": "Sling",
   "version": "1.0",
-  "exportedAt": "2026-01-18T19:06:00Z",
+  "exportedAt": "2026-01-18T19:20:00Z",
   "screens": [
     {
       "id": "home",
       "name": "Home",
       "file": "screens/01_home.png",
-      "navigatesTo": ["invest", "spend", "settings"],
+      "navigatesTo": ["invest", "spend", "activity", "settings"],
       "description": "Main home screen with balance and quick actions"
     },
     {
       "id": "invest",
       "name": "Invest",
-      "file": "screens/02_tab2.png",
-      "navigatesTo": ["invest_detail"],
+      "file": "screens/02_invest.png",
+      "navigatesTo": ["stockdetail"],
       "description": "Investment portfolio and stock list"
     },
     {
       "id": "spend",
       "name": "Spend",
-      "file": "screens/03_tab3.png",
-      "navigatesTo": ["spend_detail"],
-      "description": "Spending overview and transactions"
+      "file": "screens/03_spend.png",
+      "navigatesTo": ["transaction"],
+      "description": "Card spending overview"
     },
     {
       "id": "activity",
       "name": "Activity",
-      "file": "screens/04_tab4.png",
-      "navigatesTo": [],
-      "description": "Recent activity and notifications"
-    },
-    {
-      "id": "detail1",
-      "name": "Quick Action",
-      "file": "screens/05_detail1.png",
-      "navigatesTo": [],
-      "description": "Quick action detail view"
-    },
-    {
-      "id": "detail2",
-      "name": "Transaction",
-      "file": "screens/06_detail2.png",
-      "navigatesTo": [],
-      "description": "Transaction detail view"
-    },
-    {
-      "id": "invest_detail",
-      "name": "Stock Detail",
-      "file": "screens/07_invest_detail.png",
-      "navigatesTo": [],
-      "description": "Individual stock detail with chart"
-    },
-    {
-      "id": "spend_detail",
-      "name": "Spending Detail",
-      "file": "screens/08_spend_detail.png",
-      "navigatesTo": [],
-      "description": "Detailed spending breakdown"
+      "file": "screens/04_activity.png",
+      "navigatesTo": ["transaction"],
+      "description": "Recent activity feed"
     },
     {
       "id": "settings",
       "name": "Settings",
-      "file": "screens/09_settings.png",
+      "file": "screens/05_settings.png",
       "navigatesTo": [],
       "description": "App settings and preferences"
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "file": "screens/06_search.png",
+      "navigatesTo": [],
+      "description": "Search for contacts and transactions"
+    },
+    {
+      "id": "chat",
+      "name": "Chat",
+      "file": "screens/07_chat.png",
+      "navigatesTo": [],
+      "description": "Support chat interface"
+    },
+    {
+      "id": "pending",
+      "name": "Pending Requests",
+      "file": "screens/08_pending.png",
+      "navigatesTo": [],
+      "description": "Pending payment requests"
+    },
+    {
+      "id": "send",
+      "name": "Send Money",
+      "file": "screens/09_send.png",
+      "navigatesTo": [],
+      "description": "Send money to contacts"
+    },
+    {
+      "id": "withdraw",
+      "name": "Withdraw",
+      "file": "screens/10_withdraw.png",
+      "navigatesTo": [],
+      "description": "Withdraw funds to bank account"
+    },
+    {
+      "id": "splitbill",
+      "name": "Split Bill",
+      "file": "screens/11_splitbill.png",
+      "navigatesTo": [],
+      "description": "Split expenses with friends"
+    },
+    {
+      "id": "addmoney",
+      "name": "Add Money",
+      "file": "screens/12_addmoney.png",
+      "navigatesTo": [],
+      "description": "Add funds from bank account"
+    },
+    {
+      "id": "stockdetail",
+      "name": "Stock Detail",
+      "file": "screens/13_stockdetail.png",
+      "navigatesTo": [],
+      "description": "Individual stock detail with chart"
+    },
+    {
+      "id": "transaction",
+      "name": "Transaction Detail",
+      "file": "screens/14_transaction.png",
+      "navigatesTo": [],
+      "description": "Transaction receipt and details"
+    },
+    {
+      "id": "onboarding",
+      "name": "Onboarding",
+      "file": "screens/15_onboarding.png",
+      "navigatesTo": [],
+      "description": "New user onboarding flow"
+    },
+    {
+      "id": "qrscanner",
+      "name": "QR Scanner",
+      "file": "screens/16_qrscanner.png",
+      "navigatesTo": [],
+      "description": "Scan QR codes to send/receive"
     }
   ]
 }
