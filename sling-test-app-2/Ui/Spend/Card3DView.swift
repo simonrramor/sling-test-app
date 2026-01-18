@@ -3,6 +3,11 @@ import SceneKit
 
 struct Card3DView: UIViewRepresentable {
     @Binding var isLocked: Bool
+    var maxRotation: Float = 0.07  // Default ~4 degrees
+    var cameraFOV: Double = 42.0
+    var cameraZ: Double = 3.23
+    var cardDepth: Double = 0.057
+    var contentBlur: Double = 8.0  // Blur radius for locked state
     
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
@@ -17,9 +22,8 @@ struct Card3DView: UIViewRepresentable {
         // Create the card geometry - match downloaded image ratio 1035:648 = 1.597:1
         let cardWidth: CGFloat = 3.45
         let cardHeight: CGFloat = 2.16  // 3.45 / 1.597
-        let cardDepth: CGFloat = 0.005  // Very thin to minimize visible edges
         
-        let cardGeometry = SCNBox(width: cardWidth, height: cardHeight, length: cardDepth, chamferRadius: 0)
+        let cardGeometry = SCNBox(width: cardWidth, height: cardHeight, length: CGFloat(cardDepth), chamferRadius: 0)
         
         // Create materials for the card
         let frontMaterial = SCNMaterial()
@@ -31,8 +35,7 @@ struct Card3DView: UIViewRepresentable {
         backMaterial.isDoubleSided = false
         
         let sideMaterial = SCNMaterial()
-        sideMaterial.diffuse.contents = UIColor.clear
-        sideMaterial.transparency = 0
+        sideMaterial.diffuse.contents = UIColor(hex: "FF5113")  // Match card orange
         
         // Box has 6 faces: front, right, back, left, top, bottom
         cardGeometry.materials = [frontMaterial, sideMaterial, backMaterial, sideMaterial, sideMaterial, sideMaterial]
@@ -41,30 +44,31 @@ struct Card3DView: UIViewRepresentable {
         cardNode.name = "card"
         scene.rootNode.addChildNode(cardNode)
         
-        // Add camera - position closer for larger card view
+        // Add camera - perspective projection for 3D depth effect
         let cameraNode = SCNNode()
+        cameraNode.name = "camera"
         cameraNode.camera = SCNCamera()
-        cameraNode.camera?.fieldOfView = 45
-        cameraNode.position = SCNVector3(x: 0, y: 0, z: 4.5)
+        cameraNode.camera?.fieldOfView = CGFloat(cameraFOV)
+        cameraNode.position = SCNVector3(x: 0, y: 0, z: Float(cameraZ))
         scene.rootNode.addChildNode(cameraNode)
         
         // Add ambient light
-        let ambientLight = SCNNode()
-        ambientLight.light = SCNLight()
-        ambientLight.light?.type = .ambient
-        ambientLight.light?.intensity = 500
-        ambientLight.light?.color = UIColor.white
-        scene.rootNode.addChildNode(ambientLight)
+        let ambientLightNode = SCNNode()
+        ambientLightNode.light = SCNLight()
+        ambientLightNode.light?.type = .ambient
+        ambientLightNode.light?.intensity = 500
+        ambientLightNode.light?.color = UIColor.white
+        scene.rootNode.addChildNode(ambientLightNode)
         
         // Add directional light for shine effect
-        let directionalLight = SCNNode()
-        directionalLight.light = SCNLight()
-        directionalLight.light?.type = .directional
-        directionalLight.light?.intensity = 800
-        directionalLight.light?.color = UIColor.white
-        directionalLight.position = SCNVector3(x: 2, y: 2, z: 5)
-        directionalLight.look(at: SCNVector3Zero)
-        scene.rootNode.addChildNode(directionalLight)
+        let directionalLightNode = SCNNode()
+        directionalLightNode.light = SCNLight()
+        directionalLightNode.light?.type = .directional
+        directionalLightNode.light?.intensity = 800
+        directionalLightNode.light?.color = UIColor.white
+        directionalLightNode.position = SCNVector3(x: 2, y: 2, z: 5)
+        directionalLightNode.look(at: SCNVector3Zero)
+        scene.rootNode.addChildNode(directionalLightNode)
         
         // Add pan gesture for rotation
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
@@ -81,7 +85,55 @@ struct Card3DView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: SCNView, context: Context) {
-        // Update card appearance based on lock state if needed
+        // Update max rotation when slider changes
+        context.coordinator.maxRotation = maxRotation
+        
+        // Update camera settings
+        if let cameraNode = uiView.scene?.rootNode.childNode(withName: "camera", recursively: false) {
+            cameraNode.camera?.fieldOfView = CGFloat(cameraFOV)
+            cameraNode.position = SCNVector3(x: 0, y: 0, z: Float(cameraZ))
+        }
+        
+        // Update card texture based on lock state
+        if let cardNode = uiView.scene?.rootNode.childNode(withName: "card", recursively: false),
+           let box = cardNode.geometry as? SCNBox {
+            
+            let frontImage = isLocked ? createLockedCardImage(blurRadius: contentBlur) : createCardFrontImage()
+            box.materials[0].diffuse.contents = frontImage
+            
+            // Keep side material orange (no grayscale)
+            let sideColor = UIColor(hex: "FF5113")
+            box.materials[1].diffuse.contents = sideColor
+            box.materials[3].diffuse.contents = sideColor
+            box.materials[4].diffuse.contents = sideColor
+            box.materials[5].diffuse.contents = sideColor
+        }
+        
+        // Update card depth if changed
+        if let cardNode = uiView.scene?.rootNode.childNode(withName: "card", recursively: false),
+           let oldBox = cardNode.geometry as? SCNBox,
+           abs(oldBox.length - CGFloat(cardDepth)) > 0.001 {
+            
+            let cardWidth: CGFloat = 3.45
+            let cardHeight: CGFloat = 2.16
+            
+            let newBox = SCNBox(width: cardWidth, height: cardHeight, length: CGFloat(cardDepth), chamferRadius: 0)
+            
+            // Recreate materials
+            let frontMaterial = SCNMaterial()
+            frontMaterial.diffuse.contents = isLocked ? createLockedCardImage(blurRadius: contentBlur) : createCardFrontImage()
+            frontMaterial.isDoubleSided = false
+            
+            let backMaterial = SCNMaterial()
+            backMaterial.diffuse.contents = createCardBackImage()
+            backMaterial.isDoubleSided = false
+            
+            let sideMaterial = SCNMaterial()
+            sideMaterial.diffuse.contents = UIColor(hex: "FF5113")
+            
+            newBox.materials = [frontMaterial, sideMaterial, backMaterial, sideMaterial, sideMaterial, sideMaterial]
+            cardNode.geometry = newBox
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -95,9 +147,11 @@ struct Card3DView: UIViewRepresentable {
         var lastPanLocation: CGPoint = .zero
         var currentRotationX: Float = 0
         var currentRotationY: Float = 0
+        var maxRotation: Float = 0.087
         
         init(_ parent: Card3DView) {
             self.parent = parent
+            self.maxRotation = parent.maxRotation
         }
         
         @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
@@ -107,27 +161,32 @@ struct Card3DView: UIViewRepresentable {
             
             if gesture.state == .began {
                 lastPanLocation = translation
+                cardNode.removeAllActions()
             }
             
-            let deltaX = Float(translation.x - lastPanLocation.x) * 0.01
-            let deltaY = Float(translation.y - lastPanLocation.y) * 0.01
+            let deltaX = Float(translation.x - lastPanLocation.x) * 0.004
+            let deltaY = Float(translation.y - lastPanLocation.y) * 0.004
             
-            currentRotationY += deltaX
             currentRotationX += deltaY
+            currentRotationY += deltaX
             
-            // Limit X rotation to prevent flipping too far
-            currentRotationX = max(-0.5, min(0.5, currentRotationX))
+            // Simple clamp - no rubber band, just limits
+            currentRotationX = max(-maxRotation, min(maxRotation, currentRotationX))
+            currentRotationY = max(-maxRotation, min(maxRotation, currentRotationY))
             
             cardNode.eulerAngles = SCNVector3(currentRotationX, currentRotationY, 0)
             
             lastPanLocation = translation
             
             if gesture.state == .ended {
-                // Animate back to center with spring effect
-                let springBack = SCNAction.rotateTo(x: 0, y: CGFloat(currentRotationY), z: 0, duration: 0.3)
-                springBack.timingMode = .easeOut
-                cardNode.runAction(springBack)
-                currentRotationX = 0
+                // Simple smooth return to center
+                let returnAction = SCNAction.rotateTo(x: 0, y: 0, z: 0, duration: 0.25)
+                returnAction.timingMode = .easeOut
+                
+                cardNode.runAction(returnAction) { [weak self] in
+                    self?.currentRotationX = 0
+                    self?.currentRotationY = 0
+                }
             }
         }
         
@@ -137,21 +196,23 @@ struct Card3DView: UIViewRepresentable {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
             
-            // Flip the card 180 degrees
-            let currentY = currentRotationY
-            let targetY = currentY + Float.pi
-            
-            let flipAction = SCNAction.rotateTo(x: 0, y: CGFloat(targetY), z: 0, duration: 0.5)
-            flipAction.timingMode = .easeInEaseOut
-            cardNode.runAction(flipAction)
-            
-            currentRotationY = targetY
+            // Subtle bounce effect on tap instead of flip
+            let tiltForward = SCNAction.rotateBy(x: -0.05, y: 0, z: 0, duration: 0.1)
+            let tiltBack = SCNAction.rotateBy(x: 0.05, y: 0, z: 0, duration: 0.15)
+            tiltBack.timingMode = .easeOut
+            let sequence = SCNAction.sequence([tiltForward, tiltBack])
+            cardNode.runAction(sequence)
         }
     }
     
     private func createCardFrontImage() -> UIImage {
         // Use the actual Figma-exported card image
         return UIImage(named: "SlingCardFront") ?? UIImage()
+    }
+    
+    private func createLockedCardImage(blurRadius: Double) -> UIImage {
+        // Use pre-made blurred asset from Figma
+        return UIImage(named: "SlingCardFrontLocked") ?? UIImage(named: "SlingCardFront") ?? UIImage()
     }
     
     private func createCardBackImage() -> UIImage {

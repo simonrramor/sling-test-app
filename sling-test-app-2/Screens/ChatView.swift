@@ -56,12 +56,19 @@ struct ChatView: View {
                 Spacer()
                 
                 // Dynamic greeting
-                Text(greetingText)
-                    .font(.custom("Inter-Bold", size: 28))
-                    .tracking(-0.56)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(Color(hex: "080808"))
-                    .padding(.horizontal, 32)
+                VStack(spacing: 8) {
+                    Text(greetingText)
+                        .font(.custom("Inter-Bold", size: 28))
+                        .tracking(-0.56)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(Color(hex: "080808"))
+                    
+                    Text("Your AI helper to answer any questions")
+                        .font(.custom("Inter-Regular", size: 16))
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 32)
                 
                 Spacer()
             } else {

@@ -34,7 +34,7 @@ struct SpendView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, 24)
                         
                         CardEmptyStateCard(onGetCard: {
                             withAnimation {
@@ -56,11 +56,22 @@ struct SpendView: View {
     private var cardContent: some View {
         VStack(spacing: 0) {
             // 3D Interactive Card
-            Card3DView(isLocked: $isCardLocked)
+            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1)
                 .frame(height: 240)
-                .padding(.horizontal, 16)
+                .overlay(
+                    Group {
+                        if isCardLocked {
+                            // Lock icon in center
+                            Image("LockLockedIcon")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 32, height: 32)
+                                .foregroundColor(.white)
+                        }
+                    }
+                )
                 .padding(.top, 16)
-                .padding(.bottom, 24)
             
             HStack(spacing: 8) {
                 Button(action: {
@@ -268,7 +279,6 @@ struct CardDetailsSheet: View {
                     CardDetailField(title: detail.title, value: detail.value)
                 }
             }
-            .padding(.horizontal, 24)
             .padding(.top, 32)
             .padding(.bottom, 8)
             
