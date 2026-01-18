@@ -279,6 +279,7 @@ struct CardDetailsSheet: View {
                     CardDetailField(title: detail.title, value: detail.value)
                 }
             }
+            .padding(.horizontal, 24)
             .padding(.top, 32)
             .padding(.bottom, 8)
             
