@@ -70,6 +70,10 @@ class ChatService: ObservableObject {
     
     /// Send a message and get a response from Claude
     func sendMessage(_ content: String) async {
+        // #region agent log
+        print("🔍 [A] ChatService:sendMessage - API key empty: \(apiKey.isEmpty), key length: \(apiKey.count)")
+        // #endregion
+        
         // Add user message
         let userMessage = ChatMessage(
             role: .user,
@@ -104,11 +108,25 @@ class ChatService: ObservableObject {
             urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
             urlRequest.httpBody = try JSONEncoder().encode(request)
             
+            // #region agent log
+            print("🔍 [B] ChatService:sendMessage - Making API request")
+            // #endregion
+            
             let (data, response) = try await URLSession.shared.data(for: urlRequest)
+            
+            // #region agent log
+            let httpStatus = (response as? HTTPURLResponse)?.statusCode ?? -1
+            print("🔍 [C] ChatService:response - HTTP status: \(httpStatus)")
+            // #endregion
             
             // Check HTTP status
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 // Try to decode error
+                // #region agent log
+                if let errorStr = String(data: data, encoding: .utf8) {
+                    print("🔍 [C] ChatService:error - Response body: \(errorStr.prefix(500))")
+                }
+                // #endregion
                 if let apiError = try? JSONDecoder().decode(AnthropicError.self, from: data) {
                     throw NSError(domain: "Anthropic", code: httpResponse.statusCode, 
                                   userInfo: [NSLocalizedDescriptionKey: apiError.error.message])
@@ -119,6 +137,9 @@ class ChatService: ObservableObject {
             
             // Decode response
             let apiResponse = try JSONDecoder().decode(AnthropicResponse.self, from: data)
+            // #region agent log
+            print("🔍 [D] ChatService:success - Response received, content blocks: \(apiResponse.content.count)")
+            // #endregion
             
             // Extract text from response
             let responseText = apiResponse.content
@@ -129,6 +150,9 @@ class ChatService: ObservableObject {
             await streamResponse(responseText)
             
         } catch {
+            // #region agent log
+            print("🔍 [E] ChatService:catch - Error: \(error.localizedDescription)")
+            // #endregion
             await MainActor.run {
                 self.error = error.localizedDescription
                 self.isLoading = false

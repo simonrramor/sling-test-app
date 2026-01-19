@@ -153,8 +153,8 @@ struct BuyConfirmView: View {
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Buy button with animation
-                AnimatedLoadingButton(
+                // Buy button - shrinks then transitions to pending screen
+                ShrinkingButton(
                     title: "Buy \(formattedShares) \(stock.symbol)",
                     isLoadingBinding: $isButtonLoading
                 ) {
@@ -177,7 +177,7 @@ struct BuyConfirmView: View {
                             symbol: stock.symbol
                         )
                         
-                        // Show pending screen
+                        // Show pending screen immediately after shrink
                         showPendingScreen = true
                     } else {
                         // Reset loading state if purchase failed

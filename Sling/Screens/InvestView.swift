@@ -8,6 +8,7 @@ struct Stock: Identifiable {
     let change: String
     let isPositive: Bool
     let iconName: String
+    var description: String = ""
 }
 
 struct InvestView: View {
@@ -19,18 +20,18 @@ struct InvestView: View {
     @State private var selectedStock: Stock? = nil
     
     // Stock definitions - available stocks to buy/sell
-    let stockDefinitions: [(name: String, iconName: String)] = [
-        ("Amazon", "StockAmazon"),
-        ("Apple Inc", "StockApple"),
-        ("Bank of America", "StockBankOfAmerica"),
-        ("Circle", "StockCircle"),
-        ("Coinbase", "StockCoinbase"),
-        ("Google Inc", "StockGoogle"),
-        ("McDonalds", "StockMcDonalds"),
-        ("Meta", "StockMeta"),
-        ("Microsoft", "StockMicrosoft"),
-        ("Tesla Inc", "StockTesla"),
-        ("Visa", "StockVisa")
+    let stockDefinitions: [(name: String, iconName: String, description: String)] = [
+        ("Amazon", "StockAmazon", "Amazon is a global technology company and one of the world's largest e-commerce and cloud computing platforms. Founded by Jeff Bezos in 1994, it has grown from an online bookstore to a leader in retail, AWS cloud services, streaming, and AI."),
+        ("Apple Inc", "StockApple", "Apple Inc. designs, manufactures, and markets consumer electronics, software, and services. Known for iconic products like iPhone, Mac, and iPad, Apple has built one of the world's most valuable brands through innovation and ecosystem integration."),
+        ("Bank of America", "StockBankOfAmerica", "Bank of America is one of the largest financial institutions in the United States, providing banking, investing, asset management, and financial services to individuals, businesses, and governments worldwide."),
+        ("Circle", "StockCircle", "Circle is a global financial technology firm and the issuer of USDC, one of the world's leading stablecoins. The company focuses on building infrastructure for the digital dollar economy and blockchain-based payments."),
+        ("Coinbase", "StockCoinbase", "Coinbase is the largest cryptocurrency exchange in the United States, providing a platform for buying, selling, and storing digital assets. Founded in 2012, it serves as a gateway for millions of users entering the crypto economy."),
+        ("Google Inc", "StockGoogle", "Alphabet Inc., Google's parent company, is a multinational technology conglomerate known for its dominant search engine, advertising platform, Android OS, YouTube, and cloud services. It's a leader in AI and machine learning innovation."),
+        ("McDonalds", "StockMcDonalds", "McDonald's Corporation is the world's largest restaurant chain by revenue, serving millions of customers daily across more than 100 countries. Known for its iconic Big Mac and golden arches, it's a global leader in quick-service dining."),
+        ("Meta", "StockMeta", "Meta Platforms, formerly Facebook, is a social technology company building products that help people connect. Its family of apps includes Facebook, Instagram, WhatsApp, and Messenger, while investing heavily in the metaverse."),
+        ("Microsoft", "StockMicrosoft", "Microsoft Corporation is a global technology leader known for Windows, Office 365, Azure cloud platform, and Xbox gaming. Under Satya Nadella's leadership, it has become a dominant force in cloud computing and enterprise software."),
+        ("Tesla Inc", "StockTesla", "Tesla, Inc. is an electric vehicle and clean energy company founded by Elon Musk. It designs and manufactures electric cars, battery storage systems, and solar products, pioneering the transition to sustainable energy."),
+        ("Visa", "StockVisa", "Visa Inc. is a global payments technology company that facilitates electronic funds transfers worldwide through its branded credit, debit, and prepaid cards. It operates one of the world's largest retail electronic payments networks.")
     ]
     
     // Build stocks from service data
@@ -43,7 +44,8 @@ struct InvestView: View {
                     price: data.formattedPrice,
                     change: data.formattedChange,
                     isPositive: data.isPositive,
-                    iconName: definition.iconName
+                    iconName: definition.iconName,
+                    description: definition.description
                 )
             } else {
                 return Stock(
@@ -52,7 +54,8 @@ struct InvestView: View {
                     price: "Loading...",
                     change: "--",
                     isPositive: true,
-                    iconName: definition.iconName
+                    iconName: definition.iconName,
+                    description: definition.description
                 )
             }
         }

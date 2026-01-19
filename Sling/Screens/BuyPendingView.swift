@@ -6,15 +6,16 @@ struct BuyPendingView: View {
     let numberOfShares: Double
     var onComplete: () -> Void = {}
     
+    @State private var showHeader = false
+    
     var body: some View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
+                // Header - starts hidden, fades in when animation completes
                 HStack(spacing: 16) {
-                    // Stock avatar
                     Image(stock.iconName)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -25,7 +26,6 @@ struct BuyPendingView: View {
                                 .stroke(Color.black.opacity(0.06), lineWidth: 1)
                         )
                     
-                    // Stock name
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 4) {
                             Text("Buy")
@@ -47,6 +47,7 @@ struct BuyPendingView: View {
                 }
                 .padding(.horizontal, 24)
                 .frame(height: 64)
+                .opacity(showHeader ? 1 : 0)
                 
                 Spacer()
                 
@@ -57,17 +58,25 @@ struct BuyPendingView: View {
                 
                 Spacer()
                 
-                // Orange circle with loader that transitions to checkmark
+                // Lottie animation
                 ZStack {
-                    // Orange background circle
                     Circle()
                         .fill(Color(hex: "FF5113"))
                         .frame(width: 56, height: 56)
                     
-                    // Loader animation (spinner → checkmark)
-                    LoaderWithCheckmark(onComplete: onComplete)
+                    LoaderWithCheckmark {
+                        // Animation complete - fade in header
+                        withAnimation(.easeOut(duration: 0.4)) {
+                            showHeader = true
+                        }
+                        
+                        // Call onComplete after a short delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            onComplete()
+                        }
+                    }
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 24)
             }
         }
     }

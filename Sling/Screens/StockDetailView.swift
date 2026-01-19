@@ -1,6 +1,15 @@
 import SwiftUI
 import UIKit
 
+// #region agent log
+@discardableResult
+func debugLog(location: String, message: String, data: [String: Any], hypothesisId: String) -> Bool {
+    let dataStr = data.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+    print("🔍 [\(hypothesisId)] \(location): \(message) | \(dataStr)")
+    return true
+}
+// #endregion
+
 struct StockDetailView: View {
     let stock: Stock
     @Environment(\.dismiss) private var dismiss
@@ -71,6 +80,13 @@ struct StockDetailView: View {
     }
     
     var body: some View {
+        // #region agent log
+        let _ = debugLog(location: "StockDetailView:body", message: "View rendered", data: ["stock": stock.name], hypothesisId: "A")
+        // #endregion
+        GeometryReader { rootGeo in
+            // #region agent log
+            let _ = debugLog(location: "StockDetailView:rootGeo", message: "Root geometry", data: ["width": rootGeo.size.width, "height": rootGeo.size.height, "safeTop": rootGeo.safeAreaInsets.top, "safeBottom": rootGeo.safeAreaInsets.bottom, "safeLeading": rootGeo.safeAreaInsets.leading, "safeTrailing": rootGeo.safeAreaInsets.trailing], hypothesisId: "A,B")
+            // #endregion
         ZStack {
             Color.white
                 .ignoresSafeArea()
@@ -95,8 +111,15 @@ struct StockDetailView: View {
                 .padding(.horizontal, 24)
                 .frame(height: 64)
                 
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 0) {
+                        // #region agent log
+                        GeometryReader { scrollGeo in
+                            Color.clear.onAppear {
+                                debugLog(location: "StockDetailView:scrollContent", message: "ScrollView content size", data: ["contentWidth": scrollGeo.size.width, "contentHeight": scrollGeo.size.height, "frameWidth": scrollGeo.frame(in: .global).width], hypothesisId: "C,E")
+                            }
+                        }.frame(height: 0)
+                        // #endregion
                         // Stock info card
                         VStack(alignment: .leading, spacing: 24) {
                             // Stock avatar
@@ -172,25 +195,20 @@ struct StockDetailView: View {
                                 portfolioService: portfolioService
                             )
                             .padding(.horizontal, 24)
-                            .padding(.top, 16)
+                            .padding(.vertical, 16)
                         }
                         
-                        // Info cards
-                        VStack(spacing: 0) {
-                            InfoCard(title: "Market Cap", value: "$2.89T")
-                            InfoCard(title: "P/E Ratio", value: "28.5")
-                            InfoCard(title: "52 Week High", value: "$310.00")
-                            InfoCard(title: "52 Week Low", value: "$164.08")
-                            InfoCard(title: "Volume", value: "52.3M")
-                            InfoCard(title: "Avg Volume", value: "48.1M")
+                        // About section
+                        if !stock.description.isEmpty {
+                            AboutSection(description: stock.description)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 16)
                         }
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white)
-                        )
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
+                        
+                        // Info section (at bottom)
+                        InfoSection(stock: stock)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 16)
                         
                         Spacer(minLength: 100)
                     }
@@ -270,6 +288,7 @@ struct StockDetailView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: showBuyScreen)
         .animation(.easeInOut(duration: 0.3), value: showSellScreen)
+        } // Close GeometryReader
     }
 
     private func fetchChartData() {
@@ -312,11 +331,11 @@ struct YourInvestmentSection: View {
             Text("Your investment")
                 .font(.custom("Inter-Bold", size: 16))
                 .foregroundColor(Color(hex: "7B7B7B"))
-                .padding(.bottom, 8)
+                .padding(.bottom, 16)
                 .accessibilityAddTraits(.isHeader)
             
             // Value and Shares row
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: 24) {
                 // Value
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Value")
@@ -326,7 +345,6 @@ struct YourInvestmentSection: View {
                         .font(.custom("Inter-Bold", size: 24))
                         .foregroundColor(Color(hex: "080808"))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // Number of shares
                 VStack(alignment: .leading, spacing: 4) {
@@ -337,19 +355,30 @@ struct YourInvestmentSection: View {
                         .font(.custom("Inter-Bold", size: 24))
                         .foregroundColor(Color(hex: "080808"))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer()
             }
-            .padding(.vertical, 16)
+            .padding(.bottom, 16)
             
             // Details
-            VStack(spacing: 0) {
-                // Total returns
+            VStack(spacing: 8) {
+                // Today's returns (simulated as small daily change)
                 InvestmentDetailRow(
-                    label: "Total returns",
+                    label: "Today's returns",
                     value: String(format: "%@$%.2f (%.2f%%)",
-                                  profitLoss.isPositive ? "+" : "-",
-                                  abs(profitLoss.amount),
-                                  abs(profitLoss.percent)),
+                                  profitLoss.isPositive ? "+" : "",
+                                  profitLoss.amount * 0.05,
+                                  profitLoss.percent * 0.05),
+                    isPositive: profitLoss.isPositive
+                )
+                
+                // Unrealised returns (total profit/loss)
+                InvestmentDetailRow(
+                    label: "Unrealised returns",
+                    value: String(format: "%@$%.2f (%.2f%%)",
+                                  profitLoss.isPositive ? "+" : "",
+                                  profitLoss.amount,
+                                  profitLoss.percent),
                     isPositive: profitLoss.isPositive
                 )
                 
@@ -360,13 +389,8 @@ struct YourInvestmentSection: View {
                     isPositive: nil
                 )
             }
-            .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white)
-            )
         }
-        .padding(.horizontal, 8)
+        .background(Color.white)
     }
 }
 
@@ -395,7 +419,6 @@ struct InvestmentDetailRow: View {
                 .foregroundColor(valueColor)
         }
         .padding(.vertical, 4)
-        .padding(.horizontal, 16)
     }
 }
 
@@ -416,7 +439,74 @@ struct InfoCard: View {
                 .foregroundColor(Color(hex: "080808"))
         }
         .padding(.vertical, 4)
-        .padding(.horizontal, 16)
+    }
+}
+
+// About section with company description
+struct AboutSection: View {
+    let description: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            Text("About")
+                .font(.custom("Inter-Bold", size: 16))
+                .foregroundColor(Color(hex: "7B7B7B"))
+            
+            // Description text
+            Text(description)
+                .font(.custom("Inter-Regular", size: 16))
+                .foregroundColor(Color(hex: "7B7B7B"))
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        // #region agent log
+        .background(
+            GeometryReader { geo in
+                Color.clear.onAppear {
+                    debugLog(location: "AboutSection", message: "About section size", data: ["width": geo.size.width, "descLength": description.count], hypothesisId: "D")
+                }
+            }
+        )
+        // #endregion
+    }
+}
+
+// Info section with stock details
+struct InfoSection: View {
+    let stock: Stock
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            Text("Info")
+                .font(.custom("Inter-Bold", size: 16))
+                .foregroundColor(Color(hex: "7B7B7B"))
+                .padding(.bottom, 16)
+            
+            // Info items
+            VStack(spacing: 8) {
+                InfoCard(title: "Market Cap", value: "$2.89T")
+                InfoCard(title: "P/E Ratio", value: "28.5")
+                InfoCard(title: "52 Week High", value: "$310.00")
+                InfoCard(title: "52 Week Low", value: "$164.08")
+                InfoCard(title: "Volume", value: "52.3M")
+                InfoCard(title: "Avg Volume", value: "48.1M")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        // #region agent log
+        .background(
+            GeometryReader { geo in
+                Color.clear.onAppear {
+                    debugLog(location: "InfoSection", message: "Info section size", data: ["width": geo.size.width], hypothesisId: "D")
+                }
+            }
+        )
+        // #endregion
     }
 }
 
@@ -505,6 +595,9 @@ struct StockChartView: View {
                 let height = geometry.size.height
                 let dotX = width * dragProgress
                 let dotY = getYValue(at: dragProgress, height: height)
+                // #region agent log
+                let _ = debugLog(location: "StockChartView:geo", message: "Chart geometry", data: ["chartWidth": width, "chartHeight": height, "frameMinX": geometry.frame(in: .global).minX, "frameMaxX": geometry.frame(in: .global).maxX], hypothesisId: "C")
+                // #endregion
                 
                 ZStack {
                     if isDragging {

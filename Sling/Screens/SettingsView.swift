@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var showLinkedAccounts = false
     @State private var showProfile = false
     @State private var showPrivacy = false
+    @State private var showParticleTest = false
     
     var body: some View {
         ZStack {
@@ -133,6 +134,18 @@ struct SettingsView: View {
                         
                         Spacer().frame(height: 16)
                         
+                        // Developer section
+                        VStack(spacing: 0) {
+                            SettingsRow(
+                                iconSystem: "sparkles",
+                                title: "Particle Burst Test",
+                                position: .standalone,
+                                onTap: { showParticleTest = true }
+                            )
+                        }
+                        
+                        Spacer().frame(height: 16)
+                        
                         // Reset button
                         Button(action: {
                             let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -188,6 +201,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showPrivacy) {
             PrivacySheet()
+        }
+        .fullScreenCover(isPresented: $showParticleTest) {
+            ParticleTestView()
         }
     }
     

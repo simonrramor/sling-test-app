@@ -1,0 +1,14 @@
+# Secrets - DO NOT COMMIT
+Sling/Secrets.swift
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+
+# macOS
+.DS_Store
+
+# Debug logs
+.cursor/debug.log

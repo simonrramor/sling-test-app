@@ -70,16 +70,6 @@ struct HomeView: View {
                                 }
                             )
                             
-                            // Pending requests card
-                            if !requestService.pendingRequests.isEmpty {
-                                PendingRequestsCard(
-                                    count: requestService.pendingRequests.count,
-                                    onTap: { showPendingRequests = true }
-                                )
-                                .padding(.horizontal, 24)
-                                .padding(.top, 16)
-                            }
-                            
                             TransactionListContent()
                                 .padding(.top, 20)
                         }
