@@ -3,32 +3,104 @@ import UIKit
 
 struct BalanceView: View {
     @StateObject private var portfolioService = PortfolioService.shared
+    @StateObject private var exchangeRateService = ExchangeRateService.shared
+    @State private var displayBalance: Double?
     
-    var formattedBalance: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencySymbol = "£"
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: portfolioService.cashBalance)) ?? "£0.00"
+    var onAddMoney: (() -> Void)? = nil
+    
+    // USD balance (stored value)
+    var usdBalance: Double {
+        portfolioService.cashBalance
+    }
+    
+    // Formatted USD balance for subtitle
+    var formattedUSDBalance: String {
+        ExchangeRateService.format(amount: usdBalance, currency: "USD")
+    }
+    
+    // Formatted display currency balance
+    var formattedDisplayBalance: String {
+        if let displayAmount = displayBalance {
+            return ExchangeRateService.format(amount: displayAmount, currency: portfolioService.displayCurrency)
+        }
+        // Fallback while loading - show USD with display currency symbol
+        return ExchangeRateService.format(amount: usdBalance, currency: portfolioService.displayCurrency)
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Balance")
-                .font(.custom("Inter-Medium", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
-                .accessibilityAddTraits(.isHeader)
+        HStack(alignment: .center) {
+            // Left side: Balance info
+            VStack(alignment: .leading, spacing: 4) {
+                // Subtitle: "Cash balance ・ $X,XXX.XX"
+                HStack(spacing: 0) {
+                    Text("Cash balance")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                    
+                    Text("・")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                    
+                    Text(formattedUSDBalance)
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                }
+                
+                // Main balance in display currency (animated) - H1 style from Figma
+                SlidingNumberText(
+                    text: formattedDisplayBalance,
+                    font: .custom("Inter-Bold", size: 48),
+                    color: Color(hex: "080808")
+                )
+                .tracking(-0.96) // -2% letter spacing at 48pt
+            }
             
-            Text(formattedBalance)
-                .font(.custom("Inter-Bold", size: 33))
-                .foregroundColor(Color(hex: "080808"))
+            Spacer()
+            
+            // Right side: Add money button (secondary small)
+            if let onAddMoney = onAddMoney {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    onAddMoney()
+                }) {
+                    Text("Add money")
+                        .font(.custom("Inter-Bold", size: 14))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .frame(height: 36)
+                        .background(Color(hex: "080808"))
+                        .cornerRadius(12)
+                }
+                .buttonStyle(PressedButtonStyle())
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 16)
+        .padding(.vertical, 16)
+        .task {
+            await updateDisplayBalance()
+        }
+        .onChange(of: portfolioService.cashBalance) { _, _ in
+            Task { await updateDisplayBalance() }
+        }
+        .onChange(of: portfolioService.displayCurrency) { _, _ in
+            Task { await updateDisplayBalance() }
+        }
+    }
+    
+    private func updateDisplayBalance() async {
+        let converted = await exchangeRateService.convert(
+            amount: usdBalance,
+            from: "USD",
+            to: portfolioService.displayCurrency
+        )
+        await MainActor.run {
+            displayBalance = converted
+        }
     }
 }
 
 #Preview {
-    BalanceView()
+    BalanceView(onAddMoney: {})
         .padding()
 }

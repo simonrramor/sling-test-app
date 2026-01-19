@@ -3,36 +3,60 @@ import UIKit
 
 enum Tab: String, CaseIterable {
     case home = "Home"
-    case transfer = "Transfer"
     case card = "Card"
+    case transfer = "Transfer"
     case invest = "Invest"
 }
 
 struct BottomNavView: View {
     @Binding var selectedTab: Tab
+    var useLiquidGlass: Bool = false
+    var onTabChange: ((Tab) -> Void)? = nil
     
     var body: some View {
+        if useLiquidGlass {
+            liquidGlassNav
+        } else {
+            standardNav
+        }
+    }
+    
+    private var standardNav: some View {
         HStack(spacing: 32) {
             ForEach(Tab.allCases, id: \.self) { tab in
-                TabButton(tab: tab, selectedTab: $selectedTab)
+                TabButton(tab: tab, selectedTab: $selectedTab, onTabChange: onTabChange)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 20)
         .padding(.bottom, 16)
-        .background(Color.white)
+        .background(Color("BackgroundSecondary"))
         .overlay(
             Rectangle()
-                .fill(Color(hex: "F7F7F7"))
+                .fill(Color("Divider"))
                 .frame(height: 1),
             alignment: .top
         )
+    }
+    
+    private var liquidGlassNav: some View {
+        HStack(spacing: 24) {
+            ForEach(Tab.allCases, id: \.self) { tab in
+                TabButton(tab: tab, selectedTab: $selectedTab, onTabChange: onTabChange)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .glassEffect(.regular.interactive())
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
     }
 }
 
 struct TabButton: View {
     let tab: Tab
     @Binding var selectedTab: Tab
+    var onTabChange: ((Tab) -> Void)? = nil
     
     var isSelected: Bool {
         selectedTab == tab
@@ -53,26 +77,31 @@ struct TabButton: View {
         Button(action: {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                selectedTab = tab
-            }
+            // Notify parent before changing tab (so it can track previousTab)
+            onTabChange?(tab)
+            selectedTab = tab
         }) {
             Image(iconName)
                 .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 28, height: 28)
-                .foregroundColor(isSelected ? Color(hex: "FF5113") : Color(hex: "7B7B7B"))
+                .foregroundColor(isSelected ? Color(hex: "FF5113") : Color("TextSecondary"))
                 .frame(width: 40)
         }
         .accessibilityLabel(tab.rawValue)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .transaction { $0.animation = nil }
     }
 }
 
 #Preview {
-    BottomNavView(selectedTab: .constant(.home))
+    ZStack {
+        Color.gray.opacity(0.3)
+            .ignoresSafeArea()
+        
+        VStack {
+            Spacer()
+            BottomNavView(selectedTab: .constant(.home))
+        }
+    }
 }

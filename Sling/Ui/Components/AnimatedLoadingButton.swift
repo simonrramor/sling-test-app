@@ -1,14 +1,17 @@
 import SwiftUI
+import UIKit
 import Lottie
 
 /// A button that shrinks to a circle and shows a Lottie loader when tapped
 struct AnimatedLoadingButton: View {
     let title: String
     var isLoadingBinding: Binding<Bool>? = nil
+    var showCelebration: Bool = true
     let onComplete: () -> Void
     
     @State private var isLoading = false
     @State private var showLoader = false
+    @State private var celebrationTrigger = 0
     @GestureState private var isPressed = false
     
     private let buttonHeight: CGFloat = 56
@@ -17,6 +20,30 @@ struct AnimatedLoadingButton: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Celebration particles (behind the button)
+                if showCelebration {
+                    ParticleBurstView(
+                        color: Color(hex: "FF5113"),
+                        particleCount: 80,
+                        burstSpeed: 350,
+                        particleLifetime: 1.5,
+                        particleSize: 6,
+                        spreadAngle: 120,
+                        hasTrails: false,
+                        gravity: 200,
+                        xDrift: 0,
+                        particleRotation: 2,
+                        colorVariation: 0.3,
+                        speedVariation: 0.6,
+                        sizeVariation: 0.5,
+                        fadeSpeed: 1.2,
+                        trigger: $celebrationTrigger
+                    )
+                    .frame(width: geometry.size.width, height: 300)
+                    .offset(y: -120)
+                    .allowsHitTesting(false)
+                }
+                
                 // Button background
                 RoundedRectangle(cornerRadius: isLoading ? circleSize / 2 : 20)
                     .fill(Color(hex: "FF5113"))
@@ -68,7 +95,18 @@ struct AnimatedLoadingButton: View {
                                 showLoader = true
                             }
                             
-                            // Call onComplete after checkmark shows (faster than waiting for full animation)
+                            // Trigger celebration burst when checkmark appears
+                            if showCelebration {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                    // Success haptic
+                                    let successGenerator = UINotificationFeedbackGenerator()
+                                    successGenerator.notificationOccurred(.success)
+                                    
+                                    celebrationTrigger += 1
+                                }
+                            }
+                            
+                            // Call onComplete after checkmark shows
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
                                 onComplete()
                             }

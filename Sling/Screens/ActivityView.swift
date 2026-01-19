@@ -4,172 +4,113 @@ struct ActivityView: View {
     @StateObject private var activityService = ActivityService.shared
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Activity Header
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Activity")
-                        .font(.custom("Inter-Bold", size: 24))
-                        .foregroundColor(Color(hex: "080808"))
-                }
+        VStack(spacing: 0) {
+            // Title
+            Text("Activity")
+                .font(.custom("Inter-Bold", size: 24))
+                .foregroundColor(Color(hex: "080808"))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+            
+            if activityService.activities.isEmpty && !activityService.isLoading {
+                // Empty state centered in remaining space
+                Spacer()
                 
-                if activityService.isLoading {
-                    // Loading state
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        
-                        Text("Loading activity...")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                ActivityEmptyStateCard(onAddTransactions: {
+                    Task {
+                        await activityService.fetchActivities(force: true)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 80)
-                } else if activityService.activities.isEmpty {
-                    // Empty state
-                    VStack(spacing: 16) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 48))
-                            .foregroundColor(Color(hex: "7B7B7B"))
-                        
-                        Text("No recent activity")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 80)
-                } else {
-                    // Activity list
-                    VStack(spacing: 0) {
-                        ForEach(activityService.activities) { activity in
-                            ActivityRow(activity: activity)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                }
+                })
                 
                 Spacer()
+            } else if activityService.isLoading && activityService.activities.isEmpty {
+                // Loading state with skeleton rows
+                VStack(spacing: 0) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        SkeletonTransactionRow()
+                    }
+                }
+                .padding(.top, 8)
+                
+                Spacer()
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        TransactionListContent()
+                            .padding(.top, 8)
+                    }
+                }
+                .refreshable {
+                    await ActivityService.shared.fetchActivities(force: true)
+                }
             }
-        }
-        .onAppear {
-            Task {
-                await activityService.fetchActivities()
-            }
-        }
-        .refreshable {
-            await activityService.fetchActivities()
         }
     }
 }
 
-struct ActivityRow: View {
-    let activity: ActivityItem
-    
-    @GestureState private var isPressed = false
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Avatar
-            ActivityAvatar(identifier: activity.avatar)
-            
-            // Left content (title and subtitle)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(activity.titleLeft)
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
-                
-                if !activity.subtitleLeft.isEmpty {
-                    Text(activity.subtitleLeft)
-                        .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
-                }
-            }
-            
-            Spacer()
-            
-            // Right content (amount and date/status)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(activity.titleRight)
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(activity.titleRight.hasPrefix("-") ? Color(hex: "E30000") : Color(hex: "080808"))
-                
-                if !activity.subtitleRight.isEmpty {
-                    Text(activity.subtitleRight)
-                        .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
-                }
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isPressed ? Color(hex: "F7F7F7") : Color.clear)
-        )
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .updating($isPressed) { _, state, _ in
-                    state = true
-                }
-        )
-    }
-}
+// MARK: - Activity Empty State Card
 
-struct ActivityAvatar: View {
-    let identifier: String
+struct ActivityEmptyStateCard: View {
+    var onAddTransactions: () -> Void
+    @State private var showTransactionOptions = false
     
     var body: some View {
-        // Check if it's an image name or initials
-        if identifier.count <= 2 {
-            // Initials
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "EDEDED"))
-                    .frame(width: 44, height: 44)
-                
-                Text(identifier.uppercased())
-                    .font(.custom("Inter-Bold", size: 16))
+        VStack(spacing: 16) {
+            // Text content
+            VStack(spacing: 8) {
+                Text("Your activity feed")
+                    .font(.custom("Inter-Bold", size: 18))
+                    .tracking(-0.36)
                     .foregroundColor(Color(hex: "080808"))
+                    .multilineTextAlignment(.center)
+                
+                Text("When you send, spend, or receive money, it will show here.")
+                    .font(.custom("Inter-Regular", size: 16))
+                    .tracking(-0.32)
+                    .lineSpacing(4)
+                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .multilineTextAlignment(.center)
             }
-        } else if identifier.hasPrefix("http") {
-            // URL - async image
-            AsyncImage(url: URL(string: identifier)) { phase in
-                switch phase {
-                case .empty:
-                    Circle()
-                        .fill(Color(hex: "EDEDED"))
-                        .frame(width: 44, height: 44)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 44, height: 44)
-                        .clipShape(Circle())
-                case .failure:
-                    Circle()
-                        .fill(Color(hex: "EDEDED"))
-                        .frame(width: 44, height: 44)
-                @unknown default:
-                    Circle()
-                        .fill(Color(hex: "EDEDED"))
-                        .frame(width: 44, height: 44)
+            
+            // Add transactions button
+            Button(action: {
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                showTransactionOptions = true
+            }) {
+                Text("Add transactions")
+                    .font(.custom("Inter-Bold", size: 14))
+                    .foregroundColor(Color(hex: "080808"))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(hex: "EDEDED"))
+                    .cornerRadius(12)
+            }
+            .confirmationDialog("Add Transaction", isPresented: $showTransactionOptions, titleVisibility: .visible) {
+                Button("Card Payment") {
+                    ActivityService.shared.generateCardPayment()
                 }
+                Button("P2P Outbound (Send)") {
+                    ActivityService.shared.generateP2POutbound()
+                }
+                Button("P2P Inbound (Receive)") {
+                    ActivityService.shared.generateP2PInbound()
+                }
+                Button("Top Up") {
+                    ActivityService.shared.generateTopUp()
+                }
+                Button("Withdrawal") {
+                    ActivityService.shared.generateWithdrawal()
+                }
+                Button("Random Mix (8 transactions)") {
+                    ActivityService.shared.generateRandomMix()
+                }
+                Button("Cancel", role: .cancel) { }
             }
-        } else {
-            // Asset name
-            Image(identifier)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 44, height: 44)
-                .clipShape(Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                )
         }
+        .padding(.horizontal, 48)
     }
 }
 

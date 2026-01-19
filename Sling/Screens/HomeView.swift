@@ -3,110 +3,353 @@ import UIKit
 
 struct HomeView: View {
     @State private var showAddMoney = false
-    @State private var showFloatingButton = false
-    @State private var showPendingRequests = false
+    @State private var showWithdraw = false
+    @State private var showSendMoney = false
+    @State private var showSetup = false
     @StateObject private var activityService = ActivityService.shared
-    @StateObject private var requestService = RequestService.shared
     
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ScrollView {
             VStack(spacing: 0) {
-                // Balance (fixed at top)
+                // Balance (without button - buttons are below)
                 BalanceView()
                     .padding(.horizontal, 24)
-                    .background(Color(.systemBackground))
                 
-                // Empty state, Loading state, or Scrollable content
-                if activityService.activities.isEmpty && !activityService.isLoading {
-                    // Add money button (fixed)
-                    TertiaryButton(title: "Add money") {
+                // Add money + Withdraw buttons
+                HStack(spacing: 8) {
+                    // Add money button (secondary - white)
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
                         showAddMoney = true
+                    }) {
+                    Text("Add money")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color("TextPrimary"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color("BackgroundSecondary"))
+                        .cornerRadius(20)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
+                    .buttonStyle(PressedButtonStyle())
                     
-                    // Empty state centered in remaining space
-                    Spacer()
-                    
-                    HomeEmptyStateCard(onAddTransactions: {
-                        Task {
-                            await activityService.fetchActivities(force: true)
-                        }
-                    })
-                    
-                    Spacer()
-                } else if activityService.isLoading && activityService.activities.isEmpty {
-                    // Loading state with skeleton rows
-                    TertiaryButton(title: "Add money") {
-                        showAddMoney = true
+                    // Withdraw button (secondary - white)
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        showWithdraw = true
+                    }) {
+                    Text("Withdraw")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color("TextPrimary"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color("BackgroundSecondary"))
+                        .cornerRadius(20)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                    
-                    VStack(spacing: 0) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            SkeletonTransactionRow()
-                        }
-                    }
-                    .padding(.top, 20)
-                    
-                    Spacer()
-                } else {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            // Add money button
-                            TertiaryButton(title: "Add money") {
-                                showAddMoney = true
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 16)
-                            .background(
-                                GeometryReader { geo in
-                                    Color.clear
-                                        .onChange(of: geo.frame(in: .named("scroll")).maxY) { _, newValue in
-                                            // Show floating button when the add money button scrolls out of view
-                                            showFloatingButton = newValue < 0
-                                        }
-                                }
-                            )
-                            
-                            TransactionListContent()
-                                .padding(.top, 20)
-                        }
-                    }
-                    .coordinateSpace(name: "scroll")
-                    .refreshable {
-                        await ActivityService.shared.fetchActivities(force: true)
-                    }
+                    .buttonStyle(PressedButtonStyle())
                 }
-            }
-            
-            // Floating Add Money Icon Button (appears when scrolled)
-            if showFloatingButton {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    showAddMoney = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "080808"))
-                        .frame(width: 36, height: 36)
-                        .background(Color(hex: "EDEDED"))
-                        .cornerRadius(12)
-                }
+                .padding(.horizontal, 24)
                 .padding(.top, 16)
-                .padding(.trailing, 24)
-                .transition(.opacity.combined(with: .scale))
-                .animation(.easeInOut(duration: 0.2), value: showFloatingButton)
+                
+                // Get started on Sling section
+                GetStartedSection(
+                    onAddMoney: { showAddMoney = true },
+                    onSendMoney: { showSendMoney = true },
+                    onSetup: { showSetup = true }
+                )
+                
+                // Invest promo card
+                InvestPromoCard()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                
+                // Sling Card promo card
+                SlingCardPromoCard()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                
+                // Activity Section
+                VStack(spacing: 0) {
+                    // Activity header
+                    Text("Activity")
+                        .font(.custom("Inter-Bold", size: 24))
+                        .foregroundColor(Color("TextPrimary"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        .padding(.bottom, 8)
+                    
+                    if activityService.activities.isEmpty && !activityService.isLoading {
+                        // Empty state
+                        HomeEmptyStateCard(onAddTransactions: {
+                            Task {
+                                await activityService.fetchActivities(force: true)
+                            }
+                        })
+                        .padding(.vertical, 24)
+                    } else if activityService.isLoading && activityService.activities.isEmpty {
+                        // Loading state with skeleton rows
+                        VStack(spacing: 0) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                SkeletonTransactionRow()
+                            }
+                        }
+                        .padding(.top, 8)
+                    } else {
+                        // Transaction list
+                        TransactionListContent()
+                            .padding(.top, 8)
+                    }
+                }
+                
+                // Bottom padding for scroll content
+                Spacer()
+                    .frame(height: 24)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showFloatingButton)
+        .scrollIndicators(.hidden)
+        .background(Color("Background"))
         .fullScreenCover(isPresented: $showAddMoney) {
             AddMoneyView(isPresented: $showAddMoney)
         }
-        .fullScreenCover(isPresented: $showPendingRequests) {
-            PendingRequestsView()
+        .fullScreenCover(isPresented: $showWithdraw) {
+            // TODO: Add WithdrawView when available
+            AddMoneyView(isPresented: $showWithdraw)
+        }
+        .fullScreenCover(isPresented: $showSendMoney) {
+            SendView(isPresented: $showSendMoney)
+        }
+        .fullScreenCover(isPresented: $showSetup) {
+            SettingsView(isPresented: $showSetup)
+        }
+    }
+}
+
+// MARK: - Get Started Section
+
+struct GetStartedSection: View {
+    let onAddMoney: () -> Void
+    let onSendMoney: () -> Void
+    let onSetup: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            Text("Get started on Sling")
+                .font(.custom("Inter-Bold", size: 16))
+                .foregroundColor(Color("TextSecondary"))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+            
+            // Horizontal scrollable cards
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    GetStartedCard(
+                        title: "Add money",
+                        iconName: "plus",
+                        iconColor: Color(hex: "78D381"),
+                        backgroundColor: Color(hex: "E9FAEB"),
+                        action: onAddMoney
+                    )
+                    
+                    GetStartedCard(
+                        title: "Send money",
+                        iconName: "arrow.up.right",
+                        iconColor: Color(hex: "74CDFF"),
+                        backgroundColor: Color(hex: "E8F8FF"),
+                        action: onSendMoney
+                    )
+                    
+                    GetStartedCard(
+                        title: "Set up",
+                        iconName: "building.columns.fill",
+                        iconColor: Color(hex: "FF74E0"),
+                        backgroundColor: Color(hex: "FFE8F9"),
+                        action: onSetup
+                    )
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+            }
+        }
+        .padding(.top, 16)
+    }
+}
+
+// MARK: - Get Started Card
+
+struct GetStartedCard: View {
+    let title: String
+    let iconName: String
+    let iconColor: Color
+    let backgroundColor: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            action()
+        }) {
+            VStack(alignment: .leading, spacing: 40) {
+                // Icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(backgroundColor)
+                        .frame(width: 28, height: 28)
+                    
+                    Image(systemName: iconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(iconColor)
+                }
+                
+                // Title
+                Text(title)
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color("TextPrimary"))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .frame(width: 150)
+            .background(Color("BackgroundSecondary"))
+            .cornerRadius(16)
+        }
+        .buttonStyle(PressedButtonStyle())
+    }
+}
+
+// MARK: - Invest Promo Card
+
+struct InvestPromoCard: View {
+    // Stock logos to show (overlapping)
+    private let stockLogos = ["StockTesla", "StockApple", "StockMeta", "StockGoogle"]
+    @ObservedObject private var portfolioService = PortfolioService.shared
+    
+    // Only show if user has no stock holdings
+    private var hasStockHoldings: Bool {
+        !portfolioService.holdings.isEmpty
+    }
+    
+    var body: some View {
+        if !hasStockHoldings {
+        VStack(spacing: 24) {
+            // Overlapping stock logos
+            HStack(spacing: -26) {
+                ForEach(stockLogos, id: \.self) { logo in
+                    StockLogoView(logoName: logo)
+                }
+            }
+            
+            // Text content
+            VStack(spacing: 4) {
+                Text("Start building your wealth with investing from just $1")
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color("TextPrimary"))
+                    .multilineTextAlignment(.center)
+                
+                Text("Buy stocks in your favorite companies to give your money a chance to grow.")
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(Color("TextSecondary"))
+                    .multilineTextAlignment(.center)
+            }
+            
+            // Start investing button
+            Button(action: {
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                NotificationCenter.default.post(name: .navigateToInvest, object: nil)
+            }) {
+                Text("Start investing")
+                    .font(.custom("Inter-Bold", size: 14))
+                    .foregroundColor(Color("ButtonSecondaryText"))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .frame(height: 36)
+                    .background(Color("ButtonSecondary"))
+                    .cornerRadius(12)
+            }
+            .buttonStyle(PressedButtonStyle())
+        }
+        .padding(.vertical, 24)
+        .padding(.horizontal, 40)
+        .frame(maxWidth: .infinity)
+        .background(Color("BackgroundSecondary"))
+        .cornerRadius(24)
+        }
+    }
+}
+
+// MARK: - Stock Logo View
+
+struct StockLogoView: View {
+    let logoName: String
+    
+    var body: some View {
+        Image(logoName)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 65, height: 65)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.black.opacity(0.06), lineWidth: 1)
+            )
+    }
+}
+
+// MARK: - Sling Card Promo Card
+
+struct SlingCardPromoCard: View {
+    @AppStorage("hasCard") private var hasCard = false
+    
+    var body: some View {
+        // Only show if user doesn't have a card yet
+        if !hasCard {
+            VStack(spacing: 24) {
+                // Card illustration
+                Image("SlingCardFront")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                
+                // Text content
+                VStack(spacing: 4) {
+                    Text("Create your Sling Card today")
+                        .font(.custom("Inter-Bold", size: 24))
+                        .foregroundColor(Color("TextPrimary"))
+                        .multilineTextAlignment(.center)
+                    
+                    Text("Get your new virtual debit card, and start spending digital dollars around the world, with no fees.")
+                        .font(.custom("Inter-Regular", size: 14))
+                        .foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Create Sling Card button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                }) {
+                    Text("Create Sling Card")
+                        .font(.custom("Inter-Bold", size: 14))
+                        .foregroundColor(Color("ButtonSecondaryText"))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .frame(height: 36)
+                        .background(Color("ButtonSecondary"))
+                        .cornerRadius(12)
+                }
+                .buttonStyle(PressedButtonStyle())
+            }
+            .padding(.vertical, 24)
+            .padding(.horizontal, 40)
+            .frame(maxWidth: .infinity)
+            .background(Color("BackgroundSecondary"))
+            .cornerRadius(24)
         }
     }
 }

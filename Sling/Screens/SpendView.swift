@@ -46,6 +46,7 @@ struct SpendView: View {
                 }
             }
         }
+        .background(Color(hex: "F2F2F2"))
         .sheet(isPresented: $showCardDetails) {
             CardDetailsSheet()
                 .presentationDetents([.medium, .large])
@@ -144,7 +145,7 @@ struct SpendView: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: "F7F7F7"))
+                    .fill(Color.white)
             )
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
@@ -240,7 +241,7 @@ struct CategoryCard: View {
         .frame(width: 150)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(hex: "F7F7F7"))
+                .fill(Color.white)
         )
     }
 }
@@ -250,7 +251,7 @@ struct TertiaryButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(configuration.isPressed ? Color(hex: "DFDFDF") : Color(hex: "EDEDED"))
+                    .fill(configuration.isPressed ? Color(hex: "EDEDED") : Color.white)
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)

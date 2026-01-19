@@ -36,7 +36,7 @@ struct PrimaryButton: View {
     }
 }
 
-// MARK: - Secondary Button (Black)
+// MARK: - Secondary Button (Black in light, White in dark)
 struct SecondaryButton: View {
     let title: String
     var isEnabled: Bool = true
@@ -50,14 +50,13 @@ struct SecondaryButton: View {
         }) {
             Text(title)
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(.white)
+                .foregroundColor(isEnabled ? Color("ButtonSecondaryText") : Color("ButtonSecondaryText").opacity(0.4))
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(Color(hex: "080808"))
+                .background(isEnabled ? Color("ButtonSecondary") : Color("ButtonDisabled"))
                 .cornerRadius(20)
         }
         .buttonStyle(PressedButtonStyle())
-        .opacity(isEnabled ? 1 : 0.5)
         .disabled(!isEnabled)
     }
 }
@@ -76,10 +75,10 @@ struct TertiaryButton: View {
         }) {
             Text(title)
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(Color("TextPrimary"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(Color(hex: "EDEDED"))
+                .background(Color("BackgroundTertiary"))
                 .cornerRadius(20)
         }
         .buttonStyle(PressedButtonStyle())

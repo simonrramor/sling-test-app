@@ -4,9 +4,22 @@ import UIKit
 struct TransactionDetailView: View {
     let activity: ActivityItem
     @Environment(\.dismiss) private var dismiss
+    @State private var showSplitBill = false
     
     private var isOutgoing: Bool {
         activity.titleRight.hasPrefix("-")
+    }
+    
+    // Check if this is a card payment (can be split)
+    private var isCardPayment: Bool {
+        guard isOutgoing else { return false }
+        
+        // Exclude P2P transfers (person avatars)
+        let avatar = activity.avatar
+        if avatar.count <= 2 { return false }  // Initials
+        if avatar.hasPrefix("Avatar") { return false }  // Person avatar
+        
+        return true
     }
     
     var body: some View {
@@ -37,10 +50,55 @@ struct TransactionDetailView: View {
             .padding(.top, 16)
             
             Spacer()
+            
+            // Split bill button for card payments
+            if isCardPayment {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showSplitBill = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Split bill")
+                            .font(.custom("Inter-Bold", size: 16))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color(hex: "080808"))
+                    .cornerRadius(20)
+                }
+                .buttonStyle(PressedButtonStyle())
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
         }
         .background(Color.white)
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
         .presentationDragIndicator(.hidden)
+        .fullScreenCover(isPresented: $showSplitBill) {
+            SplitBillFromTransactionView(
+                isPresented: $showSplitBill,
+                payment: activity
+            )
+        }
+    }
+}
+
+// MARK: - Split Bill From Transaction (skips transaction selector)
+
+struct SplitBillFromTransactionView: View {
+    @Binding var isPresented: Bool
+    let payment: ActivityItem
+    
+    var body: some View {
+        SplitUserSelectionView(
+            isPresented: $isPresented,
+            payment: payment,
+            onDismissAll: { isPresented = false }
+        )
     }
 }
 

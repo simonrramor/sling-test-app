@@ -16,7 +16,6 @@ struct TransferView: View {
     @State private var showRequestView = false
     @State private var showSplitBillView = false
     @State private var showTransferView = false
-    @State private var showWithdrawView = false
     @State private var showSalaryView = false
     
     let actions = [
@@ -34,11 +33,6 @@ struct TransferView: View {
             title: "Transfer",
             subtitle: "Move money between your accounts",
             iconName: "TransferTransfer"
-        ),
-        TransferAction(
-            title: "Withdraw",
-            subtitle: "Bank, card or mobile money",
-            iconName: "TransferWithdraw"
         ),
         TransferAction(
             title: "Receive your salary",
@@ -90,8 +84,6 @@ struct TransferView: View {
                                     showRequestView = true
                                 case "Transfer":
                                     showTransferView = true
-                                case "Withdraw":
-                                    showWithdrawView = true
                                 case "Receive your salary":
                                     showSalaryView = true
                                 default:
@@ -146,9 +138,6 @@ struct TransferView: View {
         }
         .fullScreenCover(isPresented: $showTransferView) {
             TransferBetweenAccountsView(isPresented: $showTransferView)
-        }
-        .fullScreenCover(isPresented: $showWithdrawView) {
-            WithdrawView(isPresented: $showWithdrawView)
         }
         .sheet(isPresented: $showSalaryView) {
             ReceiveSalarySheet()

@@ -13,6 +13,10 @@ struct SettingsView: View {
     @State private var showProfile = false
     @State private var showPrivacy = false
     @State private var showParticleTest = false
+    @State private var showHomeTest = false
+    @State private var showCurrencyPicker = false
+    
+    private let availableCurrencies = ["GBP", "USD", "EUR", "JPY", "CHF", "CAD", "AUD"]
     
     var body: some View {
         ZStack {
@@ -105,8 +109,9 @@ struct SettingsView: View {
                             SettingsRow(
                                 iconAsset: "IconMoney",
                                 title: "Display currency",
-                                rightText: "GBP",
-                                position: .standalone
+                                rightText: portfolioService.displayCurrency,
+                                position: .standalone,
+                                onTap: { showCurrencyPicker = true }
                             )
                             
                             SettingsRow(
@@ -139,8 +144,15 @@ struct SettingsView: View {
                             SettingsRow(
                                 iconSystem: "sparkles",
                                 title: "Particle Burst Test",
-                                position: .standalone,
+                                position: .top,
                                 onTap: { showParticleTest = true }
+                            )
+                            
+                            SettingsRow(
+                                iconSystem: "house",
+                                title: "Home test",
+                                position: .bottom,
+                                onTap: { showHomeTest = true }
                             )
                         }
                         
@@ -204,6 +216,24 @@ struct SettingsView: View {
         }
         .fullScreenCover(isPresented: $showParticleTest) {
             ParticleTestView()
+        }
+        .fullScreenCover(isPresented: $showHomeTest) {
+            HomeTestView()
+        }
+        .confirmationDialog("Display Currency", isPresented: $showCurrencyPicker, titleVisibility: .visible) {
+            ForEach(availableCurrencies, id: \.self) { currency in
+                Button(action: {
+                    portfolioService.displayCurrency = currency
+                }) {
+                    HStack {
+                        Text("\(ExchangeRateService.symbol(for: currency)) \(currency)")
+                        if currency == portfolioService.displayCurrency {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
         }
     }
     

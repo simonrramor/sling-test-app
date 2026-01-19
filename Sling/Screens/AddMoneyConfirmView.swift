@@ -4,17 +4,17 @@ import UIKit
 struct AddMoneyConfirmView: View {
     @Binding var isPresented: Bool
     let sourceAccount: PaymentAccount // The selected payment account
-    let sourceAmount: Double // Amount in source currency (e.g., USD)
-    let sourceCurrency: String // Source currency code (e.g., "USD")
-    let destinationAmount: Double // Amount in wallet currency (GBP)
-    let exchangeRate: Double // Rate from source to destination
+    let sourceAmount: Double // Amount in source currency (e.g., GBP)
+    let sourceCurrency: String // Source currency code (e.g., "GBP")
+    let destinationAmount: Double // Amount in USD (Sling balance currency)
+    let exchangeRate: Double // Rate from source to USD
     var onComplete: () -> Void = {}
     
     @State private var isButtonLoading = false
     
     private let portfolioService = PortfolioService.shared
     private let activityService = ActivityService.shared
-    private let walletCurrency = "GBP"
+    private let slingCurrency = "USD" // Sling balance is always in USD
     
     // Extract avatar asset name from account icon type
     private var sourceAccountAvatar: String {
@@ -25,7 +25,7 @@ struct AddMoneyConfirmView: View {
     }
     
     var hasCurrencyDifference: Bool {
-        sourceCurrency != walletCurrency
+        sourceCurrency != slingCurrency
     }
     
     var formattedSourceAmount: String {
@@ -39,7 +39,7 @@ struct AddMoneyConfirmView: View {
     }
     
     var formattedDestinationAmount: String {
-        let symbol = ExchangeRateService.symbol(for: walletCurrency)
+        let symbol = ExchangeRateService.symbol(for: slingCurrency)
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
@@ -50,7 +50,7 @@ struct AddMoneyConfirmView: View {
     
     var formattedExchangeRate: String {
         let sourceSymbol = ExchangeRateService.symbol(for: sourceCurrency)
-        let destSymbol = ExchangeRateService.symbol(for: walletCurrency)
+        let destSymbol = ExchangeRateService.symbol(for: slingCurrency)
         return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", exchangeRate))"
     }
     
@@ -229,7 +229,7 @@ struct AddMoneyConfirmView: View {
                         .padding(.horizontal, 16)
                     }
                     
-                    // You receive row (in wallet currency - GBP)
+                    // You receive row (in USD - Sling balance)
                     HStack {
                         Text("You receive")
                             .font(.custom("Inter-Regular", size: 16))
@@ -259,12 +259,12 @@ struct AddMoneyConfirmView: View {
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Add button (shows destination amount in GBP)
+                // Add button (shows destination amount in USD)
                 AnimatedLoadingButton(
                     title: "Add \(formattedDestinationAmount)",
                     isLoadingBinding: $isButtonLoading
                 ) {
-                    // Add money to portfolio (in GBP)
+                    // Add money to portfolio (in USD)
                     portfolioService.addCash(destinationAmount)
                     
                     // Record the transaction in activity feed
@@ -272,7 +272,7 @@ struct AddMoneyConfirmView: View {
                         fromAccountName: sourceAccount.name,
                         fromAccountAvatar: sourceAccountAvatar,
                         amount: destinationAmount,
-                        currency: walletCurrency
+                        currency: slingCurrency
                     )
                     
                     onComplete()
@@ -298,10 +298,10 @@ struct AddMoneyConfirmView: View {
 #Preview {
     AddMoneyConfirmView(
         isPresented: .constant(true),
-        sourceAccount: .bankOfAmerica,
-        sourceAmount: 133.99,
-        sourceCurrency: "USD",
-        destinationAmount: 100,
-        exchangeRate: 0.75
+        sourceAccount: .monzoBankLimited,
+        sourceAmount: 100,
+        sourceCurrency: "GBP",
+        destinationAmount: 126.50,
+        exchangeRate: 1.265
     )
 }

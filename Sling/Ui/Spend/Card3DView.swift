@@ -11,13 +11,26 @@ struct Card3DView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
-        sceneView.backgroundColor = .clear
+        // Use the page background color instead of transparent to avoid artifacts
+        let greyBackground = UIColor(red: 242/255, green: 242/255, blue: 242/255, alpha: 1.0)  // #F2F2F2
+        sceneView.backgroundColor = greyBackground
         sceneView.allowsCameraControl = false
-        sceneView.autoenablesDefaultLighting = true
-        sceneView.antialiasingMode = .multisampling4X
+        sceneView.autoenablesDefaultLighting = false
+        sceneView.antialiasingMode = .none
+        
+        // Match layer background to view background
+        sceneView.layer.isOpaque = true
+        sceneView.layer.backgroundColor = greyBackground.cgColor
+        sceneView.layer.shadowOpacity = 0
+        sceneView.layer.shadowRadius = 0
+        sceneView.isOpaque = true
         
         let scene = SCNScene()
+        scene.background.contents = greyBackground  // Match scene background
         sceneView.scene = scene
+        
+        // Disable any floor/shadow rendering
+        scene.rootNode.castsShadow = false
         
         // Create the card geometry - match downloaded image ratio 1035:648 = 1.597:1
         let cardWidth: CGFloat = 3.45
@@ -29,13 +42,16 @@ struct Card3DView: UIViewRepresentable {
         let frontMaterial = SCNMaterial()
         frontMaterial.diffuse.contents = createCardFrontImage()
         frontMaterial.isDoubleSided = false
+        frontMaterial.lightingModel = .constant  // No lighting effects
         
         let backMaterial = SCNMaterial()
         backMaterial.diffuse.contents = createCardBackImage()
         backMaterial.isDoubleSided = false
+        backMaterial.lightingModel = .constant
         
         let sideMaterial = SCNMaterial()
         sideMaterial.diffuse.contents = UIColor(hex: "FF5113")  // Match card orange
+        sideMaterial.lightingModel = .constant
         
         // Box has 6 faces: front, right, back, left, top, bottom
         cardGeometry.materials = [frontMaterial, sideMaterial, backMaterial, sideMaterial, sideMaterial, sideMaterial]
@@ -52,23 +68,7 @@ struct Card3DView: UIViewRepresentable {
         cameraNode.position = SCNVector3(x: 0, y: 0, z: Float(cameraZ))
         scene.rootNode.addChildNode(cameraNode)
         
-        // Add ambient light
-        let ambientLightNode = SCNNode()
-        ambientLightNode.light = SCNLight()
-        ambientLightNode.light?.type = .ambient
-        ambientLightNode.light?.intensity = 500
-        ambientLightNode.light?.color = UIColor.white
-        scene.rootNode.addChildNode(ambientLightNode)
-        
-        // Add directional light for shine effect
-        let directionalLightNode = SCNNode()
-        directionalLightNode.light = SCNLight()
-        directionalLightNode.light?.type = .directional
-        directionalLightNode.light?.intensity = 800
-        directionalLightNode.light?.color = UIColor.white
-        directionalLightNode.position = SCNVector3(x: 2, y: 2, z: 5)
-        directionalLightNode.look(at: SCNVector3Zero)
-        scene.rootNode.addChildNode(directionalLightNode)
+        // No lights needed - using constant lighting model on materials
         
         // Add pan gesture for rotation
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
@@ -123,13 +123,16 @@ struct Card3DView: UIViewRepresentable {
             let frontMaterial = SCNMaterial()
             frontMaterial.diffuse.contents = isLocked ? createLockedCardImage(blurRadius: contentBlur) : createCardFrontImage()
             frontMaterial.isDoubleSided = false
+            frontMaterial.lightingModel = .constant
             
             let backMaterial = SCNMaterial()
             backMaterial.diffuse.contents = createCardBackImage()
             backMaterial.isDoubleSided = false
+            backMaterial.lightingModel = .constant
             
             let sideMaterial = SCNMaterial()
             sideMaterial.diffuse.contents = UIColor(hex: "FF5113")
+            sideMaterial.lightingModel = .constant
             
             newBox.materials = [frontMaterial, sideMaterial, backMaterial, sideMaterial, sideMaterial, sideMaterial]
             cardNode.geometry = newBox

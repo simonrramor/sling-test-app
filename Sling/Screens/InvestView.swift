@@ -81,9 +81,9 @@ struct InvestView: View {
         portfolioService.portfolioValue()
     }
     
-    // Calculate portfolio value at start of period
-    var portfolioStartTotal: Double {
-        portfolioService.portfolioValueAtPeriodStart(period: selectedPeriod)
+    // Get total cost basis (what you paid for all holdings)
+    var totalCostBasis: Double {
+        portfolioService.holdings.values.reduce(0) { $0 + $1.totalCost }
     }
     
     // Calculate portfolio value at a specific progress point
@@ -104,18 +104,39 @@ struct InvestView: View {
         }
     }
     
-    // Display change from start to current drag position
+    // Calculate gain/loss at a specific progress point (value - cost basis)
+    func gainLossAt(progress: Double) -> Double {
+        let valueAtProgress = portfolioValueAt(progress: progress)
+        return valueAtProgress - totalCostBasis
+    }
+    
+    // Display profit/loss from price changes only (not money added)
+    // This compares current value to cost basis (what you paid)
     var displayPortfolioChange: Double {
-        let currentValue = isDragging ? portfolioValueAt(progress: Double(dragProgress)) : portfolioCurrentTotal
-        return currentValue - portfolioStartTotal
+        if isDragging {
+            return gainLossAt(progress: Double(dragProgress))
+        } else {
+            return portfolioCurrentTotal - totalCostBasis
+        }
     }
     
     var isPositiveChange: Bool {
-        displayPortfolioChange >= 0
+        displayPortfolioChange > 0.001 // Small threshold to avoid floating point issues
+    }
+    
+    var isNegativeChange: Bool {
+        displayPortfolioChange < -0.001
+    }
+    
+    var isNoChange: Bool {
+        !isPositiveChange && !isNegativeChange
     }
     
     var changeColor: Color {
-        isPositiveChange ? Color(hex: "57CE43") : Color(hex: "E30000")
+        if isNoChange {
+            return Color(hex: "7B7B7B") // Grey for no change
+        }
+        return isPositiveChange ? Color(hex: "57CE43") : Color(hex: "E30000")
     }
     
     var changeText: String {
@@ -154,10 +175,10 @@ struct InvestView: View {
                                 .font(.custom("Inter-Medium", size: 16))
                                 .foregroundColor(Color(hex: "7B7B7B"))
                             
-                            Image(systemName: "arrow.up")
+                            Image(systemName: isNoChange ? "arrow.right" : "arrow.up")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(changeColor)
-                                .rotationEffect(.degrees(isPositiveChange ? 0 : 180))
+                                .rotationEffect(.degrees(isNoChange ? 0 : (isPositiveChange ? 0 : 180)))
                             
                             SlidingNumberText(
                                 text: changeText,

@@ -39,13 +39,21 @@ class PortfolioService: ObservableObject {
     static let shared = PortfolioService()
     
     @Published var holdings: [String: Holding] = [:] // iconName -> Holding
-    @Published var cashBalance: Double = 0.0 // Sling wallet balance starts at £0
+    @Published var cashBalance: Double = 0.0 // Sling wallet balance in USD
     @Published var history: [PortfolioEvent] = [] // Portfolio event history
+    @Published var displayCurrency: String = "GBP" {
+        didSet {
+            UserDefaults.standard.set(displayCurrency, forKey: "displayCurrency")
+        }
+    }
     
     private let stockService = StockService.shared
     private let persistence = PersistenceService.shared
     
     private init() {
+        // Load display currency preference (default to GBP)
+        self.displayCurrency = UserDefaults.standard.string(forKey: "displayCurrency") ?? "GBP"
+        
         // Try to load from iCloud first
         if let persisted = persistence.loadPortfolio() {
             // Restore holdings
@@ -301,7 +309,13 @@ class PortfolioService: ObservableObject {
     
     // MARK: - Chart Data Generation
     
-    /// Generate chart data points for the portfolio based on history and live prices
+    /// Total cost basis (what was paid for all holdings)
+    var totalCostBasis: Double {
+        holdings.values.reduce(0) { $0 + $1.totalCost }
+    }
+    
+    /// Generate chart data points for portfolio VALUE over time
+    /// This shows portfolio growth including purchases
     /// - Parameters:
     ///   - period: Time period (1H or 1D)
     ///   - sampleCount: Number of points to generate
@@ -336,8 +350,12 @@ class PortfolioService: ObservableObject {
         
         // Normalize to 0-1 range
         guard let minValue = chartValues.min(),
-              let maxValue = chartValues.max(),
-              maxValue > minValue else {
+              let maxValue = chartValues.max() else {
+            return chartValues.map { _ in CGFloat(0.5) }
+        }
+        
+        // If no change in value, show flat line at middle
+        if maxValue == minValue {
             return chartValues.map { _ in CGFloat(0.5) }
         }
         

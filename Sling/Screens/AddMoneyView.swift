@@ -7,55 +7,61 @@ struct AddMoneyView: View {
     @State private var showConfirmation = false
     @State private var showAccountSelector = false
     @State private var selectedAccount: PaymentAccount = .monzoBankLimited
-    @State private var showingWalletCurrency = true // true = wallet currency (GBP) is primary, false = account currency is primary
-    @State private var walletAmount: Double = 0 // Amount in wallet currency (GBP)
-    @State private var accountAmount: Double = 0 // Amount in account currency (USD, EUR, etc.)
-    @State private var currentExchangeRate: Double = 1.0 // Rate from account currency to wallet currency
+    @State private var showingSourceCurrency = true // true = source account currency is primary, false = USD is primary
+    @State private var sourceAmount: Double = 0 // Amount in source account currency (GBP, EUR, etc.)
+    @State private var usdAmount: Double = 0 // Amount in USD (what gets added to Sling balance)
+    @State private var currentExchangeRate: Double = 1.0 // Rate from source currency to USD
     
     private let exchangeService = ExchangeRateService.shared
-    private let walletCurrency = "GBP"
+    private let slingCurrency = "USD" // Sling balance is always stored in USD
     
     var amountValue: Double {
         Double(amountString) ?? 0
     }
     
-    /// Whether the selected account has a different currency than the wallet
+    /// The source account currency (what the user is paying from)
+    var sourceCurrency: String {
+        selectedAccount.currency.isEmpty ? "GBP" : selectedAccount.currency
+    }
+    
+    /// Whether the source account has a different currency than USD
     var hasCurrencyDifference: Bool {
-        selectedAccount.currency != walletCurrency && !selectedAccount.currency.isEmpty
+        sourceCurrency != slingCurrency
     }
     
-    /// Formatted wallet amount (always GBP)
-    var formattedWalletAmount: String {
-        let symbol = ExchangeRateService.symbol(for: walletCurrency)
-        if walletAmount == 0 && amountString.isEmpty {
+    /// Formatted source amount (GBP, EUR, etc. - what user is paying)
+    var formattedSourceAmount: String {
+        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
+        if sourceAmount == 0 && amountString.isEmpty {
             return "\(symbol)0"
         }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: walletAmount)) ?? String(format: "%.2f", walletAmount)
+        let formattedNumber = formatter.string(from: NSNumber(value: sourceAmount)) ?? String(format: "%.2f", sourceAmount)
         return "\(symbol)\(formattedNumber)"
     }
     
-    /// Formatted account amount (USD, EUR, etc.)
-    var formattedAccountAmount: String {
-        let symbol = ExchangeRateService.symbol(for: selectedAccount.currency)
-        if accountAmount == 0 && amountString.isEmpty {
+    /// Formatted USD amount (what gets added to Sling balance)
+    var formattedUSDAmount: String {
+        let symbol = ExchangeRateService.symbol(for: slingCurrency)
+        if usdAmount == 0 && amountString.isEmpty {
             return "\(symbol)0"
         }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: accountAmount)) ?? String(format: "%.2f", accountAmount)
+        let formattedNumber = formatter.string(from: NSNumber(value: usdAmount)) ?? String(format: "%.2f", usdAmount)
         return "\(symbol)\(formattedNumber)"
     }
     
-    /// Formatted amount for non-currency-difference case
+    /// Formatted amount for non-currency-difference case (when source is USD)
     var formattedAmount: String {
+        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
         if amountString.isEmpty {
-            return "£0"
+            return "\(symbol)0"
         }
         let number = Double(amountString) ?? 0
         let formatter = NumberFormatter()
@@ -63,7 +69,7 @@ struct AddMoneyView: View {
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = amountString.contains(".") ? 2 : 0
         let formattedNumber = formatter.string(from: NSNumber(value: number)) ?? amountString
-        return "£\(formattedNumber)"
+        return "\(symbol)\(formattedNumber)"
     }
     
     var selectedAccountIconName: String {
@@ -117,8 +123,8 @@ struct AddMoneyView: View {
                     
                     Spacer()
                     
-                    // Currency tag
-                    Text("GBP")
+                    // Currency tag (Sling balance is in USD)
+                    Text("USD")
                         .font(.custom("Inter-Medium", size: 14))
                         .foregroundColor(Color(hex: "7B7B7B"))
                         .padding(.horizontal, 12)
@@ -136,22 +142,22 @@ struct AddMoneyView: View {
                 // Amount display with swap animation
                 if hasCurrencyDifference {
                     CurrencySwapView(
-                        walletDisplay: formattedWalletAmount,
-                        accountDisplay: formattedAccountAmount,
-                        showingWalletCurrency: showingWalletCurrency,
+                        primaryDisplay: formattedSourceAmount,  // Source currency (GBP) - what user types
+                        secondaryDisplay: formattedUSDAmount,   // USD - what gets added to Sling
+                        showingPrimaryOnTop: showingSourceCurrency,
                         onSwap: {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                showingWalletCurrency.toggle()
+                                showingSourceCurrency.toggle()
                             }
                             // Update amountString to match the new primary currency
-                            if showingWalletCurrency {
-                                // Now showing wallet currency, set amountString to wallet amount
-                                amountString = walletAmount > 0 ? formatForInput(walletAmount) : ""
+                            if showingSourceCurrency {
+                                // Now showing source currency, set amountString to source amount
+                                amountString = sourceAmount > 0 ? formatForInput(sourceAmount) : ""
                             } else {
-                                // Now showing account currency, set amountString to account amount
-                                amountString = accountAmount > 0 ? formatForInput(accountAmount) : ""
+                                // Now showing USD, set amountString to USD amount
+                                amountString = usdAmount > 0 ? formatForInput(usdAmount) : ""
                             }
                         }
                     )
@@ -205,9 +211,9 @@ struct AddMoneyView: View {
                 AddMoneyConfirmView(
                     isPresented: $showConfirmation,
                     sourceAccount: selectedAccount,
-                    sourceAmount: accountAmount,
-                    sourceCurrency: selectedAccount.currency.isEmpty ? walletCurrency : selectedAccount.currency,
-                    destinationAmount: walletAmount,
+                    sourceAmount: sourceAmount,
+                    sourceCurrency: sourceCurrency,
+                    destinationAmount: usdAmount,
                     exchangeRate: currentExchangeRate,
                     onComplete: {
                         isPresented = false
@@ -221,10 +227,10 @@ struct AddMoneyView: View {
             updateAmounts()
         }
         .onChange(of: selectedAccount.id) { _, _ in
-            // Reset to wallet currency when account changes
-            showingWalletCurrency = true
-            walletAmount = amountValue
-            accountAmount = 0
+            // Reset to source currency when account changes
+            showingSourceCurrency = true
+            sourceAmount = amountValue
+            usdAmount = 0
             updateAmounts()
         }
         .onAppear {
@@ -242,51 +248,52 @@ struct AddMoneyView: View {
     
     private func updateAmounts() {
         guard hasCurrencyDifference else {
-            walletAmount = amountValue
-            accountAmount = amountValue
+            // Source is USD, no conversion needed
+            sourceAmount = amountValue
+            usdAmount = amountValue
             currentExchangeRate = 1.0
             return
         }
         
         let inputAmount = amountValue
         
-        if showingWalletCurrency {
-            // User is entering wallet currency (GBP), convert to account currency
-            walletAmount = inputAmount
+        if showingSourceCurrency {
+            // User is entering source currency (e.g., GBP), convert to USD
+            sourceAmount = inputAmount
             Task {
-                // Get the rate from account currency to wallet currency
-                if let rate = await exchangeService.getRate(from: selectedAccount.currency, to: walletCurrency) {
+                // Get the rate from source currency to USD
+                if let rate = await exchangeService.getRate(from: sourceCurrency, to: slingCurrency) {
                     await MainActor.run {
                         currentExchangeRate = rate
                     }
                 }
                 if let converted = await exchangeService.convert(
                     amount: inputAmount,
-                    from: walletCurrency,
-                    to: selectedAccount.currency
+                    from: sourceCurrency,
+                    to: slingCurrency
                 ) {
                     await MainActor.run {
-                        accountAmount = converted
+                        usdAmount = converted
                     }
                 }
             }
         } else {
-            // User is entering account currency, convert to wallet currency (GBP)
-            accountAmount = inputAmount
+            // User is entering USD, convert to source currency
+            usdAmount = inputAmount
             Task {
-                // Get the rate from account currency to wallet currency
-                if let rate = await exchangeService.getRate(from: selectedAccount.currency, to: walletCurrency) {
+                // Get the rate from source currency to USD (for display)
+                if let rate = await exchangeService.getRate(from: sourceCurrency, to: slingCurrency) {
                     await MainActor.run {
                         currentExchangeRate = rate
                     }
                 }
                 if let converted = await exchangeService.convert(
                     amount: inputAmount,
-                    from: selectedAccount.currency,
-                    to: walletCurrency
+                    from: slingCurrency,
+                    to: sourceCurrency
                 ) {
                     await MainActor.run {
-                        walletAmount = converted
+                        sourceAmount = converted
                     }
                 }
             }
@@ -297,9 +304,9 @@ struct AddMoneyView: View {
 // MARK: - Currency Swap View
 
 struct CurrencySwapView: View {
-    let walletDisplay: String // Always the wallet currency (GBP) amount
-    let accountDisplay: String // Always the account currency (USD, EUR, etc.) amount
-    let showingWalletCurrency: Bool // true = wallet is primary (top), false = account is primary (top)
+    let primaryDisplay: String // The primary currency amount (what user is typing)
+    let secondaryDisplay: String // The secondary currency amount (converted)
+    let showingPrimaryOnTop: Bool // true = primary is on top (large), false = secondary is on top
     let onSwap: () -> Void
     
     private let topOffset: CGFloat = 0
@@ -308,37 +315,37 @@ struct CurrencySwapView: View {
     var body: some View {
         Button(action: onSwap) {
             ZStack {
-                // Wallet currency amount (GBP)
+                // Primary currency amount (e.g., GBP - source)
                 HStack(spacing: 4) {
-                    // Swap icon (visible when wallet is secondary/bottom)
+                    // Swap icon (visible when primary is secondary/bottom)
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(Color(hex: "7B7B7B"))
-                        .opacity(showingWalletCurrency ? 0 : 1)
+                        .opacity(showingPrimaryOnTop ? 0 : 1)
                     
-                    Text(walletDisplay)
-                        .font(.custom(showingWalletCurrency ? "Inter-Bold" : "Inter-Medium", size: showingWalletCurrency ? 56 : 18))
-                        .foregroundColor(showingWalletCurrency ? Color(hex: "080808") : Color(hex: "7B7B7B"))
+                    Text(primaryDisplay)
+                        .font(.custom(showingPrimaryOnTop ? "Inter-Bold" : "Inter-Medium", size: showingPrimaryOnTop ? 56 : 18))
+                        .foregroundColor(showingPrimaryOnTop ? Color(hex: "080808") : Color(hex: "7B7B7B"))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                 }
-                .offset(y: showingWalletCurrency ? topOffset : bottomOffset)
+                .offset(y: showingPrimaryOnTop ? topOffset : bottomOffset)
                 
-                // Account currency amount (USD, EUR, etc.)
+                // Secondary currency amount (e.g., USD - Sling balance)
                 HStack(spacing: 4) {
-                    // Swap icon (visible when account is secondary/bottom)
+                    // Swap icon (visible when secondary is on bottom)
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(Color(hex: "7B7B7B"))
-                        .opacity(showingWalletCurrency ? 1 : 0)
+                        .opacity(showingPrimaryOnTop ? 1 : 0)
                     
-                    Text(accountDisplay)
-                        .font(.custom(showingWalletCurrency ? "Inter-Medium" : "Inter-Bold", size: showingWalletCurrency ? 18 : 56))
-                        .foregroundColor(showingWalletCurrency ? Color(hex: "7B7B7B") : Color(hex: "080808"))
+                    Text(secondaryDisplay)
+                        .font(.custom(showingPrimaryOnTop ? "Inter-Medium" : "Inter-Bold", size: showingPrimaryOnTop ? 18 : 56))
+                        .foregroundColor(showingPrimaryOnTop ? Color(hex: "7B7B7B") : Color(hex: "080808"))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                 }
-                .offset(y: showingWalletCurrency ? bottomOffset : topOffset)
+                .offset(y: showingPrimaryOnTop ? bottomOffset : topOffset)
             }
             .frame(height: 100)
         }
