@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct ListRow<TrailingContent: View>: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let iconName: String
     let title: String
     let subtitle: String
@@ -52,11 +53,11 @@ struct ListRow<TrailingContent: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text(subtitle)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()
@@ -129,7 +130,7 @@ struct PressableRow<Content: View>: View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isPressed ? Color(hex: "F7F7F7") : Color.clear)
+                    .fill(isPressed ? Color(hex: "F5F5F5") : Color.clear)
             )
             .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
                 isPressed = pressing

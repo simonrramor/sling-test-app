@@ -12,6 +12,7 @@ struct BottomNavView: View {
     @Binding var selectedTab: Tab
     var useLiquidGlass: Bool = false
     var onTabChange: ((Tab) -> Void)? = nil
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         if useLiquidGlass {
@@ -30,13 +31,7 @@ struct BottomNavView: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 20)
         .padding(.bottom, 16)
-        .background(Color("BackgroundSecondary"))
-        .overlay(
-            Rectangle()
-                .fill(Color("Divider"))
-                .frame(height: 1),
-            alignment: .top
-        )
+        .background(themeService.backgroundColor)
     }
     
     private var liquidGlassNav: some View {

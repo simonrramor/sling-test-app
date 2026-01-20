@@ -10,6 +10,8 @@ struct HeaderView: View {
     var onSearchTap: () -> Void = {}
     var onInviteTap: () -> Void = {}
     
+    @ObservedObject private var themeService = ThemeService.shared
+    
     // Determine which buttons to show based on current tab
     // Home: Invite, QR, Help
     // Card: Invite, Help
@@ -83,6 +85,23 @@ struct HeaderView: View {
             Spacer()
             
             HStack(spacing: 8) {
+                // Theme Toggle Button (shows icon of next theme)
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        themeService.toggleTheme()
+                    }
+                }) {
+                    Image(systemName: themeService.currentTheme.nextTheme.iconName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(themeService.textPrimaryColor)
+                        .frame(width: 36, height: 36)
+                        .background(themeService.buttonSecondaryColor)
+                        .cornerRadius(12)
+                }
+                .accessibilityLabel("Switch to \(themeService.currentTheme.nextTheme.displayName) theme")
+                
                 // Invite Button - always shown
                 if showInvite {
                     Button(action: {
@@ -92,10 +111,10 @@ struct HeaderView: View {
                     }) {
                         Text("Invite")
                             .font(.custom("Inter-Bold", size: 14))
-                            .foregroundColor(Color("TextPrimary"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(Color("BackgroundSecondary"))
+                            .background(themeService.buttonSecondaryColor)
                             .cornerRadius(12)
                     }
                     .transition(buttonTransition)
@@ -110,9 +129,9 @@ struct HeaderView: View {
                     }) {
                         Image(systemName: "qrcode")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 36, height: 36)
-                            .background(Color("BackgroundSecondary"))
+                            .background(themeService.buttonSecondaryColor)
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("QR Code")
@@ -128,9 +147,9 @@ struct HeaderView: View {
                     }) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 36, height: 36)
-                            .background(Color("BackgroundSecondary"))
+                            .background(themeService.buttonSecondaryColor)
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("Search")
@@ -146,9 +165,9 @@ struct HeaderView: View {
                     }) {
                         Image(systemName: "questionmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 36, height: 36)
-                            .background(Color("BackgroundSecondary"))
+                            .background(themeService.buttonSecondaryColor)
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("Help")

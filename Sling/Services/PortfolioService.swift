@@ -2,6 +2,30 @@ import Foundation
 import Combine
 import CoreGraphics
 
+// #region agent log
+private let debugLogPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
+private var generateChartDataCount = 0
+private func debugLog(_ location: String, _ message: String, _ data: [String: Any] = [:]) {
+    let entry: [String: Any] = [
+        "timestamp": Date().timeIntervalSince1970 * 1000,
+        "location": location,
+        "message": message,
+        "data": data,
+        "sessionId": "debug-session"
+    ]
+    if let jsonData = try? JSONSerialization.data(withJSONObject: entry),
+       let jsonString = String(data: jsonData, encoding: .utf8) {
+        if let handle = FileHandle(forWritingAtPath: debugLogPath) {
+            handle.seekToEndOfFile()
+            handle.write((jsonString + "\n").data(using: .utf8)!)
+            handle.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: debugLogPath, contents: (jsonString + "\n").data(using: .utf8))
+        }
+    }
+}
+// #endregion
+
 // MARK: - Portfolio Event Model
 
 enum PortfolioEventType {
@@ -321,6 +345,10 @@ class PortfolioService: ObservableObject {
     ///   - sampleCount: Number of points to generate
     /// - Returns: Array of normalized values (0-1) for the chart
     func generateChartData(period: String, sampleCount: Int = 10) -> [CGFloat] {
+        // #region agent log
+        generateChartDataCount += 1
+        debugLog("PortfolioService.swift:generateChartData", "H3: Generating chart data", ["period": period, "sampleCount": sampleCount, "callCount": generateChartDataCount, "historyCount": history.count])
+        // #endregion
         guard !history.isEmpty else { return [] }
         
         let now = Date()

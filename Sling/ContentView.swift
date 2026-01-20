@@ -21,8 +21,10 @@ struct ContentView: View {
     @State private var showRequestMoney = false
     @State private var showTransferBetweenAccounts = false
     
+    @ObservedObject private var themeService = ThemeService.shared
+    
     var backgroundColor: Color {
-        Color("Background")
+        themeService.backgroundColor
     }
     
     // Get index of a tab for directional comparison
@@ -101,17 +103,6 @@ struct ContentView: View {
                 })
             }
             
-            // Floating Action Button
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    FloatingActionButton(isMenuOpen: $showFABMenu)
-                        .padding(.trailing, 24)
-                        .padding(.bottom, 100) // Above the bottom nav
-                }
-            }
-            
             // In-app notification overlay
             NotificationOverlay()
                 .ignoresSafeArea(.container, edges: .top)
@@ -175,6 +166,7 @@ struct ContentView: View {
             previousTab = selectedTab
             selectedTab = .card
         }
+        .preferredColorScheme(themeService.colorScheme)
     }
 }
 
@@ -281,6 +273,7 @@ struct FABMenuSheet: View {
 }
 
 struct FABMenuRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let iconName: String
     let iconColor: Color
     let iconBgColor: Color
@@ -312,11 +305,11 @@ struct FABMenuRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text(subtitle)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()
@@ -324,7 +317,7 @@ struct FABMenuRow: View {
                 // Chevron
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "CCCCCC"))
+                    .foregroundColor(themeService.textTertiaryColor)
             }
             .padding(16)
             .background(Color.white)

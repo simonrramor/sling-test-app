@@ -3,6 +3,7 @@ import UIKit
 
 struct TransferBetweenAccountsView: View {
     @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString = ""
     @State private var fromAccount: PaymentAccount = .slingWallet
     @State private var toAccount: PaymentAccount = .monzoBankLimited
@@ -32,7 +33,7 @@ struct TransferBetweenAccountsView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 32, height: 32)
                         .background(Color(hex: "F5F5F5"))
                         .clipShape(Circle())
@@ -42,7 +43,7 @@ struct TransferBetweenAccountsView: View {
                 
                 Text("Transfer")
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -58,14 +59,14 @@ struct TransferBetweenAccountsView: View {
                     // Amount display
                     Text(formattedAmount)
                         .font(.custom("Inter-Bold", size: 48))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .padding(.top, 32)
                     
                     // From account
                     VStack(alignment: .leading, spacing: 8) {
                         Text("From")
                             .font(.custom("Inter-Medium", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Button(action: { showFromAccountPicker = true }) {
                             HStack(spacing: 12) {
@@ -74,18 +75,18 @@ struct TransferBetweenAccountsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(fromAccount.name)
                                         .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(Color(hex: "080808"))
+                                        .foregroundColor(themeService.textPrimaryColor)
                                     
                                     Text(fromAccount.subtitle)
                                         .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 
                                 Spacer()
                                 
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                    .foregroundColor(themeService.textSecondaryColor)
                             }
                             .padding(16)
                             .background(Color(hex: "F7F7F7"))
@@ -104,7 +105,7 @@ struct TransferBetweenAccountsView: View {
                     }) {
                         Image(systemName: "arrow.up.arrow.down")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 44, height: 44)
                             .background(Color(hex: "EDEDED"))
                             .cornerRadius(22)
@@ -114,7 +115,7 @@ struct TransferBetweenAccountsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("To")
                             .font(.custom("Inter-Medium", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Button(action: { showToAccountPicker = true }) {
                             HStack(spacing: 12) {
@@ -123,18 +124,18 @@ struct TransferBetweenAccountsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(toAccount.name)
                                         .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(Color(hex: "080808"))
+                                        .foregroundColor(themeService.textPrimaryColor)
                                     
                                     Text(toAccount.subtitle)
                                         .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 
                                 Spacer()
                                 
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                    .foregroundColor(themeService.textSecondaryColor)
                             }
                             .padding(16)
                             .background(Color(hex: "F7F7F7"))
@@ -208,6 +209,7 @@ struct AccountIconView: View {
 
 // Simple numpad for this view
 struct NumpadView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var value: String
     
     let buttons = [
@@ -227,7 +229,7 @@ struct NumpadView: View {
                         }) {
                             Text(button)
                                 .font(.custom("Inter-Bold", size: 24))
-                                .foregroundColor(Color(hex: "080808"))
+                                .foregroundColor(themeService.textPrimaryColor)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 56)
                         }

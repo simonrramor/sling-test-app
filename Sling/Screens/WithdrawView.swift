@@ -4,6 +4,7 @@ import UIKit
 struct WithdrawView: View {
     @Binding var isPresented: Bool
     @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString = ""
     @State private var selectedAccount: PaymentAccount = .monzoBankLimited
     @State private var showAccountPicker = false
@@ -36,7 +37,7 @@ struct WithdrawView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 32, height: 32)
                         .background(Color(hex: "F5F5F5"))
                         .clipShape(Circle())
@@ -46,7 +47,7 @@ struct WithdrawView: View {
                 
                 Text("Withdraw")
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -63,11 +64,11 @@ struct WithdrawView: View {
                     VStack(spacing: 4) {
                         Text("Available Balance")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Text("£\(String(format: "%.2f", portfolioService.cashBalance))")
                             .font(.custom("Inter-Bold", size: 20))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     .padding(.top, 16)
                     
@@ -86,7 +87,7 @@ struct WithdrawView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Withdraw to")
                             .font(.custom("Inter-Medium", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Button(action: { showAccountPicker = true }) {
                             HStack(spacing: 12) {
@@ -95,18 +96,18 @@ struct WithdrawView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(selectedAccount.name)
                                         .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(Color(hex: "080808"))
+                                        .foregroundColor(themeService.textPrimaryColor)
                                     
                                     Text(selectedAccount.subtitle)
                                         .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 
                                 Spacer()
                                 
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                    .foregroundColor(themeService.textSecondaryColor)
                             }
                             .padding(16)
                             .background(Color(hex: "F7F7F7"))
@@ -198,6 +199,7 @@ struct WithdrawView: View {
 }
 
 struct QuickAmountButton: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let amount: String
     let onTap: () -> Void
     
@@ -209,7 +211,7 @@ struct QuickAmountButton: View {
         }) {
             Text(amount == "All" ? "All" : "£\(amount)")
                 .font(.custom("Inter-Bold", size: 14))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(Color(hex: "F7F7F7"))

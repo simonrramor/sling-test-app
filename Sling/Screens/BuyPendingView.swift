@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BuyPendingView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let stock: Stock
     let amount: Double
     let numberOfShares: Double
@@ -30,17 +31,17 @@ struct BuyPendingView: View {
                         HStack(spacing: 4) {
                             Text("Buy")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text("·")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text(stock.symbol)
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                         Text(stock.name)
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -54,7 +55,7 @@ struct BuyPendingView: View {
                 // Amount display
                 Text(String(format: "£%.0f", amount))
                     .font(.custom("Inter-Bold", size: 62))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 

@@ -63,6 +63,13 @@ class ActivityService: ObservableObject {
     
     private let persistence = PersistenceService.shared
     
+    // Track if user is active (has made transactions) - new users start with empty feed
+    private let isActiveUserKey = "isActiveUser"
+    var isActiveUser: Bool {
+        get { UserDefaults.standard.bool(forKey: isActiveUserKey) }
+        set { UserDefaults.standard.set(newValue, forKey: isActiveUserKey) }
+    }
+    
     private init() {
         // Load persisted local activities from iCloud
         let persisted = persistence.loadActivities()
@@ -80,6 +87,7 @@ class ActivityService: ObservableObject {
         
         if !localActivities.isEmpty {
             print("ActivityService: Restored \(localActivities.count) activities from iCloud")
+            isActiveUser = true  // User has existing activities, mark as active
             updateCombinedActivities()
         }
     }
@@ -122,6 +130,9 @@ class ActivityService: ObservableObject {
         
         // Add to local activities
         localActivities.insert(newItem, at: 0)
+        
+        // Mark user as active (has made transactions)
+        isActiveUser = true
         
         // Update combined activities list
         updateCombinedActivities()
@@ -399,13 +410,22 @@ class ActivityService: ObservableObject {
     }
     
     func fetchActivities(force: Bool = false) async {
+        // Skip fetch for new users - they should only see their own local activities
+        if !isActiveUser {
+            print("ActivityService: New user, showing empty feed")
+            await MainActor.run {
+                self.isLoading = false
+            }
+            return
+        }
+        
         // Skip fetch if already fetched and not forced (e.g., pull-to-refresh)
         if hasFetchedOnce && !force {
             print("ActivityService: Already fetched, skipping...")
             return
         }
         
-        print("ActivityService: Starting fetch...")
+        print("ActivityService: Starting fetch for active user...")
         
         await MainActor.run {
             self.isLoading = true
@@ -522,12 +542,15 @@ class ActivityService: ObservableObject {
     
     // MARK: - Clear Local Activities
     
-    /// Clears all local activities (for reset functionality)
+    /// Clears all activities (for reset functionality)
     func clearLocalActivities() {
         localActivities = []
-        updateCombinedActivities()
+        fetchedActivities = []
+        hasFetchedOnce = false
+        activities = []
+        isActiveUser = false  // Reset to new user state
         saveLocalActivitiesToCloud()
-        print("ActivityService: Cleared all local activities")
+        print("ActivityService: Cleared all activities, reset to new user state")
     }
     
     private func parseCSVLine(_ line: String) -> [String] {

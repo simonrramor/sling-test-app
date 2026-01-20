@@ -5,6 +5,7 @@ struct SendConfirmView: View {
     let contact: Contact
     let amount: Double
     let mode: PaymentMode
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var isPresented: Bool
     var onComplete: () -> Void = {}
     
@@ -57,7 +58,7 @@ struct SendConfirmView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -98,7 +99,7 @@ struct SendConfirmView: View {
                     // Title - left aligned
                     Text(titleText)
                         .font(.custom("Inter-Bold", size: 32))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -213,7 +214,7 @@ struct SendConfirmView: View {
                         
                         Text(titleText)
                             .font(.custom("Inter-Bold", size: 32))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .multilineTextAlignment(.leading)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -233,6 +234,7 @@ struct SendConfirmView: View {
 // MARK: - Info List Item
 
 struct InfoListItem: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     let detail: String
     var showImage: Bool = false
@@ -242,7 +244,7 @@ struct InfoListItem: View {
         HStack {
             Text(label)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
             
             Spacer()
             
@@ -263,7 +265,7 @@ struct InfoListItem: View {
                 
                 Text(detail)
                     .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
         }
         .padding(.vertical, 4)

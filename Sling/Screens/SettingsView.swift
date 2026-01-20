@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var showResetConfirmation = false
     @State private var showLogoutConfirmation = false
     @State private var showInviteSheet = false
@@ -33,7 +34,7 @@ struct SettingsView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 44, height: 44)
                     }
                     
@@ -269,6 +270,7 @@ enum RowPosition {
 }
 
 struct SettingsRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     var iconAsset: String? = nil
     var iconSystem: String? = nil
     let title: String
@@ -313,11 +315,11 @@ struct SettingsRow: View {
                         .renderingMode(.template)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 24, height: 24)
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 } else if let iconSystem = iconSystem {
                     Image(systemName: iconSystem)
                         .font(.system(size: 20))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .frame(width: 24, height: 24)
                 }
                 
@@ -333,7 +335,7 @@ struct SettingsRow: View {
                 if let rightText = rightText {
                     Text(rightText)
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "999999"))
+                        .foregroundColor(themeService.textTertiaryColor)
                 }
             }
             .padding(.horizontal, 16)
@@ -411,6 +413,7 @@ struct DepositDetailsSheet: View {
 }
 
 struct DepositDetailRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     let value: String
     @State private var copied = false
@@ -420,11 +423,11 @@ struct DepositDetailRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(label)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 Text(value)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             
             Spacer()
@@ -453,6 +456,7 @@ struct DepositDetailRow: View {
 // MARK: - Linked Accounts Sheet
 
 struct LinkedAccountsSheet: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.dismiss) private var dismiss
     
     let accounts = [
@@ -485,12 +489,12 @@ struct LinkedAccountsSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(account.name)
                                 .font(.custom("Inter-Bold", size: 16))
-                                .foregroundColor(Color(hex: "080808"))
+                                .foregroundColor(themeService.textPrimaryColor)
                             
                             if !account.lastFour.isEmpty {
                                 Text(account.lastFour)
                                     .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                    .foregroundColor(themeService.textSecondaryColor)
                             }
                         }
                         
@@ -513,7 +517,7 @@ struct LinkedAccountsSheet: View {
                         
                         Text("Add new account")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         
                         Spacer()
                     }
@@ -532,6 +536,7 @@ struct LinkedAccountsSheet: View {
 // MARK: - Profile Sheet
 
 struct ProfileSheet: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -578,6 +583,7 @@ struct ProfileSheet: View {
 }
 
 struct ProfileField: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     let value: String
     
@@ -585,18 +591,18 @@ struct ProfileField: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.custom("Inter-Regular", size: 14))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
             
             HStack {
                 Text(value)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "CCCCCC"))
+                    .foregroundColor(themeService.textTertiaryColor)
             }
         }
         .padding(16)
@@ -608,6 +614,7 @@ struct ProfileField: View {
 // MARK: - Privacy Sheet
 
 struct PrivacySheet: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showBalance = true
     @State private var showActivity = true
@@ -631,11 +638,11 @@ struct PrivacySheet: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Show Balance")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         
                         Text("Display your balance on the home screen")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
                 .tint(Color(hex: "FF5113"))
@@ -647,11 +654,11 @@ struct PrivacySheet: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Show Activity")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         
                         Text("Display recent transactions")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
                 .tint(Color(hex: "FF5113"))
@@ -663,11 +670,11 @@ struct PrivacySheet: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Discoverable by Username")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         
                         Text("Allow others to find you by @brendon")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
                 .tint(Color(hex: "FF5113"))

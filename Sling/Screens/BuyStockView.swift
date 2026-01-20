@@ -5,6 +5,7 @@ struct BuyStockView: View {
     let stock: Stock
     @Binding var isPresented: Bool
     var onComplete: () -> Void = {}
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString: String = ""
     @State private var showConfirmation = false
     @State private var isSharesMode: Bool = false  // false = dollars, true = shares
@@ -67,14 +68,15 @@ struct BuyStockView: View {
         }
     }
     
-    // Formatted cash balance for display
+    // Formatted cash balance for display (shows remaining after amount being typed)
     var formattedCashBalance: String {
+        let remainingBalance = max(0, portfolioService.cashBalance - dollarAmount)
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         formatter.groupingSeparator = ","
-        let formatted = formatter.string(from: NSNumber(value: portfolioService.cashBalance)) ?? String(format: "%.2f", portfolioService.cashBalance)
+        let formatted = formatter.string(from: NSNumber(value: remainingBalance)) ?? String(format: "%.2f", remainingBalance)
         return "£\(formatted)"
     }
     
@@ -99,7 +101,7 @@ struct BuyStockView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -120,17 +122,17 @@ struct BuyStockView: View {
                         HStack(spacing: 4) {
                             Text("Buy")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text("·")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text(stock.symbol)
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                         Text(stock.name)
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -186,13 +188,22 @@ struct BuyStockView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                 
-                // Next button
-                SecondaryButton(
-                    title: "Next",
-                    isEnabled: dollarAmount > 0 && dollarAmount <= portfolioService.cashBalance
-                ) {
+                // Next button (black)
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
                     showConfirmation = true
+                }) {
+                    Text("Next")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(dollarAmount > 0 && dollarAmount <= portfolioService.cashBalance ? Color(hex: "080808") : Color(hex: "080808").opacity(0.5))
+                        .cornerRadius(20)
                 }
+                .buttonStyle(PressedButtonStyle())
+                .disabled(!(dollarAmount > 0 && dollarAmount <= portfolioService.cashBalance))
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
@@ -266,6 +277,7 @@ struct NumberPadView: View {
 }
 
 struct NumberKeyView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let key: String
     let action: () -> Void
     
@@ -274,7 +286,7 @@ struct NumberKeyView: View {
     var body: some View {
         Text(key)
             .font(.custom("Inter-Bold", size: 28))
-            .foregroundColor(Color(hex: "080808"))
+            .foregroundColor(themeService.textPrimaryColor)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
@@ -297,6 +309,7 @@ struct NumberKeyView: View {
 }
 
 struct AmountSwapView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let dollarDisplay: String
     let sharesDisplay: String
     let isSharesMode: Bool
@@ -327,11 +340,11 @@ struct AmountSwapView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.up.arrow.down")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             
                             Text(isSharesMode ? dollarDisplay : sharesDisplay)
                                 .font(.custom("Inter-Medium", size: 18))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                                 .minimumScaleFactor(0.5)
                                 .lineLimit(1)
                         }

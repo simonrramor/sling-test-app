@@ -2,13 +2,14 @@ import SwiftUI
 
 struct ActivityView: View {
     @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         VStack(spacing: 0) {
             // Title
             Text("Activity")
                 .font(.custom("Inter-Bold", size: 24))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
@@ -53,6 +54,7 @@ struct ActivityView: View {
 // MARK: - Activity Empty State Card
 
 struct ActivityEmptyStateCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
     var onAddTransactions: () -> Void
     @State private var showTransactionOptions = false
     
@@ -63,14 +65,14 @@ struct ActivityEmptyStateCard: View {
                 Text("Your activity feed")
                     .font(.custom("Inter-Bold", size: 18))
                     .tracking(-0.36)
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .multilineTextAlignment(.center)
                 
                 Text("When you send, spend, or receive money, it will show here.")
                     .font(.custom("Inter-Regular", size: 16))
                     .tracking(-0.32)
                     .lineSpacing(4)
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                     .multilineTextAlignment(.center)
             }
             
@@ -82,7 +84,7 @@ struct ActivityEmptyStateCard: View {
             }) {
                 Text("Add transactions")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(Color(hex: "EDEDED"))

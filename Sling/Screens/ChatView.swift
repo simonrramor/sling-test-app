@@ -4,6 +4,7 @@ import UIKit
 struct ChatView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var chatService = ChatService()
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var inputText = ""
     @FocusState private var isInputFocused: Bool
     
@@ -18,7 +19,7 @@ struct ChatView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 36, height: 36)
                 }
                 .accessibilityLabel("Close chat")
@@ -27,7 +28,7 @@ struct ChatView: View {
                 
                 Text("Sling Assistant")
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -39,7 +40,7 @@ struct ChatView: View {
                 }) {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .frame(width: 36, height: 36)
                 }
                 .accessibilityLabel("Clear chat")
@@ -61,11 +62,11 @@ struct ChatView: View {
                         .font(.custom("Inter-Bold", size: 28))
                         .tracking(-0.56)
                         .multilineTextAlignment(.center)
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text("Your AI helper to answer any questions")
                         .font(.custom("Inter-Regular", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 32)
@@ -138,7 +139,7 @@ struct ChatView: View {
                     }) {
                         Image(systemName: "mic")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(Color(hex: "999999"))
+                            .foregroundColor(themeService.textTertiaryColor)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -204,6 +205,7 @@ struct ChatView: View {
 // MARK: - Message Bubble
 
 struct MessageBubble: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let message: ChatMessage
     
     var isUser: Bool {
@@ -218,7 +220,7 @@ struct MessageBubble: View {
                 // User messages in bubble
                 Text(message.content)
                     .font(.custom("Inter-Regular", size: 15))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(
@@ -229,7 +231,7 @@ struct MessageBubble: View {
                 // Assistant messages with markdown support
                 Text(parseMarkdown(message.content))
                     .font(.custom("Inter-Regular", size: 15))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             
             if !isUser { Spacer(minLength: 60) }
@@ -254,13 +256,14 @@ struct MessageBubble: View {
 // MARK: - Streaming Text (for word-by-word animation)
 
 struct StreamingBubble: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let content: String
     
     var body: some View {
         HStack {
             Text(parseMarkdown(content))
                 .font(.custom("Inter-Regular", size: 15))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
             
             Spacer(minLength: 60)
         }

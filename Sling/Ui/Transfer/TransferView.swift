@@ -12,6 +12,7 @@ struct TransferAction: Identifiable {
 }
 
 struct TransferView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var showSendView = false
     @State private var showRequestView = false
     @State private var showSplitBillView = false
@@ -60,7 +61,7 @@ struct TransferView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 // Main transfer actions
                 ForEach(actions) { action in
                     if action.isComingSoon {
@@ -98,13 +99,12 @@ struct TransferView: View {
                 HStack {
                     Text("Social")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .accessibilityAddTraits(.isHeader)
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 24)
-                .padding(.bottom, 8)
+                .padding(.horizontal, 8)
+                .padding(.top, 16)
                 
                 // Social actions
                 ForEach(socialActions) { action in
@@ -125,7 +125,7 @@ struct TransferView: View {
             }
         }
         .scrollIndicators(.hidden)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 16)
         .padding(.top, 16)
         .fullScreenCover(isPresented: $showSendView) {
             SendView(isPresented: $showSendView, mode: .send)
@@ -148,6 +148,7 @@ struct TransferView: View {
 // MARK: - Receive Salary Sheet
 
 struct ReceiveSalarySheet: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -173,12 +174,12 @@ struct ReceiveSalarySheet: View {
             
             Text("Receive Your Salary")
                 .font(.custom("Inter-Bold", size: 24))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 8)
             
             Text("Get your salary paid directly into Sling and start spending instantly.")
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
                 .padding(.bottom, 24)
@@ -187,7 +188,7 @@ struct ReceiveSalarySheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Share these details with your employer")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 SalaryDetailRow(label: "Account Name", value: "Brendon Arnold")
                 SalaryDetailRow(label: "Sort Code", value: "04-00-75")
@@ -228,6 +229,7 @@ struct ReceiveSalarySheet: View {
 }
 
 struct SalaryDetailRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     let value: String
     
@@ -236,11 +238,11 @@ struct SalaryDetailRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.custom("Inter-Regular", size: 12))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 Text(value)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             
             Spacer()
@@ -249,6 +251,7 @@ struct SalaryDetailRow: View {
 }
 
 struct SocialListRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let iconName: String
     let title: String
     let subtitle: String
@@ -266,10 +269,10 @@ struct SocialListRow: View {
             }
         }) {
             HStack(spacing: 16) {
-                // Icon with colored background
+                // Icon with white background
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(backgroundColor)
+                        .fill(Color.white)
                         .frame(width: 44, height: 44)
                     
                     Image(iconName)
@@ -284,11 +287,11 @@ struct SocialListRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text(subtitle)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()
@@ -308,7 +311,7 @@ struct SocialListRowButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(configuration.isPressed && !isComingSoon ? Color(hex: "F7F7F7") : Color.clear)
+                    .fill(configuration.isPressed && !isComingSoon ? Color(hex: "F5F5F5") : Color.clear)
             )
     }
 }
@@ -316,6 +319,7 @@ struct SocialListRowButtonStyle: ButtonStyle {
 // MARK: - Coming Soon List Row
 
 struct ComingSoonListRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let iconName: String
     let title: String
     let subtitle: String
@@ -332,11 +336,11 @@ struct ComingSoonListRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text(subtitle)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()

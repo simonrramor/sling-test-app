@@ -13,6 +13,14 @@ struct SpendView: View {
     @State private var isCardLocked = false
     @State private var showCardDetails = false
     @AppStorage("hasCard") private var hasCard = false
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    // Shadow control sliders
+    @State private var shadowOpacity: Double = 0.25
+    @State private var shadowRadius: Double = 20
+    @State private var shadowOffsetX: Double = 0
+    @State private var shadowOffsetY: Double = 10
+    @State private var showShadowControls = false
     
     let categories = [
         SpendCategory(name: "Groceries", amount: "$1,032", iconName: "cart.fill", iconColor: Color(hex: "78D381")),
@@ -21,7 +29,7 @@ struct SpendView: View {
     ]
     
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
                 if hasCard {
                     // Card content
@@ -46,7 +54,7 @@ struct SpendView: View {
                 }
             }
         }
-        .background(Color(hex: "F2F2F2"))
+        .background(themeService.backgroundColor)
         .sheet(isPresented: $showCardDetails) {
             CardDetailsSheet()
                 .presentationDetents([.medium, .large])
@@ -57,22 +65,56 @@ struct SpendView: View {
     private var cardContent: some View {
         VStack(spacing: 0) {
             // 3D Interactive Card
-            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1)
-                .frame(height: 240)
-                .overlay(
-                    Group {
-                        if isCardLocked {
-                            // Lock icon in center
-                            Image("LockLockedIcon")
-                                .renderingMode(.template)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 32, height: 32)
-                                .foregroundColor(.white)
+            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1, onTap: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showShadowControls.toggle()
+                }
+            })
+            .frame(height: 240)
+            .frame(maxWidth: .infinity)
+            .frame(height: 240)
+            .overlay(
+                Group {
+                    if isCardLocked {
+                        // Lock icon in center
+                        Image("LockLockedIcon")
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 32, height: 32)
+                            .foregroundColor(.white)
+                    }
+                }
+            )
+            .padding(.top, 16)
+            
+            // Shadow Controls
+            if showShadowControls {
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Shadow Controls")
+                            .font(.custom("Inter-Bold", size: 14))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        Spacer()
+                        Button(action: {
+                            withAnimation { showShadowControls = false }
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(themeService.textTertiaryColor)
                         }
                     }
-                )
-                .padding(.top, 16)
+                    
+                    ShadowSlider(label: "Opacity", value: $shadowOpacity, range: 0...1, format: "%.2f")
+                    ShadowSlider(label: "Radius", value: $shadowRadius, range: 0...50, format: "%.0f")
+                    ShadowSlider(label: "Offset X", value: $shadowOffsetX, range: -30...30, format: "%.0f")
+                    ShadowSlider(label: "Offset Y", value: $shadowOffsetY, range: -30...30, format: "%.0f")
+                }
+                .padding(16)
+                .background(Color(hex: "F7F7F7"))
+                .cornerRadius(16)
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+            }
             
             HStack(spacing: 8) {
                 Button(action: {
@@ -82,7 +124,7 @@ struct SpendView: View {
                 }) {
                     Text("Show details")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                 }
@@ -122,7 +164,7 @@ struct SpendView: View {
                                 removal: .opacity.combined(with: .offset(x: -5, y: 0)).animation(.easeOut(duration: 0.2))
                             ))
                     }
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .clipped()
@@ -135,17 +177,17 @@ struct SpendView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Spent this month (1st Dec – 1st Jan)")
                     .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 Text("$3,430")
                     .font(.custom("Inter-Bold", size: 33))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white)
+                    .fill(Color(hex: "FCFCFC"))
             )
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
@@ -168,6 +210,7 @@ struct SpendView: View {
 // MARK: - Card Empty State
 
 struct CardEmptyStateCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
     var onGetCard: () -> Void
     
     var body: some View {
@@ -178,7 +221,7 @@ struct CardEmptyStateCard: View {
                     .font(.custom("Inter-Bold", size: 32))
                     .tracking(-0.64)
                     .lineSpacing(1)
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 313)
                 
@@ -186,7 +229,7 @@ struct CardEmptyStateCard: View {
                     .font(.custom("Inter-Regular", size: 16))
                     .tracking(-0.32)
                     .lineSpacing(8)
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                     .multilineTextAlignment(.center)
             }
             
@@ -213,6 +256,7 @@ struct CardEmptyStateCard: View {
 }
 
 struct CategoryCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let category: SpendCategory
     
     var body: some View {
@@ -229,7 +273,7 @@ struct CategoryCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(category.name)
                     .font(.custom("Inter-Medium", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 Text(category.amount)
                     .font(.custom("Inter-Bold", size: 16))
@@ -241,7 +285,7 @@ struct CategoryCard: View {
         .frame(width: 150)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
+                .fill(Color(hex: "FCFCFC"))
         )
     }
 }
@@ -251,7 +295,7 @@ struct TertiaryButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(configuration.isPressed ? Color(hex: "EDEDED") : Color.white)
+                    .fill(configuration.isPressed ? Color(hex: "F2F2F2") : Color.white)
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
@@ -261,6 +305,7 @@ struct TertiaryButtonStyle: ButtonStyle {
 // MARK: - Card Details Sheet
 
 struct CardDetailsSheet: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.dismiss) private var dismiss
     
     // Mock card data
@@ -297,6 +342,7 @@ struct CardDetailRow: Identifiable {
 }
 
 struct CardDetailField: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     let value: String
     @State private var copied = false
@@ -306,7 +352,7 @@ struct CardDetailField: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.custom("Inter-Medium", size: 13))
-                    .foregroundColor(Color(hex: "999999"))
+                    .foregroundColor(themeService.textTertiaryColor)
                 
                 Text(value)
                     .font(.custom("Inter-Medium", size: 16))
@@ -338,10 +384,33 @@ struct CardDetailField: View {
         .padding(16)
         .background(Color(hex: "FCFCFC"))
         .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "F7F7F7"), lineWidth: 1)
-        )
+    }
+}
+
+// MARK: - Shadow Slider
+
+struct ShadowSlider: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    let label: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let format: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.custom("Inter-Medium", size: 12))
+                    .foregroundColor(themeService.textSecondaryColor)
+                Spacer()
+                Text(String(format: format, value))
+                    .font(.custom("Inter-Medium", size: 12))
+                    .foregroundColor(themeService.textPrimaryColor)
+                    .frame(width: 50, alignment: .trailing)
+            }
+            Slider(value: $value, in: range)
+                .tint(Color(hex: "FF5113"))
+        }
     }
 }
 

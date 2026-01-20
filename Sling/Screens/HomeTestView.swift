@@ -4,6 +4,7 @@ import UIKit
 struct HomeTestView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     
     private let tabs = ["activity", "wallet", "invest", "settings"]
     @State private var selectedTab = "wallet"
@@ -33,7 +34,7 @@ struct HomeTestView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 44, height: 44)
                     }
                     Spacer()
@@ -63,13 +64,13 @@ struct HomeTestView: View {
                     Text("Cash balance")
                         .font(.custom("Inter-Medium", size: 16))
                         .tracking(-0.32) // -2% at 16pt
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     
                     // Balance: Inter Bold 48pt, line height 1.25em, -2% tracking, #080808
                     Text(formattedBalance)
                         .font(.custom("Inter-Bold", size: 48))
                         .tracking(-0.96) // -2% at 48pt
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)

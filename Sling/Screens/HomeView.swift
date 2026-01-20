@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showSendMoney = false
     @State private var showSetup = false
     @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         ScrollView {
@@ -17,7 +18,7 @@ struct HomeView: View {
                 
                 // Add money + Withdraw buttons
                 HStack(spacing: 8) {
-                    // Add money button (secondary - white)
+                    // Add money button
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
@@ -25,15 +26,15 @@ struct HomeView: View {
                     }) {
                     Text("Add money")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color("TextPrimary"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color("BackgroundSecondary"))
+                        .background(themeService.buttonSecondaryColor)
                         .cornerRadius(20)
                     }
                     .buttonStyle(PressedButtonStyle())
                     
-                    // Withdraw button (secondary - white)
+                    // Withdraw button
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
@@ -41,10 +42,10 @@ struct HomeView: View {
                     }) {
                     Text("Withdraw")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color("TextPrimary"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color("BackgroundSecondary"))
+                        .background(themeService.buttonSecondaryColor)
                         .cornerRadius(20)
                     }
                     .buttonStyle(PressedButtonStyle())
@@ -62,32 +63,27 @@ struct HomeView: View {
                 // Invest promo card
                 InvestPromoCard()
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 16)
                 
                 // Sling Card promo card
                 SlingCardPromoCard()
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 16)
                 
                 // Activity Section
+                Text("Activity")
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color("TextSecondary"))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
                 VStack(spacing: 0) {
-                    // Activity header
-                    Text("Activity")
-                        .font(.custom("Inter-Bold", size: 24))
-                        .foregroundColor(Color("TextPrimary"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 24)
-                        .padding(.bottom, 8)
-                    
                     if activityService.activities.isEmpty && !activityService.isLoading {
                         // Empty state
-                        HomeEmptyStateCard(onAddTransactions: {
-                            Task {
-                                await activityService.fetchActivities(force: true)
-                            }
-                        })
-                        .padding(.vertical, 24)
+                        HomeEmptyStateCard()
+                            .padding(.vertical, 24)
                     } else if activityService.isLoading && activityService.activities.isEmpty {
                         // Loading state with skeleton rows
                         VStack(spacing: 0) {
@@ -99,9 +95,14 @@ struct HomeView: View {
                     } else {
                         // Transaction list
                         TransactionListContent()
-                            .padding(.top, 8)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color("BackgroundSecondary"))
+                .cornerRadius(24)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
                 
                 // Bottom padding for scroll content
                 Spacer()
@@ -109,7 +110,12 @@ struct HomeView: View {
             }
         }
         .scrollIndicators(.hidden)
-        .background(Color("Background"))
+        .background(themeService.backgroundColor)
+        .onAppear {
+            Task {
+                await activityService.fetchActivities()
+            }
+        }
         .fullScreenCover(isPresented: $showAddMoney) {
             AddMoneyView(isPresented: $showAddMoney)
         }
@@ -212,7 +218,7 @@ struct GetStartedCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .frame(width: 150)
-            .background(Color("BackgroundSecondary"))
+            .background(Color(hex: "FCFCFC"))
             .cornerRadius(16)
         }
         .buttonStyle(PressedButtonStyle())
@@ -222,8 +228,12 @@ struct GetStartedCard: View {
 // MARK: - Invest Promo Card
 
 struct InvestPromoCard: View {
-    // Stock logos to show (overlapping)
-    private let stockLogos = ["StockTesla", "StockApple", "StockMeta", "StockGoogle"]
+    // Stock logos with rotation angles (tilted like Figma design)
+    private let stockIcons: [(name: String, rotation: Double)] = [
+        ("StockTesla", -13),
+        ("StockApple", 0),
+        ("StockGoogle", 13)
+    ]
     @ObservedObject private var portfolioService = PortfolioService.shared
     
     // Only show if user has no stock holdings
@@ -234,17 +244,26 @@ struct InvestPromoCard: View {
     var body: some View {
         if !hasStockHoldings {
         VStack(spacing: 24) {
-            // Overlapping stock logos
+            // Overlapping stock logos with tilt
             HStack(spacing: -26) {
-                ForEach(stockLogos, id: \.self) { logo in
-                    StockLogoView(logoName: logo)
+                ForEach(stockIcons, id: \.name) { icon in
+                    Image(icon.name)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 65, height: 65)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        )
+                        .rotationEffect(.degrees(icon.rotation))
                 }
             }
             
             // Text content
             VStack(spacing: 4) {
                 Text("Start building your wealth with investing from just $1")
-                    .font(.custom("Inter-Bold", size: 16))
+                    .font(.custom("Inter-Bold", size: 24))
                     .foregroundColor(Color("TextPrimary"))
                     .multilineTextAlignment(.center)
                 
@@ -274,7 +293,7 @@ struct InvestPromoCard: View {
         .padding(.vertical, 24)
         .padding(.horizontal, 40)
         .frame(maxWidth: .infinity)
-        .background(Color("BackgroundSecondary"))
+        .background(Color(hex: "FCFCFC"))
         .cornerRadius(24)
         }
     }
@@ -348,7 +367,7 @@ struct SlingCardPromoCard: View {
             .padding(.vertical, 24)
             .padding(.horizontal, 40)
             .frame(maxWidth: .infinity)
-            .background(Color("BackgroundSecondary"))
+            .background(Color(hex: "FCFCFC"))
             .cornerRadius(24)
         }
     }
@@ -357,6 +376,7 @@ struct SlingCardPromoCard: View {
 // MARK: - Pending Requests Card
 
 struct PendingRequestsCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let count: Int
     let onTap: () -> Void
     
@@ -393,18 +413,18 @@ struct PendingRequestsCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Payment Requests")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text("\(count) pending request\(count == 1 ? "" : "s")")
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "CCCCCC"))
+                    .foregroundColor(themeService.textTertiaryColor)
             }
             .padding(16)
             .background(Color(hex: "FFF8F5"))
@@ -421,24 +441,22 @@ struct PendingRequestsCard: View {
 // MARK: - Home Empty State Card
 
 struct HomeEmptyStateCard: View {
-    var onAddTransactions: () -> Void
+    @ObservedObject private var themeService = ThemeService.shared
+    var onAddTransactions: (() -> Void)? = nil
     @State private var showTransactionOptions = false
     
     var body: some View {
         VStack(spacing: 16) {
             // Text content
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 Text("Your activity feed")
-                    .font(.custom("Inter-Bold", size: 18))
-                    .tracking(-0.36)
-                    .foregroundColor(Color(hex: "080808"))
+                    .font(.custom("Inter-Bold", size: 24))
+                    .foregroundColor(Color("TextPrimary"))
                     .multilineTextAlignment(.center)
                 
                 Text("When you send, spend, or receive money, it will show here.")
-                    .font(.custom("Inter-Regular", size: 16))
-                    .tracking(-0.32)
-                    .lineSpacing(4)
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(Color("TextSecondary"))
                     .multilineTextAlignment(.center)
             }
             
@@ -450,12 +468,13 @@ struct HomeEmptyStateCard: View {
             }) {
                 Text("Add transactions")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(Color(hex: "EDEDED"))
                     .cornerRadius(12)
             }
+            .padding(.horizontal, 40)
             .confirmationDialog("Add Transaction", isPresented: $showTransactionOptions, titleVisibility: .visible) {
                 Button("Card Payment") {
                     ActivityService.shared.generateCardPayment()
@@ -478,7 +497,6 @@ struct HomeEmptyStateCard: View {
                 Button("Cancel", role: .cancel) { }
             }
         }
-        .padding(.horizontal, 48)
     }
 }
 

@@ -3,6 +3,7 @@ import UIKit
 
 struct ComponentShowcaseView: View {
     @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var sampleAmount: String = "123"
     @State private var chartPeriod: String = "1D"
     @State private var chartIsDragging: Bool = false
@@ -23,7 +24,7 @@ struct ComponentShowcaseView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 36, height: 36)
                             .background(Color(hex: "EDEDED"))
                             .cornerRadius(12)
@@ -33,7 +34,7 @@ struct ComponentShowcaseView: View {
                     
                     Text("Component Showcase")
                         .font(.custom("Inter-Bold", size: 18))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Spacer()
                     
@@ -82,7 +83,7 @@ struct ComponentShowcaseView: View {
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text("$178.50")
                                         .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(Color(hex: "080808"))
+                                        .foregroundColor(themeService.textPrimaryColor)
                                     Text("+2.34%")
                                         .font(.custom("Inter-Regular", size: 14))
                                         .foregroundColor(Color(hex: "00C853"))
@@ -99,7 +100,7 @@ struct ComponentShowcaseView: View {
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text("$142.30")
                                         .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(Color(hex: "080808"))
+                                        .foregroundColor(themeService.textPrimaryColor)
                                     Text("-1.25%")
                                         .font(.custom("Inter-Regular", size: 14))
                                         .foregroundColor(Color(hex: "E30000"))
@@ -149,19 +150,19 @@ struct ComponentShowcaseView: View {
                                     TransactionAvatarView(identifier: "AvatarProfile")
                                     Text("Person")
                                         .font(.custom("Inter-Regular", size: 12))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 VStack {
                                     TransactionAvatarView(identifier: "netflix.com")
                                     Text("Business")
                                         .font(.custom("Inter-Regular", size: 12))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 VStack {
                                     TransactionAvatarView(identifier: "JD")
                                     Text("Initials")
                                         .font(.custom("Inter-Regular", size: 12))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                             }
                         }
@@ -207,7 +208,7 @@ struct ComponentShowcaseView: View {
                                 Text("Inter-Regular 14pt")
                                     .font(.custom("Inter-Regular", size: 14))
                             }
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         }
                         
                         Spacer(minLength: 100)
@@ -221,6 +222,7 @@ struct ComponentShowcaseView: View {
 
 // MARK: - Component Section
 struct ComponentSection<Content: View>: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     let content: Content
     
@@ -233,7 +235,7 @@ struct ComponentSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.custom("Inter-Medium", size: 14))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
@@ -248,6 +250,7 @@ struct ComponentSection<Content: View>: View {
 
 // MARK: - Color Swatch
 struct ColorSwatch: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let name: String
     let hex: String
     
@@ -264,10 +267,10 @@ struct ColorSwatch: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.custom("Inter-Medium", size: 14))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 Text("#\(hex)")
                     .font(.custom("Inter-Regular", size: 12))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()

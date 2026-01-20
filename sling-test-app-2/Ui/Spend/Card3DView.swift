@@ -8,30 +8,23 @@ struct Card3DView: UIViewRepresentable {
     var cameraZ: Double = 3.23
     var cardDepth: Double = 0.057
     var contentBlur: Double = 8.0  // Blur radius for locked state
-    var onTap: (() -> Void)? = nil  // Callback for tap events
     
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
-        // Use the app's grey background color to match the parent view
-        sceneView.backgroundColor = UIColor(red: 0.949, green: 0.949, blue: 0.949, alpha: 1.0)  // #F2F2F2
+        // Use clear background so no white box appears
+        sceneView.backgroundColor = .clear
         sceneView.allowsCameraControl = false
         sceneView.autoenablesDefaultLighting = false
-        sceneView.antialiasingMode = .none  // Disable AA to test hypothesis G
+        sceneView.antialiasingMode = .multisampling4X
         
         // Make layer fully transparent
         sceneView.layer.isOpaque = false
         sceneView.layer.backgroundColor = UIColor.clear.cgColor
-        sceneView.layer.shadowOpacity = 0
-        sceneView.layer.shadowRadius = 0
-        sceneView.layer.masksToBounds = true
+        sceneView.isOpaque = false
         
         let scene = SCNScene()
-        // Use the app's grey background color instead of clear to avoid rendering artifacts
-        scene.background.contents = UIColor(red: 0.949, green: 0.949, blue: 0.949, alpha: 1.0)  // #F2F2F2
+        scene.background.contents = UIColor.clear
         sceneView.scene = scene
-        
-        // Disable any floor/shadow rendering
-        scene.rootNode.castsShadow = false
         
         // Create the card geometry - match downloaded image ratio 1035:648 = 1.597:1
         let cardWidth: CGFloat = 3.45
@@ -43,7 +36,7 @@ struct Card3DView: UIViewRepresentable {
         let frontMaterial = SCNMaterial()
         frontMaterial.diffuse.contents = createCardFrontImage()
         frontMaterial.isDoubleSided = false
-        frontMaterial.lightingModel = .constant  // No lighting effects
+        frontMaterial.lightingModel = .constant
         
         let backMaterial = SCNMaterial()
         backMaterial.diffuse.contents = createCardBackImage()
@@ -69,7 +62,7 @@ struct Card3DView: UIViewRepresentable {
         cameraNode.position = SCNVector3(x: 0, y: 0, z: Float(cameraZ))
         scene.rootNode.addChildNode(cameraNode)
         
-        // No lights needed - using constant lighting model on materials
+        // No lights needed - using constant lighting model
         
         // Add pan gesture for rotation
         let panGesture = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
@@ -206,9 +199,6 @@ struct Card3DView: UIViewRepresentable {
             tiltBack.timingMode = .easeOut
             let sequence = SCNAction.sequence([tiltForward, tiltBack])
             cardNode.runAction(sequence)
-            
-            // Call the tap callback
-            parent.onTap?()
         }
     }
     

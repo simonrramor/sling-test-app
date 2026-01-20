@@ -5,6 +5,7 @@ struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var activityService = ActivityService.shared
     @StateObject private var stockService = StockService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
     
@@ -23,19 +24,19 @@ struct SearchView: View {
         (name: "Joseph Perez", username: "@joseph_p", avatar: "AvatarJosephPerez")
     ]
     
-    // Stock definitions
+    // Stock definitions - symbols include "x" suffix for fractional shares display
     let stockDefinitions: [(name: String, symbol: String, iconName: String)] = [
-        ("Amazon", "AMZN", "StockAmazon"),
-        ("Apple Inc", "AAPL", "StockApple"),
-        ("Bank of America", "BAC", "StockBankOfAmerica"),
-        ("Circle", "CRCL", "StockCircle"),
-        ("Coinbase", "COIN", "StockCoinbase"),
-        ("Google Inc", "GOOGL", "StockGoogle"),
-        ("McDonalds", "MCD", "StockMcDonalds"),
-        ("Meta", "META", "StockMeta"),
-        ("Microsoft", "MSFT", "StockMicrosoft"),
-        ("Tesla Inc", "TSLA", "StockTesla"),
-        ("Visa", "V", "StockVisa")
+        ("Amazon", "AMZNx", "StockAmazon"),
+        ("Apple Inc", "AAPLx", "StockApple"),
+        ("Bank of America", "BACx", "StockBankOfAmerica"),
+        ("Circle", "CRCLx", "StockCircle"),
+        ("Coinbase", "COINx", "StockCoinbase"),
+        ("Google Inc", "GOOGLx", "StockGoogle"),
+        ("McDonalds", "MCDx", "StockMcDonalds"),
+        ("Meta", "METAx", "StockMeta"),
+        ("Microsoft", "MSFTx", "StockMicrosoft"),
+        ("Tesla Inc", "TSLAx", "StockTesla"),
+        ("Visa", "Vx", "StockVisa")
     ]
     
     // Filtered results
@@ -78,14 +79,14 @@ struct SearchView: View {
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 36, height: 36)
                 }
                 
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     
                     TextField("Search contacts, transactions, stocks...", text: $searchText)
                         .font(.custom("Inter-Regular", size: 16))
@@ -97,7 +98,7 @@ struct SearchView: View {
                         }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                     }
                 }
@@ -119,11 +120,11 @@ struct SearchView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 40))
-                        .foregroundColor(Color(hex: "CCCCCC"))
+                        .foregroundColor(themeService.textTertiaryColor)
                     
                     Text("Search for anything")
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()
@@ -134,11 +135,11 @@ struct SearchView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 40))
-                        .foregroundColor(Color(hex: "CCCCCC"))
+                        .foregroundColor(themeService.textTertiaryColor)
                     
                     Text("No results for \"\(searchText)\"")
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()
@@ -195,12 +196,13 @@ struct SearchView: View {
 // MARK: - Search Section Header
 
 struct SearchSectionHeader: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     
     var body: some View {
         Text(title)
             .font(.custom("Inter-Bold", size: 14))
-            .foregroundColor(Color(hex: "7B7B7B"))
+            .foregroundColor(themeService.textSecondaryColor)
             .padding(.horizontal, 16)
             .padding(.top, 16)
             .padding(.bottom, 8)
@@ -210,6 +212,7 @@ struct SearchSectionHeader: View {
 // MARK: - Search Contact Row
 
 struct SearchContactRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let name: String
     let username: String
     let avatar: String
@@ -225,11 +228,11 @@ struct SearchContactRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text(username)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()
@@ -242,6 +245,7 @@ struct SearchContactRow: View {
 // MARK: - Search Stock Row
 
 struct SearchStockRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let name: String
     let symbol: String
     let iconName: String
@@ -258,18 +262,18 @@ struct SearchStockRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text(symbol)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()
             
             Text(price)
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -279,6 +283,7 @@ struct SearchStockRow: View {
 // MARK: - Search Transaction Row
 
 struct SearchTransactionRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let activity: ActivityItem
     
     var body: some View {
@@ -293,7 +298,7 @@ struct SearchTransactionRow: View {
                     
                     Text(activity.avatar)
                         .font(.custom("Inter-Bold", size: 14))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                 }
             } else {
                 // Image
@@ -307,16 +312,16 @@ struct SearchTransactionRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(activity.titleLeft)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 if !activity.subtitleLeft.isEmpty {
                     Text(activity.subtitleLeft)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 } else {
                     Text(activity.formattedDate)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
             }
             

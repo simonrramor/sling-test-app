@@ -103,6 +103,7 @@ struct PaymentAccount: Identifiable, Equatable {
 struct AccountSelectorView: View {
     @Binding var selectedAccount: PaymentAccount
     @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         VStack(spacing: 0) {
@@ -116,7 +117,7 @@ struct AccountSelectorView: View {
             // Title
             Text("Select account")
                 .font(.custom("Inter-Bold", size: 20))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -159,6 +160,7 @@ struct AccountSelectorView: View {
 // MARK: - Account Row
 
 struct AccountRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let account: PaymentAccount
     let isSelected: Bool
     let onTap: () -> Void
@@ -173,11 +175,11 @@ struct AccountRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(account.name)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text(account.subtitle)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()

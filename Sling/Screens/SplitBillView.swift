@@ -4,8 +4,10 @@ import UIKit
 struct SplitBillView: View {
     @Binding var isPresented: Bool
     @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedPayment: ActivityItem? = nil
     @State private var showUserSelection = false
+    @State private var showReceiptScanner = false
     
     // Filter to only show card payments (negative amounts that aren't P2P transfers)
     var cardPayments: [ActivityItem] {
@@ -49,7 +51,7 @@ struct SplitBillView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 32, height: 32)
                             .background(Color(hex: "F5F5F5"))
                             .clipShape(Circle())
@@ -60,7 +62,7 @@ struct SplitBillView: View {
                     
                     Text("Split a bill")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Spacer()
                     
@@ -71,6 +73,23 @@ struct SplitBillView: View {
                 .padding(.horizontal, 24)
                 .frame(height: 64)
                 
+                // Scan Receipt Card
+                ScanReceiptCard(onTap: {
+                    showReceiptScanner = true
+                })
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
+                
+                // Section header
+                HStack {
+                    Text("Or select a payment")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 8)
+                
                 // Payment list
                 if cardPayments.isEmpty {
                     Spacer()
@@ -78,11 +97,11 @@ struct SplitBillView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "creditcard")
                             .font(.system(size: 48))
-                            .foregroundColor(Color(hex: "CCCCCC"))
+                            .foregroundColor(themeService.textTertiaryColor)
                         
                         Text("No card payments yet")
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Text("Your card purchases will appear here")
                             .font(.custom("Inter-Regular", size: 14))
@@ -118,12 +137,72 @@ struct SplitBillView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showUserSelection)
+        .fullScreenCover(isPresented: $showReceiptScanner) {
+            ReceiptScannerView(isPresented: $showReceiptScanner)
+        }
+    }
+}
+
+// MARK: - Scan Receipt Card
+
+struct ScanReceiptCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            onTap()
+        }) {
+            HStack(spacing: 16) {
+                // Camera icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: "FF5113").opacity(0.1))
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(Color(hex: "FF5113"))
+                }
+                
+                // Text
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Scan a receipt")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    
+                    Text("Take a photo and assign items to people")
+                        .font(.custom("Inter-Regular", size: 14))
+                        .foregroundColor(themeService.textSecondaryColor)
+                }
+                
+                Spacer()
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(themeService.textTertiaryColor)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(hex: "FFF8F5"))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color(hex: "FF5113").opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
 // MARK: - Payment Row
 
 struct PaymentRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let payment: ActivityItem
     let onTap: () -> Void
     
@@ -140,7 +219,7 @@ struct PaymentRow: View {
                 // Payment name
                 Text(payment.titleLeft)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .lineLimit(1)
                 
                 Spacer()
@@ -148,7 +227,7 @@ struct PaymentRow: View {
                 // Amount
                 Text(payment.titleRight)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
@@ -172,6 +251,7 @@ struct PaymentRowButtonStyle: ButtonStyle {
 // MARK: - User Selection View
 
 struct SplitUserSelectionView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var isPresented: Bool
     let payment: ActivityItem
     let onDismissAll: () -> Void
@@ -225,7 +305,7 @@ struct SplitUserSelectionView: View {
                 }) {
                     Image("ArrowLeft")
                         .renderingMode(.template)
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 24, height: 24)
                 }
                 .accessibilityLabel("Back")
@@ -234,7 +314,7 @@ struct SplitUserSelectionView: View {
                 
                 Text("Split a bill")
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -249,11 +329,11 @@ struct SplitUserSelectionView: View {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 20))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 TextField("Search your contacts on Sling", text: $searchText)
                     .font(.custom("Inter-Regular", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             .padding(.horizontal, 16)
             .frame(height: 56)
@@ -341,6 +421,7 @@ struct SplitUserSelectionView: View {
 // MARK: - Selectable User Row
 
 struct SelectableUserRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let contact: Contact
     let isSelected: Bool
     let onTap: () -> Void
@@ -363,11 +444,11 @@ struct SelectableUserRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(contact.name)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text(contact.username)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 Spacer()
@@ -413,6 +494,7 @@ struct SelectableRowButtonStyle: ButtonStyle {
 // MARK: - Split Amount View
 
 struct SplitAmountView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var isPresented: Bool
     let payment: ActivityItem
     let selectedContacts: [Contact]
@@ -477,7 +559,7 @@ struct SplitAmountView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Back")
@@ -486,7 +568,7 @@ struct SplitAmountView: View {
                     
                     Text("Split a bill")
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Spacer()
                     
@@ -508,12 +590,12 @@ struct SplitAmountView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(payment.titleLeft)
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         
                         if payment.date != nil {
                             Text(payment.formattedDate)
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                     }
                     
@@ -522,7 +604,7 @@ struct SplitAmountView: View {
                     // Total amount
                     Text(formattedTotal)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
@@ -606,7 +688,7 @@ struct SplitAmountView: View {
             if isButtonLoading {
                 Text(formattedSplit)
                     .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .transition(.opacity)
@@ -619,6 +701,7 @@ struct SplitAmountView: View {
 // MARK: - Split User Row
 
 struct SplitUserRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let name: String
     let avatarName: String
     let amount: String
@@ -635,14 +718,14 @@ struct SplitUserRow: View {
             // Name
             Text(name)
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
             
             Spacer()
             
             // Amount pill with grey background
             Text(amount)
                 .font(.custom("Inter-Bold", size: 14))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(

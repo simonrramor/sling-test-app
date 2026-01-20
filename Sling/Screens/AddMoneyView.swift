@@ -3,6 +3,7 @@ import UIKit
 
 struct AddMoneyView: View {
     @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString: String = ""
     @State private var showConfirmation = false
     @State private var showAccountSelector = false
@@ -95,7 +96,7 @@ struct AddMoneyView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -115,10 +116,10 @@ struct AddMoneyView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Add to")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         Text("Sling Balance")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -126,7 +127,7 @@ struct AddMoneyView: View {
                     // Currency tag (Sling balance is in USD)
                     Text("USD")
                         .font(.custom("Inter-Medium", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
@@ -164,7 +165,7 @@ struct AddMoneyView: View {
                 } else {
                     Text(formattedAmount)
                         .font(.custom("Inter-Bold", size: 56))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
                 }
@@ -304,6 +305,7 @@ struct AddMoneyView: View {
 // MARK: - Currency Swap View
 
 struct CurrencySwapView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let primaryDisplay: String // The primary currency amount (what user is typing)
     let secondaryDisplay: String // The secondary currency amount (converted)
     let showingPrimaryOnTop: Bool // true = primary is on top (large), false = secondary is on top
@@ -320,7 +322,7 @@ struct CurrencySwapView: View {
                     // Swap icon (visible when primary is secondary/bottom)
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .opacity(showingPrimaryOnTop ? 0 : 1)
                     
                     Text(primaryDisplay)
@@ -336,7 +338,7 @@ struct CurrencySwapView: View {
                     // Swap icon (visible when secondary is on bottom)
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .opacity(showingPrimaryOnTop ? 1 : 0)
                     
                     Text(secondaryDisplay)

@@ -239,7 +239,7 @@ struct ScreenshotStockDetailWrapper: View {
             price: "$178.50",
             change: "+2.34%",
             isPositive: true,
-            iconName: "AAPL"
+            iconName: "StockApple"
         )
         StockDetailView(stock: sampleStock)
     }

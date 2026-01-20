@@ -3,6 +3,7 @@ import UIKit
 
 struct AddMoneyConfirmView: View {
     @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
     let sourceAccount: PaymentAccount // The selected payment account
     let sourceAmount: Double // Amount in source currency (e.g., GBP)
     let sourceCurrency: String // Source currency code (e.g., "GBP")
@@ -70,7 +71,7 @@ struct AddMoneyConfirmView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -90,10 +91,10 @@ struct AddMoneyConfirmView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Add to")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         Text("Sling Balance")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -108,7 +109,7 @@ struct AddMoneyConfirmView: View {
                 // Amount display - centered (shows source amount being sent)
                 Text(formattedSourceAmount)
                     .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .opacity(isButtonLoading ? 0 : 1)
@@ -122,7 +123,7 @@ struct AddMoneyConfirmView: View {
                     HStack {
                         Text("From")
                             .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Spacer()
                         
@@ -139,7 +140,7 @@ struct AddMoneyConfirmView: View {
                             
                             Text(sourceAccount.name)
                                 .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(Color(hex: "080808"))
+                                .foregroundColor(themeService.textPrimaryColor)
                         }
                     }
                     .padding(.vertical, 8)
@@ -149,13 +150,13 @@ struct AddMoneyConfirmView: View {
                     HStack {
                         Text("Transfer speed")
                             .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Spacer()
                         
                         Text("Instant")
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
@@ -171,13 +172,13 @@ struct AddMoneyConfirmView: View {
                     HStack {
                         Text("Total withdrawn")
                             .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Spacer()
                         
                         Text(formattedSourceAmount)
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
@@ -186,7 +187,7 @@ struct AddMoneyConfirmView: View {
                     HStack {
                         Text("Fees")
                             .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Spacer()
                         
@@ -201,13 +202,13 @@ struct AddMoneyConfirmView: View {
                     HStack {
                         Text("Amount exchanged")
                             .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Spacer()
                         
                         Text(formattedSourceAmount)
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
@@ -217,7 +218,7 @@ struct AddMoneyConfirmView: View {
                         HStack {
                             Text("Exchange rate")
                                 .font(.custom("Inter-Regular", size: 16))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             
                             Spacer()
                             
@@ -233,7 +234,7 @@ struct AddMoneyConfirmView: View {
                     HStack {
                         Text("You receive")
                             .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Spacer()
                         
@@ -244,7 +245,7 @@ struct AddMoneyConfirmView: View {
                             
                             Text(formattedDestinationAmount)
                                 .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(Color(hex: "080808"))
+                                .foregroundColor(themeService.textPrimaryColor)
                         }
                     }
                     .padding(.vertical, 8)
@@ -285,7 +286,7 @@ struct AddMoneyConfirmView: View {
             if isButtonLoading {
                 Text(formattedSourceAmount)
                     .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                     .transition(.opacity)

@@ -3,6 +3,7 @@ import UIKit
 
 struct OnboardingView: View {
     @Binding var isComplete: Bool
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var currentPage = 0
     
     let pages = [
@@ -44,7 +45,7 @@ struct OnboardingView: View {
                     }) {
                         Text("Skip")
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
             }
@@ -114,6 +115,7 @@ struct OnboardingPage {
 }
 
 struct OnboardingPageView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let page: OnboardingPage
     
     var body: some View {
@@ -134,13 +136,13 @@ struct OnboardingPageView: View {
             // Title
             Text(page.title)
                 .font(.custom("Inter-Bold", size: 28))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .multilineTextAlignment(.center)
             
             // Description
             Text(page.description)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
                 .padding(.horizontal, 32)

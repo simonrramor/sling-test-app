@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Combine
 
 // Helper function to format currency with commas
 private func formatCurrency(_ amount: Double, withPrefix prefix: String = "") -> String {
@@ -17,6 +18,7 @@ struct SellStockView: View {
     let stock: Stock
     @Binding var isPresented: Bool
     var onComplete: () -> Void = {}
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString: String = ""
     @State private var showConfirmation = false
     @State private var isSharesMode: Bool = false  // false = dollars, true = shares
@@ -120,7 +122,7 @@ struct SellStockView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -141,17 +143,17 @@ struct SellStockView: View {
                         HStack(spacing: 4) {
                             Text("Sell")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text("·")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text(stock.symbol)
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                         Text(stock.name)
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -188,11 +190,11 @@ struct SellStockView: View {
                 
                 Spacer()
                 
-                // Current holdings display
+                // Current holdings display (shows remaining value after amount being typed)
                 PaymentInstrumentRow(
                     iconName: stock.iconName,
                     title: stock.name,
-                    subtitleParts: [stock.symbol, formatCurrency(maxSellValue)],
+                    subtitleParts: [stock.symbol, formatCurrency(max(0, maxSellValue - dollarAmount))],
                     actionButtonTitle: "Max",
                     onActionTap: {
                         if isSharesMode {
@@ -244,6 +246,7 @@ struct SellStockView: View {
 }
 
 struct SellConfirmView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let stock: Stock
     let amount: Double
     let sharesToSell: Double
@@ -252,11 +255,16 @@ struct SellConfirmView: View {
     var onComplete: () -> Void = {}
     
     @State private var showPendingScreen = false
+    @State private var quoteTimeRemaining: Int = 30
+    @State private var currentStockPrice: Double? = nil
     private let portfolioService = PortfolioService.shared
     
-    // Get current stock price from service
+    // Timer for quote countdown
+    let quoteTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    
+    // Get current stock price from service (or use cached quote price)
     var stockPrice: Double {
-        StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
+        currentStockPrice ?? StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
     }
     
     var formattedShares: String {
@@ -287,7 +295,7 @@ struct SellConfirmView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -308,17 +316,17 @@ struct SellConfirmView: View {
                         HStack(spacing: 4) {
                             Text("Sell")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text("·")
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             Text(stock.symbol)
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                         Text(stock.name)
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -331,7 +339,7 @@ struct SellConfirmView: View {
                 // Amount display - centered between header and details
                 Text(formatCurrency(amount))
                     .font(.custom("Inter-Bold", size: 62))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -357,17 +365,20 @@ struct SellConfirmView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     
-                    // Price
+                    // Quote validity countdown
+                    QuoteValidityRow(secondsRemaining: quoteTimeRemaining)
+                    
+                    // Aprox share price
                     DetailRow(
-                        label: "Price",
-                        value: String(format: "1 %@ = $%.2f", stock.symbol, stockPrice),
+                        label: "Aprox share price",
+                        value: String(format: "~$%.2f", stockPrice),
                         isHighlighted: true
                     )
                     
-                    // Number of shares
+                    // Aprox shares
                     DetailRow(
-                        label: "No. of shares",
-                        value: formattedShares
+                        label: "Aprox shares",
+                        value: String(format: "~%.2f", sharesToSell)
                     )
                     
                     // Platform fee
@@ -433,6 +444,37 @@ struct SellConfirmView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: showPendingScreen)
+        .onAppear {
+            // Initialize with current price
+            currentStockPrice = StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
+        }
+        .onReceive(quoteTimer) { _ in
+            // Don't count down if showing pending screen
+            guard !showPendingScreen else { return }
+            
+            if quoteTimeRemaining > 0 {
+                quoteTimeRemaining -= 1
+            } else {
+                // Refresh the quote
+                refreshQuote()
+            }
+        }
+    }
+    
+    private func refreshQuote() {
+        // Get fresh price from service
+        let newPrice = StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
+        
+        // Add small random variation to simulate real market movement (±0.5%)
+        let variation = Double.random(in: -0.005...0.005)
+        currentStockPrice = newPrice * (1 + variation)
+        
+        // Reset timer
+        quoteTimeRemaining = 30
+        
+        // Haptic feedback to indicate refresh
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
     }
 }
 

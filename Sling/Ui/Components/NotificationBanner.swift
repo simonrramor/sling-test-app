@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NotificationBanner: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let notification: InAppNotification
     let onDismiss: () -> Void
     
@@ -15,12 +16,12 @@ struct NotificationBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(notification.title)
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 if !notification.message.isEmpty {
                     Text(notification.message)
                         .font(.custom("Inter-Regular", size: 13))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .lineLimit(2)
                 }
             }
@@ -31,7 +32,7 @@ struct NotificationBanner: View {
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                     .frame(width: 24, height: 24)
             }
         }

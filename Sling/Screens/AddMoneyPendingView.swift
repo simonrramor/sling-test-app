@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct AddMoneyPendingView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let amount: Double
     var onComplete: () -> Void = {}
     
@@ -40,10 +41,10 @@ struct AddMoneyPendingView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Add to")
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         Text("Sling Balance")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -56,7 +57,7 @@ struct AddMoneyPendingView: View {
                 // Amount display
                 Text(formattedAmount)
                     .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                 

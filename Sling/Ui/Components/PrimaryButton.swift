@@ -36,7 +36,7 @@ struct PrimaryButton: View {
     }
 }
 
-// MARK: - Secondary Button (Black in light, White in dark)
+// MARK: - Secondary Button (White with dark text)
 struct SecondaryButton: View {
     let title: String
     var isEnabled: Bool = true

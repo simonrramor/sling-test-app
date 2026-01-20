@@ -4,6 +4,7 @@ import UIKit
 struct TransactionDetailView: View {
     let activity: ActivityItem
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var showSplitBill = false
     
     private var isOutgoing: Bool {
@@ -117,6 +118,7 @@ struct DrawerHandle: View {
 // MARK: - Transaction Header
 
 struct TransactionHeader: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let activity: ActivityItem
     
     private var isPositive: Bool {
@@ -142,10 +144,10 @@ struct TransactionHeader: View {
                 HStack(spacing: 4) {
                     Text(prefix)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     Text(activity.titleLeft)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 // Amount
@@ -270,6 +272,7 @@ struct TransactionAvatarLarge: View {
 // MARK: - Transaction Detail Row
 
 struct TransactionDetailRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     let value: String
     var valueColor: Color = Color(hex: "080808")
@@ -278,7 +281,7 @@ struct TransactionDetailRow: View {
         HStack {
             Text(label)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
             
             Spacer()
             

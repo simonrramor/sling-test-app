@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct ChartView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var selectedPeriod: String
     @Binding var isDragging: Bool
     @Binding var dragProgress: CGFloat
@@ -130,7 +131,7 @@ struct ChartView: View {
                         // Time label at top of line
                         Text(getTimeLabel(at: dragProgress))
                             .font(.custom("Inter-Medium", size: 10))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(
@@ -229,11 +230,12 @@ struct ChartView: View {
                                 isDisabled ? Color(hex: "CFCFCF") :
                                 (selectedPeriod == period ? Color(hex: "080808") : Color(hex: "7B7B7B"))
                             )
+                            .frame(height: 20) // Line height 20
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(selectedPeriod == period && !isDisabled ? Color(hex: "F7F7F7") : Color.clear)
+                                    .fill(selectedPeriod == period && !isDisabled ? Color(hex: "E8E8E8") : Color.clear)
                             )
                     }
                     .buttonStyle(.plain)
@@ -331,20 +333,21 @@ struct AnimatedChartLine: Shape {
 }
 
 struct PulsingDot: View {
+    var color: Color = Color(hex: "080808")
     @State private var isPulsing = false
 
     var body: some View {
         ZStack {
             // Pulsing outer ring
             Circle()
-                .fill(Color(hex: "080808").opacity(0.2))
+                .fill(color.opacity(0.2))
                 .frame(width: 32, height: 32)
                 .scaleEffect(isPulsing ? 1.0 : 0.5)
                 .opacity(isPulsing ? 0 : 1)
 
             // Solid center dot
             Circle()
-                .fill(Color(hex: "080808"))
+                .fill(color)
                 .frame(width: 12, height: 12)
         }
         .onAppear {

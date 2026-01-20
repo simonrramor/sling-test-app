@@ -1,6 +1,32 @@
 import Foundation
 import Combine
 
+// #region agent log
+private let debugLogPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
+private var stockServiceCallCount = 0
+private func debugLog(_ location: String, _ message: String, _ data: [String: Any] = [:]) {
+    stockServiceCallCount += 1
+    let entry: [String: Any] = [
+        "timestamp": Date().timeIntervalSince1970 * 1000,
+        "location": location,
+        "message": message,
+        "data": data,
+        "sessionId": "debug-session",
+        "callCount": stockServiceCallCount
+    ]
+    if let jsonData = try? JSONSerialization.data(withJSONObject: entry),
+       let jsonString = String(data: jsonData, encoding: .utf8) {
+        if let handle = FileHandle(forWritingAtPath: debugLogPath) {
+            handle.seekToEndOfFile()
+            handle.write((jsonString + "\n").data(using: .utf8)!)
+            handle.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: debugLogPath, contents: (jsonString + "\n").data(using: .utf8))
+        }
+    }
+}
+// #endregion
+
 // MARK: - Yahoo Finance Response Models
 
 struct YahooFinanceResponse: Codable {
@@ -77,6 +103,12 @@ struct StockPriceData {
     
     // Get change from start to a specific progress point
     func changeAt(progress: Double) -> (value: Double, percent: Double, isPositive: Bool) {
+        // When at full progress (not dragging), use day-over-day change vs previous close
+        if progress >= 1.0 {
+            return (priceChange, percentChange, isPositive)
+        }
+        
+        // When dragging, calculate change from start of chart data to current position
         guard !rawPrices.isEmpty, let startPrice = rawPrices.first else {
             return (priceChange, percentChange, isPositive)
         }
@@ -113,7 +145,7 @@ class StockService: ObservableObject {
         "StockAmazon": "AMZN",
         "StockApple": "AAPL",
         "StockBankOfAmerica": "BAC",
-        "StockCircle": "USDC-USD", // Circle's USDC
+        "StockCircle": "CRCL", // Circle - Note: may not be on Yahoo
         "StockCoinbase": "COIN",
         "StockGoogle": "GOOGL",
         "StockMcDonalds": "MCD",
@@ -124,6 +156,9 @@ class StockService: ObservableObject {
     ]
     
     func fetchStockData(for iconName: String, range: String = "1d", interval: String = "5m") async {
+        // #region agent log
+        debugLog("StockService.swift:fetchStockData", "H2: API call started", ["iconName": iconName, "range": range, "interval": interval])
+        // #endregion
         guard let symbol = symbolMapping[iconName] else { return }
         
         // Check cache
@@ -158,6 +193,10 @@ class StockService: ObservableObject {
             let response = try JSONDecoder().decode(YahooFinanceResponse.self, from: data)
             
             if let chartData = response.chart.result?.first {
+                // #region agent log
+                let priceCount = chartData.indicators.quote?.first?.close?.count ?? 0
+                debugLog("StockService.swift:fetchStockData", "H2: API response received", ["iconName": iconName, "priceCount": priceCount])
+                // #endregion
                 let priceData = processChartData(chartData, iconName: iconName)
                 
                 // Cache the result
@@ -235,6 +274,9 @@ class StockService: ObservableObject {
     }
     
     private func processChartData(_ chartData: ChartData, iconName: String) -> StockPriceData {
+        // #region agent log
+        debugLog("StockService.swift:processChartData", "H2: Processing chart data", ["iconName": iconName])
+        // #endregion
         let meta = chartData.meta
         let currentPrice = meta.regularMarketPrice ?? 0
         let previousClose = meta.previousClose ?? currentPrice
@@ -259,20 +301,63 @@ class StockService: ObservableObject {
             }
         }
         
+        // Trim trailing flat prices (removes after-hours flat line)
+        let trimmedPrices = trimTrailingFlatPrices(closePrices)
+        
         // Normalize prices to 0-1 range for chart
-        let normalizedPrices = normalizePrices(closePrices)
+        let normalizedPrices = normalizePrices(trimmedPrices)
 
         return StockPriceData(
-            symbol: meta.symbol,
+            symbol: meta.symbol + "x", // Add "x" suffix for fractional shares display
             currentPrice: currentPrice,
             previousClose: previousClose,
             priceChange: priceChange,
             percentChange: percentChange,
             isPositive: priceChange >= 0,
             historicalPrices: normalizedPrices,
-            rawPrices: closePrices,
+            rawPrices: trimmedPrices,
             timestamps: timestamps
         )
+    }
+    
+    /// Removes trailing flat/low-volatility section that occurs after market close
+    private func trimTrailingFlatPrices(_ prices: [Double]) -> [Double] {
+        guard prices.count > 20 else { return prices }
+        
+        // Get overall price range
+        guard let overallMin = prices.min(),
+              let overallMax = prices.max(),
+              overallMax > overallMin else { return prices }
+        
+        let overallRange = overallMax - overallMin
+        
+        // Check the last 40% of data for low volatility
+        let checkStartIndex = Int(Double(prices.count) * 0.6)
+        let tailPrices = Array(prices.suffix(from: checkStartIndex))
+        
+        guard let tailMin = tailPrices.min(),
+              let tailMax = tailPrices.max() else { return prices }
+        
+        let tailRange = tailMax - tailMin
+        
+        // If tail has less than 5% of the overall volatility, it's flat - trim it
+        if tailRange < overallRange * 0.05 {
+            // Find where the flat section actually starts
+            let flatPrice = tailPrices.last!
+            let tolerance = overallRange * 0.02 // 2% of overall range
+            
+            var cutIndex = prices.count
+            for i in stride(from: prices.count - 1, through: 0, by: -1) {
+                if abs(prices[i] - flatPrice) > tolerance {
+                    cutIndex = i + 2 // Keep 1 point after last movement
+                    break
+                }
+            }
+            
+            return Array(prices.prefix(min(cutIndex, prices.count)))
+        }
+        
+        return prices
     }
     
     private func normalizePrices(_ prices: [Double]) -> [Double] {

@@ -44,6 +44,7 @@ enum PaymentMode {
 struct SendView: View {
     @Binding var isPresented: Bool
     var mode: PaymentMode = .send
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var searchText = ""
     @State private var selectedContact: Contact? = nil
     @State private var showAmountInput = false
@@ -89,7 +90,7 @@ struct SendView: View {
                 // Title
                 Text(mode.title)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 // Close button
                 HStack {
@@ -100,7 +101,7 @@ struct SendView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Close")
@@ -115,11 +116,11 @@ struct SendView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 20))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                 
                 TextField("Search for a name or username", text: $searchText)
                     .font(.custom("Inter-Regular", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 if !searchText.isEmpty {
                     Button(action: {
@@ -127,7 +128,7 @@ struct SendView: View {
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
             }
@@ -198,6 +199,7 @@ struct SendView: View {
 // MARK: - Send Amount View
 
 struct SendAmountView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let contact: Contact
     let mode: PaymentMode
     @Binding var isPresented: Bool
@@ -264,7 +266,7 @@ struct SendAmountView: View {
                     }) {
                         Image("ArrowLeft")
                             .renderingMode(.template)
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Go back")
@@ -284,10 +286,10 @@ struct SendAmountView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(mode.headerPrefix)
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         Text(contact.name)
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
@@ -361,6 +363,7 @@ struct SendAmountView: View {
 // MARK: - Recent Contact Bubble
 
 struct RecentContactBubble: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let contact: Contact
     let onTap: () -> Void
     
@@ -380,7 +383,7 @@ struct RecentContactBubble: View {
                 
                 Text(contact.name)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .lineLimit(1)
             }
             .contentShape(Rectangle())
@@ -401,6 +404,7 @@ struct RecentContactButtonStyle: ButtonStyle {
 // MARK: - Contact Row
 
 struct ContactRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let contact: Contact
     let onTap: () -> Void
     
@@ -422,11 +426,11 @@ struct ContactRow: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(contact.name)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text(contact.username)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "999999"))
+                        .foregroundColor(themeService.textTertiaryColor)
                 }
                 
                 Spacer()

@@ -2,10 +2,25 @@ import SwiftUI
 import UIKit
 import Combine
 
+// MARK: - Stock Ticker Helper
+
+/// Adds "x" suffix to stock tickers that don't already have it
+private func fixStockTicker(_ text: String) -> String {
+    let tickers = ["AAPL", "AMZN", "GOOGL", "META", "MSFT", "TSLA", "BAC", "MCD", "V", "COIN", "CRCL"]
+    var result = text
+    for ticker in tickers {
+        if result.hasSuffix(ticker) && !result.hasSuffix(ticker + "x") {
+            result = result.replacingOccurrences(of: ticker, with: ticker + "x")
+        }
+    }
+    return result
+}
+
 // MARK: - Transaction List View
 
 struct TransactionListView: View {
     @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         ScrollView {
@@ -27,6 +42,7 @@ struct TransactionListView: View {
 
 struct TransactionListContent: View {
     @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
@@ -43,26 +59,21 @@ struct TransactionListContent: View {
                 VStack(spacing: 12) {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 32))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     
                     Text("No recent activity")
                         .font(.custom("Inter-Medium", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
             } else {
-                // Group activities by section
-                ForEach(groupedActivities, id: \.title) { section in
-                    // Section Header
-                    SectionHeader(title: section.title)
-                    
-                    // Activity Rows
-                    ForEach(section.activities) { activity in
-                        ActivityRowView(activity: activity)
-                    }
+                // Activity Rows (flat list, no section headers)
+                ForEach(activityService.activities) { activity in
+                    ActivityRowView(activity: activity)
                 }
                 .padding(.horizontal, 8)
+                .padding(.top, 8)
             }
         }
         .onAppear {
@@ -93,6 +104,7 @@ struct TransactionListContent: View {
 // MARK: - Activity Row View
 
 struct ActivityRowView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let activity: ActivityItem
     @State private var showDetail = false
     @State private var isPressed = false
@@ -106,7 +118,7 @@ struct ActivityRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(activity.titleLeft)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 if !activity.subtitleLeft.isEmpty {
                     Text(activity.subtitleLeft)
@@ -124,13 +136,12 @@ struct ActivityRowView: View {
                     .foregroundColor(amountColor)
                 
                 if !activity.subtitleRight.isEmpty {
-                    Text(activity.subtitleRight)
+                    Text(fixStockTicker(activity.subtitleRight))
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.gray)
                 }
             }
         }
-        .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .contentShape(Rectangle())
         .background(
@@ -197,6 +208,7 @@ class AppIconFetcher: ObservableObject {
 // MARK: - Transaction Avatar View
 
 struct TransactionAvatarView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let identifier: String
     @StateObject private var iconFetcher = AppIconFetcher()
     
@@ -234,12 +246,12 @@ struct TransactionAvatarView: View {
             // Initials (1-2 characters) - always person, so rounded
             ZStack {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(generateColor(for: identifier))
+                    .fill(Color.white)
                     .frame(width: 44, height: 44)
                 
                 Text(identifier.uppercased())
                     .font(.custom("Inter-Bold", size: 18))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeService.textPrimaryColor)
             }
         } else if isLocalAsset {
             // Local asset image - person avatars are rounded
@@ -256,14 +268,14 @@ struct TransactionAvatarView: View {
             // SF Symbol - business style (square)
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.gray.opacity(0.1))
+                    .fill(Color.white)
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: identifier)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 24, height: 24)
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
         } else if let url = iconFetcher.iconURL {
             // App icon from iTunes - always square with rounded corners
@@ -272,7 +284,7 @@ struct TransactionAvatarView: View {
                 case .empty:
                     ZStack {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(hex: "F5F5F5"))
+                            .fill(Color.white)
                             .frame(width: 44, height: 44)
                         ProgressView()
                             .scaleEffect(0.6)
@@ -291,16 +303,16 @@ struct TransactionAvatarView: View {
                     // Fallback to initials on failure
                     ZStack {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(generateColor(for: identifier))
+                            .fill(Color.white)
                             .frame(width: 44, height: 44)
                         
                         Text(String(identifier.prefix(1)).uppercased())
                             .font(.custom("Inter-Bold", size: 18))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                 @unknown default:
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(hex: "F5F5F5"))
+                        .fill(Color.white)
                         .frame(width: 44, height: 44)
                 }
             }
@@ -308,7 +320,7 @@ struct TransactionAvatarView: View {
             // Loading state while fetching app icon
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: "F5F5F5"))
+                    .fill(Color.white)
                     .frame(width: 44, height: 44)
                 ProgressView()
                     .scaleEffect(0.6)
@@ -317,12 +329,12 @@ struct TransactionAvatarView: View {
             // Business - show initials while loading or as fallback
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(generateColor(for: identifier))
+                    .fill(Color.white)
                     .frame(width: 44, height: 44)
                 
                 Text(String(identifier.prefix(1)).uppercased())
                     .font(.custom("Inter-Bold", size: 18))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             .onAppear {
                 iconFetcher.fetchAppIcon(for: identifier)
@@ -331,12 +343,12 @@ struct TransactionAvatarView: View {
             // Fallback to initials
             ZStack {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(generateColor(for: identifier))
+                    .fill(Color.white)
                     .frame(width: 44, height: 44)
                 
                 Text(String(identifier.prefix(1)).uppercased())
                     .font(.custom("Inter-Bold", size: 18))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeService.textPrimaryColor)
             }
         }
     }
@@ -364,12 +376,13 @@ struct TransactionAvatarView: View {
 // MARK: - Section Header
 
 struct SectionHeader: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     
     var body: some View {
         Text(title)
             .font(.custom("Inter-Bold", size: 16))
-            .foregroundColor(Color(hex: "080808"))
+            .foregroundColor(themeService.textPrimaryColor)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .accessibilityAddTraits(.isHeader)

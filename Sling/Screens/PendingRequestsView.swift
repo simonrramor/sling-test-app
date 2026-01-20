@@ -5,6 +5,7 @@ struct PendingRequestsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var requestService = RequestService.shared
     @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedRequest: PaymentRequest?
     @State private var showPayConfirmation = false
     @State private var showDeclineConfirmation = false
@@ -21,7 +22,7 @@ struct PendingRequestsView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 32, height: 32)
                         .background(Color(hex: "F5F5F5"))
                         .clipShape(Circle())
@@ -31,7 +32,7 @@ struct PendingRequestsView: View {
                 
                 Text("Payment Requests")
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -53,11 +54,11 @@ struct PendingRequestsView: View {
                     
                     Text("All caught up!")
                         .font(.custom("Inter-Bold", size: 20))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     Text("You don't have any pending payment requests.")
                         .font(.custom("Inter-Regular", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 48)
                 }
@@ -118,6 +119,7 @@ struct PendingRequestsView: View {
 }
 
 struct RequestRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let request: PaymentRequest
     let onPay: () -> Void
     let onDecline: () -> Void
@@ -136,16 +138,16 @@ struct RequestRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(request.fromName)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     if !request.note.isEmpty {
                         Text(request.note)
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     } else {
                         Text(request.formattedDate)
                             .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
                 
@@ -154,7 +156,7 @@ struct RequestRow: View {
                 // Amount
                 Text(request.formattedAmount)
                     .font(.custom("Inter-Bold", size: 18))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -164,7 +166,7 @@ struct RequestRow: View {
                 Button(action: onDecline) {
                     Text("Decline")
                         .font(.custom("Inter-Bold", size: 14))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
                         .background(Color(hex: "F7F7F7"))

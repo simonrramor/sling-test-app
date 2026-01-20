@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ParticleTestView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var themeService = ThemeService.shared
     
     // Particle parameters
     @State private var particleCount: Double = 200
@@ -37,7 +38,7 @@ struct ParticleTestView: View {
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .frame(width: 36, height: 36)
                         .background(Color(hex: "F5F5F5"))
                         .clipShape(Circle())
@@ -47,7 +48,7 @@ struct ParticleTestView: View {
                 
                 Text("Particle Burst Test")
                     .font(.custom("Inter-Bold", size: 18))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -99,7 +100,7 @@ struct ParticleTestView: View {
                 VStack {
                     Text("Tap button or here to trigger")
                         .font(.custom("Inter-Regular", size: 12))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     Spacer()
                 }
                 .padding(.top, 16)
@@ -159,7 +160,7 @@ struct ParticleTestView: View {
                     // Section: Physics
                     Text("Physics")
                         .font(.custom("Inter-Bold", size: 12))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 16)
                     
@@ -193,7 +194,7 @@ struct ParticleTestView: View {
                     // Section: Variation
                     Text("Variation")
                         .font(.custom("Inter-Bold", size: 12))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 16)
                     
@@ -237,7 +238,7 @@ struct ParticleTestView: View {
                         VStack(alignment: .leading) {
                             Text("Particle Trails")
                                 .font(.custom("Inter-Medium", size: 14))
-                                .foregroundColor(Color(hex: "080808"))
+                                .foregroundColor(themeService.textPrimaryColor)
                             Text("Adds fading trail effect")
                                 .font(.custom("Inter-Regular", size: 11))
                                 .foregroundColor(Color(hex: "AAAAAA"))
@@ -292,19 +293,19 @@ struct ParticleTestView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Current Values:")
                             .font(.custom("Inter-Bold", size: 12))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Text("count: \(Int(particleCount)), speed: \(Int(burstSpeed)), life: \(String(format: "%.1f", particleLifetime))s")
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Text("size: \(String(format: "%.1f", particleSize)), angle: \(Int(spreadAngle))°, gravity: \(Int(gravity))")
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                         
                         Text("rotation: \(String(format: "%.1f", particleRotation)), fade: \(String(format: "%.1f", fadeSpeed))x")
                             .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -339,6 +340,7 @@ struct ParticleTestView: View {
 
 // Slider component for parameter controls
 struct ParameterSlider: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     @Binding var value: Double
     let range: ClosedRange<Double>
@@ -349,13 +351,13 @@ struct ParameterSlider: View {
             HStack {
                 Text(title)
                     .font(.custom("Inter-Medium", size: 14))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
                 Text(String(format: range.upperBound >= 10 ? "%.0f" : "%.2f", value))
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Slider(value: $value, in: range)

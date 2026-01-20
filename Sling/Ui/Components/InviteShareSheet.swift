@@ -3,6 +3,7 @@ import UIKit
 
 struct InviteShareSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var themeService = ThemeService.shared
     
     let referralLink = "https://sling.money/invite/brendon"
     let referralMessage = "Join me on Sling! Send money instantly to friends anywhere in the world. Use my link to sign up and we'll both get rewards."
@@ -29,11 +30,11 @@ struct InviteShareSheet: View {
                 
                 Text("Invite Friends")
                     .font(.custom("Inter-Bold", size: 24))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text("Share Sling with friends and earn rewards when they sign up.")
                     .font(.custom("Inter-Regular", size: 16))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
             }
@@ -42,7 +43,7 @@ struct InviteShareSheet: View {
             HStack {
                 Text(referralLink)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .lineLimit(1)
                 
                 Spacer()
@@ -54,7 +55,7 @@ struct InviteShareSheet: View {
                 }) {
                     Image(systemName: "doc.on.doc")
                         .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
             }
             .padding(16)
@@ -89,7 +90,7 @@ struct InviteShareSheet: View {
                         Text("Send via Messages")
                             .font(.custom("Inter-Bold", size: 16))
                     }
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(Color(hex: "EDEDED"))

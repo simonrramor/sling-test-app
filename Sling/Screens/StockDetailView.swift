@@ -14,6 +14,7 @@ struct StockDetailView: View {
     let stock: Stock
     @Environment(\.dismiss) private var dismiss
     @StateObject private var stockService = StockService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @StateObject private var portfolioService = PortfolioService.shared
     @State private var selectedPeriod = "1D"
     @State private var isDragging = false
@@ -31,15 +32,31 @@ struct StockDetailView: View {
         portfolioService.sharesOwned(for: stock.iconName)
     }
     
-    // Primary colors for each stock
+    // Primary colors for each stock (brand colors from logos)
     var primaryColor: Color {
         switch stock.iconName {
+        case "StockAmazon":
+            return Color(hex: "FF9900")  // Amazon orange
         case "StockApple":
-            return Color(hex: "000000")
+            return Color(hex: "000000")  // Apple black
+        case "StockBankOfAmerica":
+            return Color(hex: "012169")  // Bank of America blue
         case "StockCircle":
-            return Color(hex: "00D4AA")
+            return Color(hex: "00D4AA")  // Circle teal
+        case "StockCoinbase":
+            return Color(hex: "0052FF")  // Coinbase blue
+        case "StockGoogle":
+            return Color(hex: "4285F4")  // Google blue
+        case "StockMcDonalds":
+            return Color(hex: "FFC72C")  // McDonald's yellow/gold
         case "StockMeta":
-            return Color(hex: "0668E1")
+            return Color(hex: "0668E1")  // Meta blue
+        case "StockMicrosoft":
+            return Color(hex: "00A4EF")  // Microsoft blue
+        case "StockTesla":
+            return Color(hex: "E82127")  // Tesla red
+        case "StockVisa":
+            return Color(hex: "1A1F71")  // Visa blue
         default:
             return Color(hex: "080808")
         }
@@ -101,7 +118,7 @@ struct StockDetailView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
                     .accessibilityLabel("Close")
@@ -139,11 +156,11 @@ struct StockDetailView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(stock.name)
                                         .font(.custom("Inter-Bold", size: 24))
-                                        .foregroundColor(Color(hex: "080808"))
+                                        .foregroundColor(themeService.textPrimaryColor)
                                     
                                     Text(stock.symbol)
                                         .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 
                                 Spacer()
@@ -195,7 +212,7 @@ struct StockDetailView: View {
                                 portfolioService: portfolioService
                             )
                             .padding(.horizontal, 24)
-                            .padding(.vertical, 16)
+                            .padding(.vertical, 24)
                         }
                         
                         // About section
@@ -305,6 +322,7 @@ struct StockDetailView: View {
 }
 
 struct YourInvestmentSection: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let stock: Stock
     let sharesOwned: Double
     let currentPrice: Double
@@ -330,35 +348,35 @@ struct YourInvestmentSection: View {
             // Header
             Text("Your investment")
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 16)
                 .accessibilityAddTraits(.isHeader)
             
             // Value and Shares row
-            HStack(alignment: .top, spacing: 24) {
+            HStack(alignment: .top, spacing: 48) {
                 // Value
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Value")
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     Text(String(format: "$%.2f", holdingValue))
                         .font(.custom("Inter-Bold", size: 24))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                 }
                 
                 // Number of shares
                 VStack(alignment: .leading, spacing: 4) {
                     Text("No. of shares")
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     Text(String(format: "%.2f", sharesOwned))
                         .font(.custom("Inter-Bold", size: 24))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                 }
                 
                 Spacer()
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, 24)
             
             // Details
             VStack(spacing: 8) {
@@ -372,14 +390,21 @@ struct YourInvestmentSection: View {
                     isPositive: profitLoss.isPositive
                 )
                 
-                // Unrealised returns (total profit/loss)
+                // Total return (total profit/loss)
                 InvestmentDetailRow(
-                    label: "Unrealised returns",
+                    label: "Total return",
                     value: String(format: "%@$%.2f (%.2f%%)",
                                   profitLoss.isPositive ? "+" : "",
                                   profitLoss.amount,
                                   profitLoss.percent),
                     isPositive: profitLoss.isPositive
+                )
+                
+                // Average purchase price
+                InvestmentDetailRow(
+                    label: "Average purchase price",
+                    value: String(format: "$%.2f", portfolioService.holdings[stock.iconName]?.averageCost ?? 0),
+                    isPositive: nil
                 )
                 
                 // % of Portfolio
@@ -395,6 +420,7 @@ struct YourInvestmentSection: View {
 }
 
 struct InvestmentDetailRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     let value: String
     var isPositive: Bool?
@@ -410,7 +436,7 @@ struct InvestmentDetailRow: View {
         HStack {
             Text(label)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
             
             Spacer()
             
@@ -423,6 +449,7 @@ struct InvestmentDetailRow: View {
 }
 
 struct InfoCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     let value: String
     
@@ -430,13 +457,13 @@ struct InfoCard: View {
         HStack {
             Text(title)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
             
             Spacer()
             
             Text(value)
                 .font(.custom("Inter-Medium", size: 16))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
         }
         .padding(.vertical, 4)
     }
@@ -444,6 +471,7 @@ struct InfoCard: View {
 
 // About section with company description
 struct AboutSection: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let description: String
     
     var body: some View {
@@ -451,12 +479,12 @@ struct AboutSection: View {
             // Header
             Text("About")
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textPrimaryColor)
             
             // Description text
             Text(description)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textSecondaryColor)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -476,6 +504,7 @@ struct AboutSection: View {
 
 // Info section with stock details
 struct InfoSection: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let stock: Stock
     
     var body: some View {
@@ -483,7 +512,7 @@ struct InfoSection: View {
             // Header
             Text("Info")
                 .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color(hex: "7B7B7B"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 16)
             
             // Info items
@@ -512,6 +541,7 @@ struct InfoSection: View {
 
 // Stock-specific chart view with customizable color
 struct StockChartView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var selectedPeriod: String
     @Binding var isDragging: Bool
     @Binding var dragProgress: CGFloat
@@ -618,7 +648,7 @@ struct StockChartView: View {
                         // Time label at top of line
                         Text(getTimeLabel(at: dragProgress))
                             .font(.custom("Inter-Medium", size: 10))
-                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .foregroundColor(themeService.textSecondaryColor)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(
@@ -697,11 +727,12 @@ struct StockChartView: View {
                         Text(period)
                             .font(.custom(selectedPeriod == period ? "Inter-Medium" : "Inter-Regular", size: 14))
                             .foregroundColor(selectedPeriod == period ? Color(hex: "080808") : Color(hex: "7B7B7B"))
+                            .frame(height: 20) // Line height 20
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(selectedPeriod == period ? Color(hex: "F7F7F7") : Color.clear)
+                                    .fill(selectedPeriod == period ? Color(hex: "E8E8E8") : Color.clear)
                             )
                     }
                     .buttonStyle(.plain)

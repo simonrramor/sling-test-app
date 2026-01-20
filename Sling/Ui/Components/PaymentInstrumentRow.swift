@@ -3,6 +3,8 @@ import SwiftUI
 /// A reusable row component for payment instruments (accounts, stocks, etc.)
 /// Matches the Figma "payment instrument selector" design
 struct PaymentInstrumentRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    
     // MARK: - Configuration
     
     /// The icon to display (asset name)
@@ -33,7 +35,7 @@ struct PaymentInstrumentRow: View {
             if useSystemIcon {
                 Image(systemName: iconName)
                     .font(.system(size: 20))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .frame(width: 44, height: 44)
                     .background(Color(hex: "F7F7F7"))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -53,7 +55,7 @@ struct PaymentInstrumentRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 if !subtitleParts.isEmpty {
                     HStack(spacing: 5) {
@@ -61,11 +63,11 @@ struct PaymentInstrumentRow: View {
                             if index > 0 {
                                 Text("•")
                                     .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                    .foregroundColor(themeService.textSecondaryColor)
                             }
                             Text(part)
                                 .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                     }
                 }
@@ -82,7 +84,7 @@ struct PaymentInstrumentRow: View {
                 }) {
                     Text(buttonTitle)
                         .font(.custom("Inter-Bold", size: 14))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .background(
@@ -101,7 +103,7 @@ struct PaymentInstrumentRow: View {
                 }) {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .rotationEffect(.degrees(90))
                         .frame(width: 24, height: 24)
                 }
@@ -170,6 +172,7 @@ extension PaymentInstrumentRow {
 
 /// A tappable version of the row that opens a selector
 struct TappablePaymentInstrumentRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let iconName: String
     let title: String
     var subtitleParts: [String] = []
@@ -199,7 +202,7 @@ struct TappablePaymentInstrumentRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                     
                     if !subtitleParts.isEmpty {
                         HStack(spacing: 5) {
@@ -207,11 +210,11 @@ struct TappablePaymentInstrumentRow: View {
                                 if index > 0 {
                                     Text("•")
                                         .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                        .foregroundColor(themeService.textSecondaryColor)
                                 }
                                 Text(part)
                                     .font(.custom("Inter-Regular", size: 14))
-                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                    .foregroundColor(themeService.textSecondaryColor)
                             }
                         }
                     }
@@ -223,14 +226,14 @@ struct TappablePaymentInstrumentRow: View {
                 if let trailing = trailingText {
                     Text(trailing)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 // Menu icon
                 if showMenu {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .rotationEffect(.degrees(90))
                         .frame(width: 24, height: 24)
                 }

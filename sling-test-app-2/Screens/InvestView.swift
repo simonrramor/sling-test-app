@@ -1,29 +1,5 @@
 import SwiftUI
 
-// #region agent log
-private let debugLogPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
-private var investViewBodyCount = 0
-private func debugLog(_ location: String, _ message: String, _ data: [String: Any] = [:]) {
-    let entry: [String: Any] = [
-        "timestamp": Date().timeIntervalSince1970 * 1000,
-        "location": location,
-        "message": message,
-        "data": data,
-        "sessionId": "debug-session"
-    ]
-    if let jsonData = try? JSONSerialization.data(withJSONObject: entry),
-       let jsonString = String(data: jsonData, encoding: .utf8) {
-        if let handle = FileHandle(forWritingAtPath: debugLogPath) {
-            handle.seekToEndOfFile()
-            handle.write((jsonString + "\n").data(using: .utf8)!)
-            handle.closeFile()
-        } else {
-            FileManager.default.createFile(atPath: debugLogPath, contents: (jsonString + "\n").data(using: .utf8))
-        }
-    }
-}
-// #endregion
-
 struct Stock: Identifiable {
     let id = UUID()
     let name: String
@@ -38,7 +14,6 @@ struct Stock: Identifiable {
 struct InvestView: View {
     @StateObject private var stockService = StockService.shared
     @StateObject private var portfolioService = PortfolioService.shared
-    @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedPeriod = "1D"
     @State private var isDragging = false
     @State private var dragProgress: CGFloat = 1.0
@@ -106,9 +81,9 @@ struct InvestView: View {
         portfolioService.portfolioValue()
     }
     
-    // Get total cost basis (what you paid for all holdings)
-    var totalCostBasis: Double {
-        portfolioService.holdings.values.reduce(0) { $0 + $1.totalCost }
+    // Calculate portfolio value at start of period
+    var portfolioStartTotal: Double {
+        portfolioService.portfolioValueAtPeriodStart(period: selectedPeriod)
     }
     
     // Calculate portfolio value at a specific progress point
@@ -129,39 +104,18 @@ struct InvestView: View {
         }
     }
     
-    // Calculate gain/loss at a specific progress point (value - cost basis)
-    func gainLossAt(progress: Double) -> Double {
-        let valueAtProgress = portfolioValueAt(progress: progress)
-        return valueAtProgress - totalCostBasis
-    }
-    
-    // Display profit/loss from price changes only (not money added)
-    // This compares current value to cost basis (what you paid)
+    // Display change from start to current drag position
     var displayPortfolioChange: Double {
-        if isDragging {
-            return gainLossAt(progress: Double(dragProgress))
-        } else {
-            return portfolioCurrentTotal - totalCostBasis
-        }
+        let currentValue = isDragging ? portfolioValueAt(progress: Double(dragProgress)) : portfolioCurrentTotal
+        return currentValue - portfolioStartTotal
     }
     
     var isPositiveChange: Bool {
-        displayPortfolioChange > 0.001 // Small threshold to avoid floating point issues
-    }
-    
-    var isNegativeChange: Bool {
-        displayPortfolioChange < -0.001
-    }
-    
-    var isNoChange: Bool {
-        !isPositiveChange && !isNegativeChange
+        displayPortfolioChange >= 0
     }
     
     var changeColor: Color {
-        if isNoChange {
-            return Color(hex: "7B7B7B") // Grey for no change
-        }
-        return isPositiveChange ? Color(hex: "57CE43") : Color(hex: "E30000")
+        isPositiveChange ? Color(hex: "57CE43") : Color(hex: "E30000")
     }
     
     var changeText: String {
@@ -177,20 +131,11 @@ struct InvestView: View {
     
     // Combined portfolio chart data (normalized 0-1) - uses history-based generation
     var portfolioChartData: [CGFloat] {
-        // #region agent log
-        debugLog("InvestView.swift:portfolioChartData", "H3: Chart data requested", ["period": selectedPeriod, "isEmpty": isPortfolioEmpty])
-        // #endregion
         guard !isPortfolioEmpty else { return [] }
         return portfolioService.generateChartData(period: selectedPeriod, sampleCount: 50)
     }
     
     var body: some View {
-        // #region agent log
-        let _ = {
-            investViewBodyCount += 1
-            debugLog("InvestView.swift:body", "H1: View body computed", ["count": investViewBodyCount, "holdingsCount": portfolioService.holdings.count])
-        }()
-        // #endregion
         ScrollView {
             VStack(spacing: 0) {
                 // Portfolio Header
@@ -198,22 +143,21 @@ struct InvestView: View {
                     if isPortfolioEmpty {
                         Text("Your portfolio")
                             .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
+                            .foregroundColor(Color(hex: "7B7B7B"))
                         
                         Text("$0.00")
-                            .font(.custom("Inter-Bold", size: 48))
-                            .tracking(-0.96)
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .font(.custom("Inter-Bold", size: 33))
+                            .foregroundColor(Color(hex: "080808"))
                     } else {
                         HStack(spacing: 6) {
                             Text("Your portfolio")
                                 .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textSecondaryColor)
+                                .foregroundColor(Color(hex: "7B7B7B"))
                             
-                            Image(systemName: isNoChange ? "arrow.right" : "arrow.up")
+                            Image(systemName: "arrow.up")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(changeColor)
-                                .rotationEffect(.degrees(isNoChange ? 0 : (isPositiveChange ? 0 : 180)))
+                                .rotationEffect(.degrees(isPositiveChange ? 0 : 180))
                             
                             SlidingNumberText(
                                 text: changeText,
@@ -224,10 +168,9 @@ struct InvestView: View {
                         
                         SlidingNumberText(
                             text: displayPortfolioTotal > 0 ? portfolioTotalText : "$0.00",
-                            font: .custom("Inter-Bold", size: 48),
+                            font: .custom("Inter-Bold", size: 33),
                             color: Color(hex: "080808")
                         )
-                        .tracking(-0.96)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -258,16 +201,17 @@ struct InvestView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Your stocks")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .foregroundColor(Color(hex: "7B7B7B"))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .accessibilityAddTraits(.isHeader)
                         
                         ForEach(ownedStocks) { stock in
+                            let shares = portfolioService.sharesOwned(for: stock.iconName)
                             ListRow(
                                 iconName: stock.iconName,
                                 title: stock.name,
-                                subtitle: stock.symbol,
+                                subtitle: String(format: "%.2f shares", shares),
                                 iconStyle: .rounded,
                                 isButton: true,
                                 onTap: {
@@ -278,7 +222,7 @@ struct InvestView: View {
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text(String(format: "$%.2f", portfolioService.holdingValue(for: stock.iconName)))
                                         .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(themeService.textPrimaryColor)
+                                        .foregroundColor(Color(hex: "080808"))
                                     
                                     let pnl = portfolioService.holdingProfitLoss(for: stock.iconName)
                                     HStack(spacing: 4) {
@@ -301,7 +245,7 @@ struct InvestView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(isPortfolioEmpty ? "Stocks" : "Browse stocks")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .foregroundColor(Color(hex: "7B7B7B"))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .accessibilityAddTraits(.isHeader)
@@ -321,7 +265,7 @@ struct InvestView: View {
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(stock.price)
                                     .font(.custom("Inter-Bold", size: 16))
-                                    .foregroundColor(themeService.textPrimaryColor)
+                                    .foregroundColor(Color(hex: "080808"))
                                 
                                 HStack(spacing: 4) {
                                     Image(systemName: stock.isPositive ? "arrow.up" : "arrow.down")
@@ -364,12 +308,11 @@ struct InvestView: View {
 // MARK: - Start Investing Promotional Card
 
 struct StartInvestingCard: View {
-    @ObservedObject private var themeService = ThemeService.shared
     // Stock icons with their rotation angles
     private let stockIcons: [(name: String, rotation: Double)] = [
-        ("StockTesla", -13),
+        ("StockTesla", -8),
         ("StockApple", 0),
-        ("StockGoogle", 13)
+        ("StockGoogle", 8)
     ]
     
     var body: some View {
@@ -394,12 +337,12 @@ struct StartInvestingCard: View {
             VStack(spacing: 4) {
                 Text("Start building your wealth with investing from just $1")
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
+                    .foregroundColor(Color(hex: "080808"))
                     .multilineTextAlignment(.center)
                 
                 Text("Buy stocks in your favorite companies to give your money a chance to grow.")
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(themeService.textSecondaryColor)
+                    .foregroundColor(Color(hex: "7B7B7B"))
                     .multilineTextAlignment(.center)
             }
             

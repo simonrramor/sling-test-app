@@ -4,6 +4,7 @@ import UIKit
 struct BalanceView: View {
     @StateObject private var portfolioService = PortfolioService.shared
     @StateObject private var exchangeRateService = ExchangeRateService.shared
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var displayBalance: Double?
     
     var onAddMoney: (() -> Void)? = nil
@@ -35,22 +36,22 @@ struct BalanceView: View {
                 HStack(spacing: 0) {
                     Text("Cash balance")
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     
                     Text("・")
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                     
                     Text(formattedUSDBalance)
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 
                 // Main balance in display currency (animated) - H1 style from Figma
                 SlidingNumberText(
                     text: formattedDisplayBalance,
                     font: .custom("Inter-Bold", size: 48),
-                    color: Color(hex: "080808")
+                    color: themeService.textPrimaryColor
                 )
                 .tracking(-0.96) // -2% letter spacing at 48pt
             }
