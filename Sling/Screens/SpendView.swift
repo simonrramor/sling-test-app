@@ -65,7 +65,7 @@ struct SpendView: View {
     private var cardContent: some View {
         VStack(spacing: 0) {
             // 3D Interactive Card
-            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1, onTap: {
+            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1, backgroundColor: themeService.backgroundColor, onTap: {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showShadowControls.toggle()
                 }
@@ -110,66 +110,41 @@ struct SpendView: View {
                     ShadowSlider(label: "Offset Y", value: $shadowOffsetY, range: -30...30, format: "%.0f")
                 }
                 .padding(16)
-                .background(Color(hex: "F7F7F7"))
+                .background(themeService.backgroundSecondaryColor)
                 .cornerRadius(16)
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
             }
             
             HStack(spacing: 8) {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                TertiaryButton(title: "Show details") {
                     showCardDetails = true
-                }) {
-                    Text("Show details")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
                 }
-                .buttonStyle(TertiaryButtonStyle())
                 
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
+                TertiaryButton(title: isCardLocked ? "Unlock" : "Lock") {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isCardLocked.toggle()
                     }
-                }) {
-                    HStack(spacing: 6) {
-                        ZStack {
-                            Image("LockIcon")
-                                .renderingMode(.template)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 20, height: 20)
-                                .opacity(isCardLocked ? 0 : 1)
-                                .scaleEffect(isCardLocked ? 0.8 : 1)
-                            
-                            Image("LockLockedIcon")
-                                .renderingMode(.template)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 20, height: 20)
-                                .opacity(isCardLocked ? 1 : 0)
-                                .scaleEffect(isCardLocked ? 1 : 0.8)
-                        }
-                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isCardLocked)
-                        Text(isCardLocked ? "Unlock" : "Lock")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .id(isCardLocked ? "unlock" : "lock")
-                            .transition(.asymmetric(
-                                insertion: .opacity.combined(with: .offset(x: 5, y: 0)).animation(.spring(response: 0.3, dampingFraction: 0.7)),
-                                removal: .opacity.combined(with: .offset(x: -5, y: 0)).animation(.easeOut(duration: 0.2))
-                            ))
+                } icon: {
+                    ZStack {
+                        Image("LockIcon")
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 20, height: 20)
+                            .opacity(isCardLocked ? 0 : 1)
+                            .scaleEffect(isCardLocked ? 0.8 : 1)
+                        
+                        Image("LockLockedIcon")
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 20, height: 20)
+                            .opacity(isCardLocked ? 1 : 0)
+                            .scaleEffect(isCardLocked ? 1 : 0.8)
                     }
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .clipped()
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isCardLocked)
                 }
-                .buttonStyle(TertiaryButtonStyle())
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 8)
@@ -187,7 +162,11 @@ struct SpendView: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: "FCFCFC"))
+                    .fill(themeService.cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
             )
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
@@ -277,7 +256,7 @@ struct CategoryCard: View {
                 
                 Text(category.amount)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(.black)
+                    .foregroundColor(themeService.textPrimaryColor)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -285,22 +264,15 @@ struct CategoryCard: View {
         .frame(width: 150)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(hex: "FCFCFC"))
+                .fill(themeService.cardBackgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
         )
     }
 }
 
-struct TertiaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(configuration.isPressed ? Color(hex: "F2F2F2") : Color.white)
-            )
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
-    }
-}
 
 // MARK: - Card Details Sheet
 
@@ -331,7 +303,7 @@ struct CardDetailsSheet: View {
             
             Spacer()
         }
-        .background(Color.white)
+        .background(themeService.backgroundSecondaryColor)
     }
 }
 
@@ -356,7 +328,7 @@ struct CardDetailField: View {
                 
                 Text(value)
                     .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(Color(hex: "000000"))
+                    .foregroundColor(themeService.textPrimaryColor)
             }
             
             Spacer()
@@ -375,14 +347,14 @@ struct CardDetailField: View {
                 ZStack {
                     Image(systemName: copied ? "checkmark" : "square.on.square")
                         .font(.system(size: 16, weight: .regular))
-                        .foregroundColor(copied ? Color(hex: "57CE43") : Color(hex: "000000").opacity(0.8))
+                        .foregroundColor(copied ? Color(hex: "57CE43") : themeService.textPrimaryColor.opacity(0.8))
                 }
                 .frame(width: 24, height: 24)
             }
             .contentShape(Rectangle())
         }
         .padding(16)
-        .background(Color(hex: "FCFCFC"))
+        .background(themeService.backgroundSecondaryColor)
         .cornerRadius(16)
     }
 }

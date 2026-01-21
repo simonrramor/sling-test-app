@@ -8,22 +8,24 @@ struct Card3DView: UIViewRepresentable {
     var cameraZ: Double = 3.23
     var cardDepth: Double = 0.057
     var contentBlur: Double = 8.0  // Blur radius for locked state
+    var backgroundColor: Color = .clear  // Background color that matches app theme
+    var onTap: (() -> Void)? = nil
     
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
-        // Use clear background so no white box appears
-        sceneView.backgroundColor = .clear
+        // Use background color from theme
+        sceneView.backgroundColor = UIColor(backgroundColor)
         sceneView.allowsCameraControl = false
         sceneView.autoenablesDefaultLighting = false
         sceneView.antialiasingMode = .multisampling4X
         
-        // Make layer fully transparent
+        // Set layer background to match theme
         sceneView.layer.isOpaque = false
-        sceneView.layer.backgroundColor = UIColor.clear.cgColor
+        sceneView.layer.backgroundColor = UIColor(backgroundColor).cgColor
         sceneView.isOpaque = false
         
         let scene = SCNScene()
-        scene.background.contents = UIColor.clear
+        scene.background.contents = UIColor(backgroundColor)
         sceneView.scene = scene
         
         // Create the card geometry - match downloaded image ratio 1035:648 = 1.597:1
@@ -81,6 +83,10 @@ struct Card3DView: UIViewRepresentable {
     func updateUIView(_ uiView: SCNView, context: Context) {
         // Update max rotation when slider changes
         context.coordinator.maxRotation = maxRotation
+        
+        // Update background color when theme changes
+        uiView.backgroundColor = UIColor(backgroundColor)
+        uiView.scene?.background.contents = UIColor(backgroundColor)
         
         // Update camera settings
         if let cameraNode = uiView.scene?.rootNode.childNode(withName: "camera", recursively: false) {
@@ -283,7 +289,6 @@ extension UIColor {
 }
 
 #Preview {
-    Card3DView(isLocked: .constant(false))
+    Card3DView(isLocked: .constant(false), backgroundColor: Color(UIColor.systemGray6))
         .frame(height: 250)
-        .background(Color.white)
 }

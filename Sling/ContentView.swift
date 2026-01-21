@@ -32,8 +32,7 @@ struct ContentView: View {
         switch tab {
         case .home: return 0
         case .card: return 1
-        case .transfer: return 2
-        case .invest: return 3
+        case .invest: return 2
         }
     }
     
@@ -84,9 +83,6 @@ struct ContentView: View {
                     case .home:
                         HomeView()
                             .transition(tabTransition)
-                    case .transfer:
-                        TransferView()
-                            .transition(tabTransition)
                     case .card:
                         SpendView()
                             .transition(tabTransition)
@@ -96,8 +92,11 @@ struct ContentView: View {
                     }
                 }
                 .animation(.spring(response: 0.35, dampingFraction: 0.86), value: selectedTab)
-                
-                // Bottom Navigation
+            }
+            
+            // Bottom Navigation - overlaid at bottom
+            VStack {
+                Spacer()
                 BottomNavView(selectedTab: $selectedTab, onTabChange: { newTab in
                     previousTab = selectedTab
                 })
@@ -356,6 +355,7 @@ struct ClearBackgroundView: UIViewRepresentable {
     
     func updateUIView(_ uiView: UIView, context: Context) {}
 }
+
 
 #Preview {
     ContentView()

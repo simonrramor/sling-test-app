@@ -8,26 +8,27 @@ struct Card3DView: UIViewRepresentable {
     var cameraZ: Double = 3.23
     var cardDepth: Double = 0.057
     var contentBlur: Double = 8.0  // Blur radius for locked state
+    var backgroundColor: Color = Color(red: 0.949, green: 0.949, blue: 0.949)  // Default to grey theme
     var onTap: (() -> Void)? = nil  // Callback for tap events
     
     func makeUIView(context: Context) -> SCNView {
         let sceneView = SCNView()
-        // Use the app's grey background color to match the parent view
-        sceneView.backgroundColor = UIColor(red: 0.949, green: 0.949, blue: 0.949, alpha: 1.0)  // #F2F2F2
+        // Use background color from theme
+        sceneView.backgroundColor = UIColor(backgroundColor)
         sceneView.allowsCameraControl = false
         sceneView.autoenablesDefaultLighting = false
         sceneView.antialiasingMode = .none  // Disable AA to test hypothesis G
         
-        // Make layer fully transparent
+        // Set layer background to match theme
         sceneView.layer.isOpaque = false
-        sceneView.layer.backgroundColor = UIColor.clear.cgColor
+        sceneView.layer.backgroundColor = UIColor(backgroundColor).cgColor
         sceneView.layer.shadowOpacity = 0
         sceneView.layer.shadowRadius = 0
         sceneView.layer.masksToBounds = true
         
         let scene = SCNScene()
-        // Use the app's grey background color instead of clear to avoid rendering artifacts
-        scene.background.contents = UIColor(red: 0.949, green: 0.949, blue: 0.949, alpha: 1.0)  // #F2F2F2
+        // Use background color from theme
+        scene.background.contents = UIColor(backgroundColor)
         sceneView.scene = scene
         
         // Disable any floor/shadow rendering
@@ -88,6 +89,11 @@ struct Card3DView: UIViewRepresentable {
     func updateUIView(_ uiView: SCNView, context: Context) {
         // Update max rotation when slider changes
         context.coordinator.maxRotation = maxRotation
+        
+        // Update background color when theme changes
+        uiView.backgroundColor = UIColor(backgroundColor)
+        uiView.layer.backgroundColor = UIColor(backgroundColor).cgColor
+        uiView.scene?.background.contents = UIColor(backgroundColor)
         
         // Update camera settings
         if let cameraNode = uiView.scene?.rootNode.childNode(withName: "camera", recursively: false) {

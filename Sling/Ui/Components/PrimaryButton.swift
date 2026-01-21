@@ -62,10 +62,18 @@ struct SecondaryButton: View {
 }
 
 // MARK: - Tertiary Button (Grey)
-struct TertiaryButton: View {
+struct TertiaryButton<Icon: View>: View {
     let title: String
     var isEnabled: Bool = true
     let action: () -> Void
+    @ViewBuilder var icon: () -> Icon
+    
+    init(title: String, isEnabled: Bool = true, action: @escaping () -> Void, @ViewBuilder icon: @escaping () -> Icon) {
+        self.title = title
+        self.isEnabled = isEnabled
+        self.action = action
+        self.icon = icon
+    }
     
     var body: some View {
         Button(action: {
@@ -73,17 +81,30 @@ struct TertiaryButton: View {
             generator.impactOccurred()
             action()
         }) {
-            Text(title)
-                .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(Color("TextPrimary"))
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color("BackgroundTertiary"))
-                .cornerRadius(20)
+            HStack(spacing: 6) {
+                icon()
+                Text(title)
+                    .font(.custom("Inter-Bold", size: 16))
+            }
+            .foregroundColor(Color("TextPrimary"))
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(Color("BackgroundTertiary"))
+            .cornerRadius(20)
         }
         .buttonStyle(PressedButtonStyle())
         .opacity(isEnabled ? 1 : 0.5)
         .disabled(!isEnabled)
+    }
+}
+
+// Convenience initializer for TertiaryButton without icon
+extension TertiaryButton where Icon == EmptyView {
+    init(title: String, isEnabled: Bool = true, action: @escaping () -> Void) {
+        self.title = title
+        self.isEnabled = isEnabled
+        self.action = action
+        self.icon = { EmptyView() }
     }
 }
 

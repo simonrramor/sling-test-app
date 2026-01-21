@@ -188,6 +188,7 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
                 resetAppData()
+                isPresented = false
             }
         } message: {
             Text("This will clear all your portfolio holdings, cash balance, and activity history. This cannot be undone.")

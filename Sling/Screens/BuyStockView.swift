@@ -175,6 +175,18 @@ struct BuyStockView: View {
                     iconName: "SlingBalanceLogo",
                     title: "Sling balance",
                     subtitleParts: [formattedCashBalance],
+                    actionButtonTitle: "Max",
+                    onActionTap: {
+                        // Set amount to max available balance
+                        if isSharesMode {
+                            // Convert cash balance to shares
+                            let maxShares = portfolioService.cashBalance / stockPrice
+                            amountString = String(format: "%.2f", maxShares)
+                        } else {
+                            // Use full cash balance
+                            amountString = String(format: "%.2f", portfolioService.cashBalance)
+                        }
+                    },
                     showMenu: true,
                     onMenuTap: {
                         // TODO: Show payment source selector

@@ -365,6 +365,7 @@ struct InvestView: View {
 
 struct StartInvestingCard: View {
     @ObservedObject private var themeService = ThemeService.shared
+    @State private var showStockList = false
     // Stock icons with their rotation angles
     private let stockIcons: [(name: String, rotation: Double)] = [
         ("StockTesla", -13),
@@ -405,7 +406,9 @@ struct StartInvestingCard: View {
             
             // Start investing button
             Button(action: {
-                // Scroll to stocks section or show tutorial
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                showStockList = true
             }) {
                 Text("Start investing")
                     .font(.custom("Inter-Bold", size: 14))
@@ -423,6 +426,9 @@ struct StartInvestingCard: View {
             RoundedRectangle(cornerRadius: 24)
                 .fill(Color(hex: "F7F7F7"))
         )
+        .fullScreenCover(isPresented: $showStockList) {
+            BrowseStocksView(isPresented: $showStockList)
+        }
     }
 }
 

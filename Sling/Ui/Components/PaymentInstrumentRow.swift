@@ -75,37 +75,40 @@ struct PaymentInstrumentRow: View {
             
             Spacer()
             
-            // Action button
-            if let buttonTitle = actionButtonTitle {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    onActionTap?()
-                }) {
-                    Text(buttonTitle)
-                        .font(.custom("Inter-Bold", size: 14))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(hex: "EDEDED"))
-                        )
+            // Action button and menu button with 4px spacing
+            HStack(spacing: 4) {
+                // Action button
+                if let buttonTitle = actionButtonTitle {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        onActionTap?()
+                    }) {
+                        Text(buttonTitle)
+                            .font(.custom("Inter-Bold", size: 14))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(hex: "EDEDED"))
+                            )
+                    }
                 }
-            }
-            
-            // Menu button
-            if showMenu {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    onMenuTap?()
-                }) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(themeService.textSecondaryColor)
-                        .rotationEffect(.degrees(90))
-                        .frame(width: 24, height: 24)
+                
+                // Menu button
+                if showMenu {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        onMenuTap?()
+                    }) {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(themeService.textSecondaryColor)
+                            .rotationEffect(.degrees(90))
+                            .frame(width: 24, height: 24)
+                    }
                 }
             }
         }

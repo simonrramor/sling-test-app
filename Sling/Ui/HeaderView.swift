@@ -23,7 +23,7 @@ struct HeaderView: View {
     }
     
     private var showQR: Bool {
-        currentTab == .home || currentTab == .transfer
+        currentTab == .home
     }
     
     private var showSearch: Bool {
@@ -39,8 +39,7 @@ struct HeaderView: View {
         switch tab {
         case .home: return 0
         case .card: return 1
-        case .transfer: return 2
-        case .invest: return 3
+        case .invest: return 2
         }
     }
     

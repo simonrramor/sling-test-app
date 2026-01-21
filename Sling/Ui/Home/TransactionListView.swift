@@ -164,10 +164,8 @@ struct ActivityRowView: View {
     private var amountColor: Color {
         if activity.titleRight.hasPrefix("+") {
             return Color(hex: "57CE43")
-        } else if activity.titleRight.hasPrefix("-") {
-            return Color(hex: "080808")
         } else {
-            return Color(hex: "080808")
+            return themeService.textPrimaryColor
         }
     }
 }

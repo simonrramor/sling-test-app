@@ -186,6 +186,7 @@ struct GetStartedSection: View {
 // MARK: - Get Started Card
 
 struct GetStartedCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     let iconName: String
     let iconColor: Color
@@ -218,8 +219,14 @@ struct GetStartedCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .frame(width: 150)
-            .background(Color(hex: "FCFCFC"))
-            .cornerRadius(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(themeService.cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
+            )
         }
         .buttonStyle(PressedButtonStyle())
     }
@@ -235,6 +242,8 @@ struct InvestPromoCard: View {
         ("StockGoogle", 13)
     ]
     @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var themeService = ThemeService.shared
+    @State private var showStockList = false
     
     // Only show if user has no stock holdings
     private var hasStockHoldings: Bool {
@@ -277,15 +286,15 @@ struct InvestPromoCard: View {
             Button(action: {
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
-                NotificationCenter.default.post(name: .navigateToInvest, object: nil)
+                showStockList = true
             }) {
                 Text("Start investing")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color("ButtonSecondaryText"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .frame(height: 36)
-                    .background(Color("ButtonSecondary"))
+                    .background(themeService.buttonSecondaryColor)
                     .cornerRadius(12)
             }
             .buttonStyle(PressedButtonStyle())
@@ -293,8 +302,17 @@ struct InvestPromoCard: View {
         .padding(.vertical, 24)
         .padding(.horizontal, 40)
         .frame(maxWidth: .infinity)
-        .background(Color(hex: "FCFCFC"))
-        .cornerRadius(24)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(themeService.cardBackgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
+        )
+        .fullScreenCover(isPresented: $showStockList) {
+            BrowseStocksView(isPresented: $showStockList)
+        }
         }
     }
 }
@@ -321,6 +339,7 @@ struct StockLogoView: View {
 
 struct SlingCardPromoCard: View {
     @AppStorage("hasCard") private var hasCard = false
+    @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
         // Only show if user doesn't have a card yet
@@ -355,11 +374,11 @@ struct SlingCardPromoCard: View {
                 }) {
                     Text("Create Sling Card")
                         .font(.custom("Inter-Bold", size: 14))
-                        .foregroundColor(Color("ButtonSecondaryText"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .frame(height: 36)
-                        .background(Color("ButtonSecondary"))
+                        .background(themeService.buttonSecondaryColor)
                         .cornerRadius(12)
                 }
                 .buttonStyle(PressedButtonStyle())
@@ -367,8 +386,14 @@ struct SlingCardPromoCard: View {
             .padding(.vertical, 24)
             .padding(.horizontal, 40)
             .frame(maxWidth: .infinity)
-            .background(Color(hex: "FCFCFC"))
-            .cornerRadius(24)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(themeService.cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
+            )
         }
     }
 }

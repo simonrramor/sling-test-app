@@ -60,7 +60,7 @@ class ThemeService: ObservableObject {
         case .grey:
             return Color(hex: "F2F2F2")  // Light grey
         case .white:
-            return Color.white
+            return Color(hex: "FEFFFF")  // Slight off-white
         case .dark:
             return Color(hex: "000000")  // Pure black
         }
@@ -82,9 +82,18 @@ class ThemeService: ObservableObject {
         case .grey:
             return Color(hex: "FCFCFC")
         case .white:
-            return Color(hex: "F7F7F7")
+            return Color(hex: "FCFCFC")  // Light fill with border
         case .dark:
             return Color(hex: "1C1C1E")
+        }
+    }
+    
+    var cardBorderColor: Color? {
+        switch currentTheme {
+        case .white:
+            return Color(hex: "F7F7F7")  // Subtle border for white theme
+        case .grey, .dark:
+            return nil  // No border for other themes
         }
     }
     
