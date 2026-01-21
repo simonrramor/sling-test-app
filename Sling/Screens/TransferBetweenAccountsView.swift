@@ -189,18 +189,14 @@ struct TransferBetweenAccountsView: View {
         } message: {
             Text("£\(amountString) has been transferred from \(fromAccount.name) to \(toAccount.name).")
         }
-        .sheet(isPresented: $showFromAccountPicker) {
-            AccountSelectorView(
-                selectedAccount: $fromAccount,
-                isPresented: $showFromAccountPicker
-            )
-        }
-        .sheet(isPresented: $showToAccountPicker) {
-            AccountSelectorView(
-                selectedAccount: $toAccount,
-                isPresented: $showToAccountPicker
-            )
-        }
+        .accountSelectorOverlay(
+            isPresented: $showFromAccountPicker,
+            selectedAccount: $fromAccount
+        )
+        .accountSelectorOverlay(
+            isPresented: $showToAccountPicker,
+            selectedAccount: $toAccount
+        )
     }
 }
 

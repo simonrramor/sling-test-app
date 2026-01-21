@@ -184,12 +184,6 @@ struct AddMoneyView: View {
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
-                .sheet(isPresented: $showAccountSelector) {
-                    AccountSelectorView(
-                        selectedAccount: $selectedAccount,
-                        isPresented: $showAccountSelector
-                    )
-                }
                 
                 // Number pad
                 NumberPadView(amountString: $amountString)
@@ -237,6 +231,10 @@ struct AddMoneyView: View {
         .onAppear {
             updateAmounts()
         }
+        .accountSelectorOverlay(
+            isPresented: $showAccountSelector,
+            selectedAccount: $selectedAccount
+        )
     }
     
     private func formatForInput(_ value: Double) -> String {

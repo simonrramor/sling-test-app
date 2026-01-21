@@ -105,26 +105,48 @@ struct AccountSelectorView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
     
+    // Calculate content height based on number of accounts
+    private var contentHeight: CGFloat {
+        let handleHeight: CGFloat = 30 // 8 top + 6 height + 16 bottom
+        let titleHeight: CGFloat = 52 // title + padding
+        let rowHeight: CGFloat = 68 // each account row
+        let dividerHeight: CGFloat = 17 // divider before "Add new"
+        let bottomSafeArea: CGFloat = 34 // home indicator area
+        
+        let accountCount = CGFloat(PaymentAccount.allAccounts.count)
+        return handleHeight + titleHeight + (accountCount * rowHeight) + dividerHeight + bottomSafeArea
+    }
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Drawer handle
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
-                .frame(width: 32, height: 6)
-                .padding(.top, 8)
-                .padding(.bottom, 16)
+        ZStack(alignment: .bottom) {
+            // Dimmed background
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isPresented = false
+                    }
+                }
             
-            // Title
-            Text("Select account")
-                .font(.custom("Inter-Bold", size: 20))
-                .foregroundColor(themeService.textPrimaryColor)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-                .accessibilityAddTraits(.isHeader)
-            
-            // Account list (scrollable)
-            ScrollView {
+            // Drawer content
+            VStack(spacing: 0) {
+                // Drawer handle
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.black.opacity(0.2))
+                    .frame(width: 32, height: 6)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                
+                // Title
+                Text("Select account")
+                    .font(.custom("Inter-Bold", size: 20))
+                    .foregroundColor(themeService.textPrimaryColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+                    .accessibilityAddTraits(.isHeader)
+                
+                // Account list
                 VStack(spacing: 0) {
                     ForEach(PaymentAccount.allAccounts) { account in
                         // Add divider before "Add a new account"
@@ -132,7 +154,7 @@ struct AccountSelectorView: View {
                             Rectangle()
                                 .fill(Color.black.opacity(0.06))
                                 .frame(height: 1)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 24)
                                 .padding(.vertical, 8)
                         }
                         
@@ -141,8 +163,10 @@ struct AccountSelectorView: View {
                             isSelected: account.id == selectedAccount.id,
                             onTap: {
                                 if !account.isAddNew {
-                                    selectedAccount = account
-                                    isPresented = false
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        selectedAccount = account
+                                        isPresented = false
+                                    }
                                 }
                             }
                         )
@@ -150,10 +174,35 @@ struct AccountSelectorView: View {
                 }
                 .padding(.horizontal, 8)
             }
+            .padding(.bottom, 34) // Safe area for home indicator
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(Color.white)
+                    .ignoresSafeArea(edges: .bottom)
+            )
+            .transition(.move(edge: .bottom))
         }
-        .background(Color.white)
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
+    }
+}
+
+// MARK: - Account Selector Overlay Modifier
+
+extension View {
+    func accountSelectorOverlay(
+        isPresented: Binding<Bool>,
+        selectedAccount: Binding<PaymentAccount>
+    ) -> some View {
+        self.overlay {
+            if isPresented.wrappedValue {
+                AccountSelectorView(
+                    selectedAccount: selectedAccount,
+                    isPresented: isPresented
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPresented.wrappedValue)
     }
 }
 

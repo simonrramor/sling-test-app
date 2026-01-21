@@ -82,6 +82,8 @@ struct DesignSystem {
         static let dark = "080808"
         /// Light gray background
         static let backgroundLight = "F5F5F5"
+        /// Tertiary button background
+        static let tertiary = "EDEDED"
         /// Dark card background
         static let cardDark = "1B1B1B"
         /// Secondary text color

@@ -94,7 +94,7 @@ struct TertiaryButton<Icon: View>: View {
             .foregroundColor(Color("TextPrimary"))
             .frame(maxWidth: .infinity)
             .frame(height: DesignSystem.Button.height)
-            .background(Color("BackgroundTertiary"))
+            .background(Color(hex: DesignSystem.Colors.tertiary))
             .cornerRadius(DesignSystem.CornerRadius.large)
         }
         .buttonStyle(PressedButtonStyle())

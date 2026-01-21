@@ -148,12 +148,10 @@ struct WithdrawView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showConfirmation)
-        .sheet(isPresented: $showAccountPicker) {
-            AccountSelectorView(
-                selectedAccount: $selectedAccount,
-                isPresented: $showAccountPicker
-            )
-        }
+        .accountSelectorOverlay(
+            isPresented: $showAccountPicker,
+            selectedAccount: $selectedAccount
+        )
     }
 }
 
