@@ -9,6 +9,7 @@ struct ChartView: View {
     var externalChartData: [CGFloat]? = nil  // Optional external data
     var disabledPeriods: [String] = []  // Periods that should be disabled
     @State private var lastHapticInterval: Int = -1
+    @State private var animatedPoints: [CGFloat] = []
     
     let periods = ["1H", "1D", "1W", "1M", "1Y", "All"]
     
@@ -22,13 +23,34 @@ struct ChartView: View {
         "All": [0.85, 0.65, 0.45, 0.55, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75]
     ]
     
-    // Get chart data - use external if provided, otherwise fallback
-    var chartPoints: [CGFloat] {
+    // Get source chart data - use external if provided, otherwise fallback
+    var sourceChartPoints: [CGFloat] {
         if let external = externalChartData, !external.isEmpty {
             return external
         } else {
             return fallbackChartData[selectedPeriod] ?? fallbackChartData["1D"]!
         }
+    }
+    
+    // Use animated points for display
+    var chartPoints: [CGFloat] {
+        animatedPoints.isEmpty ? sourceChartPoints : animatedPoints
+    }
+    
+    // Normalize points to a standard count for smooth animation between different data sizes
+    private func normalizePoints(_ points: [CGFloat], to count: Int = 20) -> [CGFloat] {
+        guard points.count > 1 else { return Array(repeating: points.first ?? 0.5, count: count) }
+        var result = [CGFloat]()
+        for i in 0..<count {
+            let progress = CGFloat(i) / CGFloat(count - 1)
+            let exactIndex = progress * CGFloat(points.count - 1)
+            let lowerIndex = Int(exactIndex)
+            let upperIndex = min(lowerIndex + 1, points.count - 1)
+            let fraction = exactIndex - CGFloat(lowerIndex)
+            let interpolated = points[lowerIndex] + (points[upperIndex] - points[lowerIndex]) * fraction
+            result.append(interpolated)
+        }
+        return result
     }
     
     // Get Y value at a given progress (0-1) along the chart
@@ -112,13 +134,15 @@ struct ChartView: View {
                 ZStack {
                     // Grey line (full chart - shown when dragging)
                     if isDragging {
-                        AnimatedChartLine(points: chartPoints, width: width, height: height)
+                        AnimatedChartLine(points: animatedPoints.isEmpty ? normalizePoints(sourceChartPoints) : animatedPoints, width: width, height: height)
                             .stroke(Color(hex: "EDEDED"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: animatedPoints)
                     }
                     
                     // Black line (partial or full based on drag)
-                    AnimatedChartLine(points: chartPoints, width: width, height: height, trimEnd: dragProgress)
+                    AnimatedChartLine(points: animatedPoints.isEmpty ? normalizePoints(sourceChartPoints) : animatedPoints, width: width, height: height, trimEnd: dragProgress)
                         .stroke(Color(hex: "080808"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: animatedPoints)
                     
                     // Vertical line at drag position with time label
                     if isDragging {
@@ -251,6 +275,24 @@ struct ChartView: View {
             .padding(.horizontal, 32)
         }
         .padding(.vertical, 16)
+        .onAppear {
+            // Initialize with normalized points
+            animatedPoints = normalizePoints(sourceChartPoints)
+        }
+        .onChange(of: selectedPeriod) { _, _ in
+            // Animate to new chart data when period changes
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                animatedPoints = normalizePoints(sourceChartPoints)
+            }
+        }
+        .onChange(of: externalChartData) { _, newValue in
+            // Animate when external data changes
+            if let data = newValue, !data.isEmpty {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                    animatedPoints = normalizePoints(data)
+                }
+            }
+        }
     }
 }
 
@@ -260,13 +302,18 @@ struct AnimatedChartLine: Shape {
     var height: CGFloat
     var trimEnd: CGFloat = 1.0
     
-    // Only animate trimEnd
-    var animatableData: CGFloat {
-        get { trimEnd }
-        set { trimEnd = newValue }
+    // Animate both points and trimEnd
+    var animatableData: AnimatablePair<AnimatableVector, CGFloat> {
+        get { AnimatablePair(AnimatableVector(values: points), trimEnd) }
+        set {
+            points = newValue.first.values
+            trimEnd = newValue.second
+        }
     }
     
     func path(in rect: CGRect) -> Path {
+        guard !points.isEmpty else { return Path() }
+        
         // Generate all points including interpolated end point
         let cgPoints: [CGPoint] = points.enumerated().map { index, point in
             let x = width * CGFloat(index) / CGFloat(points.count - 1)

@@ -20,6 +20,8 @@ struct ContentView: View {
     @State private var showSendMoney = false
     @State private var showRequestMoney = false
     @State private var showTransferBetweenAccounts = false
+    @State private var showReceiveSalary = false
+    
     
     @ObservedObject private var themeService = ThemeService.shared
     
@@ -94,13 +96,43 @@ struct ContentView: View {
                 .animation(.spring(response: 0.35, dampingFraction: 0.86), value: selectedTab)
             }
             
+            // Progressive blur behind nav - positioned at very bottom
+            ProgressiveBlurView(
+                blurAmount: 1.0,
+                blurStyle: .prominent,
+                backgroundColorValue: 0.05,
+                backgroundOpacity: 0.79
+            )
+                .frame(height: 140)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
+            
             // Bottom Navigation - overlaid at bottom
-            VStack {
+            VStack(spacing: 0) {
                 Spacer()
-                BottomNavView(selectedTab: $selectedTab, onTabChange: { newTab in
-                    previousTab = selectedTab
-                })
+                
+                BottomNavView(
+                    selectedTab: $selectedTab,
+                    onTabChange: { newTab in
+                        previousTab = selectedTab
+                    }
+                )
             }
+            
+            // Transfer menu overlay
+            ZoomTransitionView(onAction: { option in
+                switch option {
+                case .send:
+                    showSendMoney = true
+                case .request:
+                    showRequestMoney = true
+                case .transfer:
+                    showTransferBetweenAccounts = true
+                case .receiveSalary:
+                    showReceiveSalary = true
+                }
+            })
             
             // In-app notification overlay
             NotificationOverlay()
@@ -140,6 +172,9 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $showTransferBetweenAccounts) {
             TransferBetweenAccountsView(isPresented: $showTransferBetweenAccounts)
+        }
+        .fullScreenCover(isPresented: $showReceiveSalary) {
+            ReceiveSalaryView(isPresented: $showReceiveSalary)
         }
         .sheet(isPresented: $showChat) {
             ChatView()
@@ -201,8 +236,8 @@ struct FloatingActionButton: View {
 struct FABButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? DesignSystem.Animation.pressedScale : 1.0)
+            .animation(.spring(response: DesignSystem.Animation.springResponse, dampingFraction: DesignSystem.Animation.springDamping), value: configuration.isPressed)
     }
 }
 
@@ -356,6 +391,99 @@ struct ClearBackgroundView: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {}
 }
 
+
+// MARK: - Blur Style Options
+
+enum BlurStyleOption: String, CaseIterable, Identifiable {
+    case systemUltraThinMaterial = "Ultra Thin"
+    case systemThinMaterial = "Thin"
+    case systemMaterial = "Material"
+    case systemThickMaterial = "Thick"
+    case systemChromeMaterial = "Chrome"
+    case regular = "Regular"
+    case prominent = "Prominent"
+    case light = "Light"
+    case extraLight = "Extra Light"
+    case dark = "Dark"
+    
+    var id: String { rawValue }
+    
+    var uiBlurStyle: UIBlurEffect.Style {
+        switch self {
+        case .systemUltraThinMaterial: return .systemUltraThinMaterial
+        case .systemThinMaterial: return .systemThinMaterial
+        case .systemMaterial: return .systemMaterial
+        case .systemThickMaterial: return .systemThickMaterial
+        case .systemChromeMaterial: return .systemChromeMaterial
+        case .regular: return .regular
+        case .prominent: return .prominent
+        case .light: return .light
+        case .extraLight: return .extraLight
+        case .dark: return .dark
+        }
+    }
+}
+
+// MARK: - Progressive Blur View
+
+struct ProgressiveBlurView: View {
+    var blurAmount: Double = 1.0
+    var blurStyle: BlurStyleOption = .systemUltraThinMaterial
+    var backgroundColorValue: Double = 0.0  // 0 = white, 1 = black
+    var backgroundOpacity: Double = 1.0
+    
+    // Computed background color interpolating between white and black
+    private var backgroundColor: Color {
+        let white = 1.0 - backgroundColorValue
+        return Color(red: white, green: white, blue: white)
+    }
+    
+    var body: some View {
+        ZStack {
+            // Gradient fade to background color
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: backgroundColor.opacity(0), location: 0),
+                    .init(color: backgroundColor.opacity(backgroundOpacity * 0.3), location: 0.3),
+                    .init(color: backgroundColor.opacity(backgroundOpacity * 0.7), location: 0.6),
+                    .init(color: backgroundColor.opacity(backgroundOpacity), location: 1.0)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            
+            // Blur layer with gradient mask
+            VisualEffectBlur(blurStyle: blurStyle.uiBlurStyle)
+                .mask(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .white.opacity(0.3), location: 0.3),
+                            .init(color: .white.opacity(0.7), location: 0.6),
+                            .init(color: .white, location: 1.0)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .opacity(blurAmount)
+                .id(blurStyle.rawValue)
+        }
+    }
+}
+
+struct VisualEffectBlur: UIViewRepresentable {
+    var blurStyle: UIBlurEffect.Style
+    
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: blurStyle))
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: blurStyle)
+    }
+}
 
 #Preview {
     ContentView()

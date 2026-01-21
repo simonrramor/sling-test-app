@@ -36,8 +36,8 @@ struct Stock: Identifiable {
 }
 
 struct InvestView: View {
-    @StateObject private var stockService = StockService.shared
-    @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var stockService = StockService.shared
+    @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedPeriod = "1D"
     @State private var isDragging = false
@@ -338,7 +338,9 @@ struct InvestView: View {
                     .padding(.vertical, 16)
                 }
                 
+                // Bottom padding for scroll content to clear nav bar
                 Spacer()
+                    .frame(height: 120)
             }
         }
         .fullScreenCover(item: $selectedStock) { stock in

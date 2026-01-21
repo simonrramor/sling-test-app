@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 struct BalanceView: View {
-    @StateObject private var portfolioService = PortfolioService.shared
-    @StateObject private var exchangeRateService = ExchangeRateService.shared
+    @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var exchangeRateService = ExchangeRateService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var displayBalance: Double?
     

@@ -124,8 +124,8 @@ struct AddMoneyView: View {
                     
                     Spacer()
                     
-                    // Currency tag (Sling balance is in USD)
-                    Text("USD")
+                    // Currency tag (shows source account currency)
+                    Text(sourceCurrency)
                         .font(.custom("Inter-Medium", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
                         .padding(.horizontal, 12)

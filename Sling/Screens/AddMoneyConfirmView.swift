@@ -112,13 +112,11 @@ struct AddMoneyConfirmView: View {
                     .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
-                    .opacity(isButtonLoading ? 0 : 1)
-                    .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
                 // Details section
-                VStack(spacing: 0) {
+                VStack(spacing: 4) {
                     // From row
                     HStack {
                         Text("From")
@@ -256,14 +254,15 @@ struct AddMoneyConfirmView: View {
                         .fill(Color.white)
                 )
                 .padding(.horizontal, 24)
-                .padding(.bottom, 24)
+                .padding(.bottom, 40)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Add button (shows destination amount in USD)
-                AnimatedLoadingButton(
+                // Add button with smooth loading animation
+                LoadingButton(
                     title: "Add \(formattedDestinationAmount)",
-                    isLoadingBinding: $isButtonLoading
+                    isLoadingBinding: $isButtonLoading,
+                    showLoader: true
                 ) {
                     // Add money to portfolio (in USD)
                     portfolioService.addCash(destinationAmount)
@@ -276,21 +275,14 @@ struct AddMoneyConfirmView: View {
                         currency: slingCurrency
                     )
                     
+                    // Navigate home and complete
+                    NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
             
-            // Centered amount overlay (appears when loading)
-            if isButtonLoading {
-                Text(formattedSourceAmount)
-                    .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .transition(.opacity)
-            }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
     }

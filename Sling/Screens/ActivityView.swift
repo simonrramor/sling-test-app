@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ActivityView: View {
-    @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {

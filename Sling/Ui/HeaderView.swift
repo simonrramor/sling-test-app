@@ -27,7 +27,7 @@ struct HeaderView: View {
     }
     
     private var showSearch: Bool {
-        currentTab == .invest
+        currentTab == .home || currentTab == .invest
     }
     
     private var showHelp: Bool {
@@ -84,23 +84,6 @@ struct HeaderView: View {
             Spacer()
             
             HStack(spacing: 8) {
-                // Theme Toggle Button (shows icon of next theme)
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        themeService.toggleTheme()
-                    }
-                }) {
-                    Image(systemName: themeService.currentTheme.nextTheme.iconName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(width: 36, height: 36)
-                        .background(themeService.buttonSecondaryColor)
-                        .cornerRadius(12)
-                }
-                .accessibilityLabel("Switch to \(themeService.currentTheme.nextTheme.displayName) theme")
-                
                 // Invite Button - always shown
                 if showInvite {
                     Button(action: {
@@ -110,10 +93,10 @@ struct HeaderView: View {
                     }) {
                         Text("Invite")
                             .font(.custom("Inter-Bold", size: 14))
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .foregroundColor(Color("TextPrimary"))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(themeService.buttonSecondaryColor)
+                            .background(Color("BackgroundTertiary"))
                             .cornerRadius(12)
                     }
                     .transition(buttonTransition)
@@ -128,9 +111,9 @@ struct HeaderView: View {
                     }) {
                         Image(systemName: "qrcode")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .foregroundColor(Color("TextPrimary"))
                             .frame(width: 36, height: 36)
-                            .background(themeService.buttonSecondaryColor)
+                            .background(Color("BackgroundTertiary"))
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("QR Code")
@@ -146,9 +129,9 @@ struct HeaderView: View {
                     }) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .foregroundColor(Color("TextPrimary"))
                             .frame(width: 36, height: 36)
-                            .background(themeService.buttonSecondaryColor)
+                            .background(Color("BackgroundTertiary"))
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("Search")
@@ -164,9 +147,9 @@ struct HeaderView: View {
                     }) {
                         Image(systemName: "questionmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(themeService.textPrimaryColor)
+                            .foregroundColor(Color("TextPrimary"))
                             .frame(width: 36, height: 36)
-                            .background(themeService.buttonSecondaryColor)
+                            .background(Color("BackgroundTertiary"))
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("Help")
@@ -176,35 +159,6 @@ struct HeaderView: View {
             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: currentTab)
         }
         .padding(.vertical, 16)
-    }
-}
-
-// Helper extension for hex colors - uses Display P3 for wider color gamut
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-        // Use Display P3 color space for wider gamut on modern displays
-        self.init(
-            UIColor(
-                displayP3Red: Double(r) / 255,
-                green: Double(g) / 255,
-                blue: Double(b) / 255,
-                alpha: Double(a) / 255
-            )
-        )
     }
 }
 

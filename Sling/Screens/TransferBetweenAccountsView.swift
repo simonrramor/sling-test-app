@@ -23,34 +23,36 @@ struct TransferBetweenAccountsView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    isPresented = false
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
+        ZStack {
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .frame(width: 32, height: 32)
+                            .background(Color(hex: "F5F5F5"))
+                            .clipShape(Circle())
+                    }
+                    .zIndex(1)
+                    
+                    Spacer()
+                    
+                    Text("Transfer")
+                        .font(.custom("Inter-Bold", size: 16))
                         .foregroundColor(themeService.textPrimaryColor)
-                        .frame(width: 32, height: 32)
-                        .background(Color(hex: "F5F5F5"))
-                        .clipShape(Circle())
+                    
+                    Spacer()
+                    
+                    Color.clear.frame(width: 32, height: 32)
                 }
-                
-                Spacer()
-                
-                Text("Transfer")
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
-                
-                Spacer()
-                
-                Color.clear.frame(width: 32, height: 32)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             
             Divider()
             
@@ -167,8 +169,19 @@ struct TransferBetweenAccountsView: View {
                 .padding(.horizontal, 24)
             }
             .padding(.bottom, 24)
+            }
+            .background(Color.white)
+            
+            // WIP Overlay - allows X button to be tapped
+            Color.red.opacity(0.5)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            
+            Text("WIP")
+                .font(.custom("Inter-Bold", size: 64))
+                .foregroundColor(.white)
+                .allowsHitTesting(false)
         }
-        .background(Color.white)
         .alert("Transfer Complete", isPresented: $showConfirmation) {
             Button("Done") {
                 isPresented = false

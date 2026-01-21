@@ -10,7 +10,6 @@ struct BuyConfirmView: View {
     @Binding var isBuyFlowPresented: Bool
     var onComplete: () -> Void = {}
     
-    @State private var showPendingScreen = false
     @State private var isButtonLoading = false
     @State private var quoteTimeRemaining: Int = 30
     @State private var currentStockPrice: Double? = nil
@@ -23,20 +22,22 @@ struct BuyConfirmView: View {
         currentStockPrice ?? StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
     }
     
+    // Platform fee is 50 basis points (0.50%) of the purchase amount
+    var platformFee: Double {
+        amount * 0.005
+    }
+    
+    // Amount that actually goes to buying stocks (after fee)
+    var totalStockPurchase: Double {
+        amount - platformFee
+    }
+    
     var numberOfShares: Double {
-        amount / stockPrice
+        totalStockPurchase / stockPrice
     }
     
     var formattedShares: String {
         String(format: "%.2f", numberOfShares)
-    }
-    
-    var platformFee: Double {
-        3.00
-    }
-    
-    var totalCost: Double {
-        amount
     }
     
     var body: some View {
@@ -99,16 +100,14 @@ struct BuyConfirmView: View {
                 Spacer()
                 
                 // Amount display - centered between header and details
-                Text(String(format: "£%.0f", amount))
+                Text(String(format: "$%.0f", amount))
                     .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(themeService.textPrimaryColor)
-                    .opacity(isButtonLoading ? 0 : 1)
-                    .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
                 // Details section
-                VStack(spacing: 0) {
+                VStack(spacing: 4) {
                     // From
                     DetailRow(
                         label: "From",
@@ -116,11 +115,8 @@ struct BuyConfirmView: View {
                         showSlingIcon: true
                     )
                     
-                    // Speed
-                    DetailRow(
-                        label: "Speed",
-                        value: "Instant"
-                    )
+                    // Quote validity countdown
+                    QuoteValidityRow(secondsRemaining: quoteTimeRemaining)
                     
                     // Divider
                     Rectangle()
@@ -129,44 +125,43 @@ struct BuyConfirmView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     
-                    // Quote validity countdown
-                    QuoteValidityRow(secondsRemaining: quoteTimeRemaining)
-                    
-                    // Aprox share price
+                    // Amount
                     DetailRow(
-                        label: "Aprox share price",
-                        value: String(format: "~$%.2f", stockPrice),
-                        isHighlighted: true
-                    )
-                    
-                    // Aprox shares
-                    DetailRow(
-                        label: "Aprox shares",
-                        value: String(format: "~%.2f", numberOfShares)
+                        label: "Amount",
+                        value: String(format: "$%.2f", amount)
                     )
                     
                     // Platform fee
                     DetailRow(
                         label: "Platform fee",
-                        value: String(format: "$%.2f", platformFee),
+                        value: String(format: "-$%.2f", platformFee),
                         isHighlighted: true
                     )
                     
-                    // Total cost
+                    // Price
                     DetailRow(
-                        label: "Total cost",
-                        value: String(format: "$%.2f", totalCost)
+                        label: "Price",
+                        value: String(format: "1 %@ = $%.2f", stock.symbol, stockPrice),
+                        isHighlighted: true
+                    )
+                    
+                    // Estimated shares
+                    DetailRow(
+                        label: "Estimated shares",
+                        value: String(format: "%.2f", numberOfShares)
                     )
                 }
-                .padding(.vertical, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
                 .padding(.horizontal, 16)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Buy button - shrinks then transitions to pending screen
-                ShrinkingButton(
-                    title: "Buy \(formattedShares) \(stock.symbol)",
-                    isLoadingBinding: $isButtonLoading
+                // Confirm button with smooth loading animation
+                LoadingButton(
+                    title: "Confirm",
+                    isLoadingBinding: $isButtonLoading,
+                    showLoader: true
                 ) {
                     // Execute the purchase through PortfolioService
                     let success = PortfolioService.shared.buy(
@@ -187,8 +182,9 @@ struct BuyConfirmView: View {
                             symbol: stock.symbol
                         )
                         
-                        // Show pending screen immediately after shrink
-                        showPendingScreen = true
+                        // Navigate home and complete
+                        NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                        onComplete()
                     } else {
                         // Reset loading state if purchase failed
                         isButtonLoading = false
@@ -198,34 +194,15 @@ struct BuyConfirmView: View {
                 .padding(.bottom, 24)
             }
             
-            // Centered amount overlay (appears when loading)
-            if isButtonLoading {
-                Text(String(format: "£%.0f", amount))
-                    .font(.custom("Inter-Bold", size: 62))
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .transition(.opacity)
-            }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
-        .overlay {
-            if showPendingScreen {
-                BuyPendingView(
-                    stock: stock,
-                    amount: amount,
-                    numberOfShares: numberOfShares,
-                    onComplete: onComplete
-                )
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: showPendingScreen)
         .onAppear {
             // Initialize with current price
             currentStockPrice = StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
         }
         .onReceive(quoteTimer) { _ in
-            // Don't count down if loading or showing pending screen
-            guard !isButtonLoading && !showPendingScreen else { return }
+            // Don't count down if loading
+            guard !isButtonLoading else { return }
             
             if quoteTimeRemaining > 0 {
                 quoteTimeRemaining -= 1
@@ -266,7 +243,7 @@ struct QuoteValidityRow: View {
     
     var body: some View {
         HStack {
-            Text("Quote valid for")
+            Text("Quote valid")
                 .font(.custom("Inter-Regular", size: 16))
                 .foregroundColor(themeService.textSecondaryColor)
             

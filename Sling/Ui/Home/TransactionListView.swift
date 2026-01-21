@@ -19,7 +19,7 @@ private func fixStockTicker(_ text: String) -> String {
 // MARK: - Transaction List View
 
 struct TransactionListView: View {
-    @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
@@ -41,7 +41,7 @@ struct TransactionListView: View {
 // MARK: - Transaction List Content (without ScrollView, for embedding)
 
 struct TransactionListContent: View {
-    @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
@@ -72,8 +72,7 @@ struct TransactionListContent: View {
                 ForEach(activityService.activities) { activity in
                     ActivityRowView(activity: activity)
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 8)
+                .padding(.top, 4)
             }
         }
         .onAppear {
@@ -143,6 +142,7 @@ struct ActivityRowView: View {
             }
         }
         .padding(.vertical, 16)
+        .padding(.horizontal, 16)
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 16)

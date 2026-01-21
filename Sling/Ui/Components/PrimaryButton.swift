@@ -1,15 +1,6 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Pressed Button Style (shrinks by ~2px on all sides)
-struct PressedButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
 // MARK: - Primary Button (Orange)
 struct PrimaryButton: View {
     let title: String
@@ -23,12 +14,12 @@ struct PrimaryButton: View {
             action()
         }) {
             Text(title)
-                .font(.custom("Inter-Bold", size: 16))
+                .font(DesignSystem.Typography.buttonTitle)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color(hex: "FF5113"))
-                .cornerRadius(20)
+                .frame(height: DesignSystem.Button.height)
+                .background(Color(hex: DesignSystem.Colors.primary))
+                .cornerRadius(DesignSystem.CornerRadius.large)
         }
         .buttonStyle(PressedButtonStyle())
         .opacity(isEnabled ? 1 : 0.5)
@@ -36,11 +27,25 @@ struct PrimaryButton: View {
     }
 }
 
-// MARK: - Secondary Button (White with dark text)
+// MARK: - Secondary Button
 struct SecondaryButton: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     var isEnabled: Bool = true
     let action: () -> Void
+    
+    // Text color depends on theme - white text on black button (white theme), dark text otherwise
+    private var textColor: Color {
+        if !isEnabled {
+            return themeService.textPrimaryColor.opacity(0.4)
+        }
+        switch themeService.currentTheme {
+        case .white:
+            return .white  // White text on black button
+        case .grey, .dark:
+            return themeService.textPrimaryColor
+        }
+    }
     
     var body: some View {
         Button(action: {
@@ -49,12 +54,12 @@ struct SecondaryButton: View {
             action()
         }) {
             Text(title)
-                .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(isEnabled ? Color("ButtonSecondaryText") : Color("ButtonSecondaryText").opacity(0.4))
+                .font(DesignSystem.Typography.buttonTitle)
+                .foregroundColor(textColor)
                 .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(isEnabled ? Color("ButtonSecondary") : Color("ButtonDisabled"))
-                .cornerRadius(20)
+                .frame(height: DesignSystem.Button.height)
+                .background(isEnabled ? themeService.buttonSecondaryColor : Color("ButtonDisabled"))
+                .cornerRadius(DesignSystem.CornerRadius.large)
         }
         .buttonStyle(PressedButtonStyle())
         .disabled(!isEnabled)
@@ -84,13 +89,13 @@ struct TertiaryButton<Icon: View>: View {
             HStack(spacing: 6) {
                 icon()
                 Text(title)
-                    .font(.custom("Inter-Bold", size: 16))
+                    .font(DesignSystem.Typography.buttonTitle)
             }
             .foregroundColor(Color("TextPrimary"))
             .frame(maxWidth: .infinity)
-            .frame(height: 56)
+            .frame(height: DesignSystem.Button.height)
             .background(Color("BackgroundTertiary"))
-            .cornerRadius(20)
+            .cornerRadius(DesignSystem.CornerRadius.large)
         }
         .buttonStyle(PressedButtonStyle())
         .opacity(isEnabled ? 1 : 0.5)

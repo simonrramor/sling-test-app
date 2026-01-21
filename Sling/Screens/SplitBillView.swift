@@ -3,7 +3,7 @@ import UIKit
 
 struct SplitBillView: View {
     @Binding var isPresented: Bool
-    @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedPayment: ActivityItem? = nil
     @State private var showUserSelection = false

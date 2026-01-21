@@ -3,13 +3,12 @@ import UIKit
 
 struct WithdrawView: View {
     @Binding var isPresented: Bool
-    @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString = ""
     @State private var selectedAccount: PaymentAccount = .monzoBankLimited
     @State private var showAccountPicker = false
     @State private var showConfirmation = false
-    @State private var showSuccess = false
     
     var amountValue: Double {
         Double(amountString) ?? 0
@@ -26,147 +25,129 @@ struct WithdrawView: View {
         amountValue > 0 && amountValue <= portfolioService.cashBalance
     }
     
+    var selectedAccountIconName: String {
+        switch selectedAccount.iconType {
+        case .asset(let assetName):
+            return assetName
+        }
+    }
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    isPresented = false
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(width: 32, height: 32)
-                        .background(Color(hex: "F5F5F5"))
-                        .clipShape(Circle())
-                }
-                
-                Spacer()
-                
-                Text("Withdraw")
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
-                
-                Spacer()
-                
-                Color.clear.frame(width: 32, height: 32)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
             
-            Divider()
-            
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Balance info
-                    VStack(spacing: 4) {
-                        Text("Available Balance")
+            VStack(spacing: 0) {
+                // Header - shows DESTINATION (where money goes TO)
+                HStack(spacing: 16) {
+                    // Back button
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image("ArrowLeft")
+                            .renderingMode(.template)
+                            .foregroundColor(themeService.textSecondaryColor)
+                            .frame(width: 24, height: 24)
+                    }
+                    .accessibilityLabel("Go back")
+                    
+                    // Destination account icon
+                    AccountIconView(iconType: selectedAccount.iconType)
+                    
+                    // Title
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Withdraw to")
                             .font(.custom("Inter-Regular", size: 14))
                             .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Text("£\(String(format: "%.2f", portfolioService.cashBalance))")
-                            .font(.custom("Inter-Bold", size: 20))
+                        Text(selectedAccount.name)
+                            .font(.custom("Inter-Bold", size: 16))
                             .foregroundColor(themeService.textPrimaryColor)
                     }
-                    .padding(.top, 16)
                     
-                    // Amount display
+                    Spacer()
+                    
+                    // Currency tag
+                    Text(selectedAccount.currency.isEmpty ? "GBP" : selectedAccount.currency)
+                        .font(.custom("Inter-Medium", size: 14))
+                        .foregroundColor(themeService.textSecondaryColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: "F7F7F7"))
+                        )
+                }
+                .padding(.horizontal, 24)
+                .frame(height: 64)
+                
+                Spacer()
+                
+                // Amount display
+                VStack(spacing: 8) {
                     Text(formattedAmount)
-                        .font(.custom("Inter-Bold", size: 48))
+                        .font(.custom("Inter-Bold", size: 56))
                         .foregroundColor(amountValue > portfolioService.cashBalance ? .red : Color(hex: "080808"))
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                     
                     if amountValue > portfolioService.cashBalance {
                         Text("Insufficient balance")
                             .font(.custom("Inter-Medium", size: 14))
                             .foregroundColor(.red)
                     }
-                    
-                    // Withdraw to account
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Withdraw to")
-                            .font(.custom("Inter-Medium", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Button(action: { showAccountPicker = true }) {
-                            HStack(spacing: 12) {
-                                AccountIconView(iconType: selectedAccount.iconType)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(selectedAccount.name)
-                                        .font(.custom("Inter-Bold", size: 16))
-                                        .foregroundColor(themeService.textPrimaryColor)
-                                    
-                                    Text(selectedAccount.subtitle)
-                                        .font(.custom("Inter-Regular", size: 14))
-                                        .foregroundColor(themeService.textSecondaryColor)
-                                }
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(themeService.textSecondaryColor)
-                            }
-                            .padding(16)
-                            .background(Color(hex: "F7F7F7"))
-                            .cornerRadius(16)
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    // Quick amounts
-                    HStack(spacing: 12) {
-                        QuickAmountButton(amount: "50", onTap: { amountString = "50" })
-                        QuickAmountButton(amount: "100", onTap: { amountString = "100" })
-                        QuickAmountButton(amount: "250", onTap: { amountString = "250" })
-                        QuickAmountButton(amount: "All", onTap: { 
-                            amountString = String(format: "%.0f", portfolioService.cashBalance)
-                        })
-                    }
-                    .padding(.horizontal, 24)
                 }
+                
+                Spacer()
+                
+                // Source account (Sling Balance)
+                PaymentInstrumentRow(
+                    iconName: "SlingBalanceLogo",
+                    title: "Sling Balance",
+                    subtitleParts: ["£\(String(format: "%.2f", portfolioService.cashBalance))"],
+                    actionButtonTitle: "Max",
+                    onActionTap: {
+                        amountString = String(format: "%.0f", floor(portfolioService.cashBalance))
+                    },
+                    showMenu: true,
+                    onMenuTap: {
+                        // TODO: Show source selector if needed
+                    }
+                )
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
+                
+                // Number pad
+                NumberPadView(amountString: $amountString)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                
+                // Next button
+                SecondaryButton(
+                    title: "Next",
+                    isEnabled: canWithdraw
+                ) {
+                    showConfirmation = true
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
             }
             
-            // Numpad and button
-            VStack(spacing: 16) {
-                NumpadView(value: $amountString)
-                
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    showConfirmation = true
-                }) {
-                    Text("Withdraw £\(amountString.isEmpty ? "0" : amountString)")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(canWithdraw ? Color(hex: "080808") : Color(hex: "CCCCCC"))
-                        .cornerRadius(16)
-                }
-                .disabled(!canWithdraw)
-                .padding(.horizontal, 24)
+            // Confirmation overlay
+            if showConfirmation {
+                WithdrawConfirmView(
+                    amount: amountValue,
+                    destinationAccount: selectedAccount,
+                    isPresented: $showConfirmation,
+                    onComplete: {
+                        isPresented = false
+                    }
+                )
+                .transition(.move(edge: .trailing))
             }
-            .padding(.bottom, 24)
         }
-        .background(Color.white)
-        .alert("Confirm Withdrawal", isPresented: $showConfirmation) {
-            Button("Cancel", role: .cancel) { }
-            Button("Withdraw") {
-                performWithdraw()
-            }
-        } message: {
-            Text("Withdraw £\(amountString) to \(selectedAccount.name)?")
-        }
-        .alert("Withdrawal Complete", isPresented: $showSuccess) {
-            Button("Done") {
-                isPresented = false
-            }
-        } message: {
-            Text("£\(amountString) has been sent to your \(selectedAccount.name) account. It may take 1-2 business days to arrive.")
-        }
+        .animation(.easeInOut(duration: 0.3), value: showConfirmation)
         .sheet(isPresented: $showAccountPicker) {
             AccountSelectorView(
                 selectedAccount: $selectedAccount,
@@ -174,29 +155,129 @@ struct WithdrawView: View {
             )
         }
     }
+}
+
+// MARK: - Withdraw Confirm View
+
+struct WithdrawConfirmView: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    let amount: Double
+    let destinationAccount: PaymentAccount
+    @Binding var isPresented: Bool
+    var onComplete: () -> Void = {}
     
-    private func performWithdraw() {
-        portfolioService.deductCash(amountValue)
-        
-        // Get icon name from account
-        let iconName: String
-        switch selectedAccount.iconType {
+    @State private var isButtonLoading = false
+    
+    private let portfolioService = PortfolioService.shared
+    
+    var formattedAmount: String {
+        String(format: "£%.2f", amount)
+    }
+    
+    var destinationAccountIcon: String {
+        switch destinationAccount.iconType {
         case .asset(let assetName):
-            iconName = assetName
+            return assetName
         }
-        
-        // Record activity
-        ActivityService.shared.addActivity(
-            avatar: iconName,
-            titleLeft: selectedAccount.name,
-            subtitleLeft: "Withdrawal",
-            titleRight: "-£\(amountString)",
-            subtitleRight: ""
-        )
-        
-        showSuccess = true
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack(spacing: 16) {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image("ArrowLeft")
+                            .renderingMode(.template)
+                            .foregroundColor(themeService.textSecondaryColor)
+                            .frame(width: 24, height: 24)
+                    }
+                    .accessibilityLabel("Go back")
+                    
+                    AccountIconView(iconType: destinationAccount.iconType)
+                    
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Withdraw to")
+                            .font(.custom("Inter-Regular", size: 14))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        Text(destinationAccount.name)
+                            .font(.custom("Inter-Bold", size: 16))
+                            .foregroundColor(themeService.textPrimaryColor)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .frame(height: 64)
+                .opacity(isButtonLoading ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
+                
+                Spacer()
+                
+                // Amount display
+                Text(formattedAmount)
+                    .font(.custom("Inter-Bold", size: 56))
+                    .foregroundColor(themeService.textPrimaryColor)
+                
+                Spacer()
+                
+                // Details section
+                VStack(spacing: 0) {
+                    DetailRow(label: "To", value: destinationAccount.name)
+                    DetailRow(label: "Speed", value: "1-2 business days")
+                    
+                    Rectangle()
+                        .fill(Color.black.opacity(0.06))
+                        .frame(height: 1)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    
+                    DetailRow(label: "Amount", value: formattedAmount)
+                    DetailRow(label: "Fee", value: "Free")
+                }
+                .padding(.vertical, 16)
+                .padding(.horizontal, 16)
+                .opacity(isButtonLoading ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
+                
+                // Withdraw button with smooth loading animation
+                LoadingButton(
+                    title: "Withdraw \(formattedAmount)",
+                    isLoadingBinding: $isButtonLoading,
+                    showLoader: true
+                ) {
+                    // Perform withdrawal
+                    portfolioService.deductCash(amount)
+                    
+                    // Record activity
+                    ActivityService.shared.addActivity(
+                        avatar: destinationAccountIcon,
+                        titleLeft: destinationAccount.name,
+                        subtitleLeft: "Withdrawal",
+                        titleRight: "-\(formattedAmount)",
+                        subtitleRight: ""
+                    )
+                    
+                    // Navigate home and complete
+                    NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                    onComplete()
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
     }
 }
+
+// MARK: - Quick Amount Button
 
 struct QuickAmountButton: View {
     @ObservedObject private var themeService = ThemeService.shared

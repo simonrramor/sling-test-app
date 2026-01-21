@@ -6,7 +6,7 @@ struct HomeView: View {
     @State private var showWithdraw = false
     @State private var showSendMoney = false
     @State private var showSetup = false
-    @StateObject private var activityService = ActivityService.shared
+    @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     
     var body: some View {
@@ -19,36 +19,14 @@ struct HomeView: View {
                 // Add money + Withdraw buttons
                 HStack(spacing: 8) {
                     // Add money button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                    TertiaryButton(title: "Add money") {
                         showAddMoney = true
-                    }) {
-                    Text("Add money")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(themeService.buttonSecondaryColor)
-                        .cornerRadius(20)
                     }
-                    .buttonStyle(PressedButtonStyle())
                     
                     // Withdraw button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                    TertiaryButton(title: "Withdraw") {
                         showWithdraw = true
-                    }) {
-                    Text("Withdraw")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(themeService.buttonSecondaryColor)
-                        .cornerRadius(20)
                     }
-                    .buttonStyle(PressedButtonStyle())
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
@@ -62,12 +40,12 @@ struct HomeView: View {
                 
                 // Invest promo card
                 InvestPromoCard()
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 24)
                     .padding(.top, 16)
                 
                 // Sling Card promo card
                 SlingCardPromoCard()
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 24)
                     .padding(.top, 16)
                 
                 // Activity Section
@@ -76,7 +54,7 @@ struct HomeView: View {
                     .foregroundColor(Color("TextSecondary"))
                     .padding(.horizontal, 24)
                     .padding(.top, 24)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, -8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 VStack(spacing: 0) {
@@ -97,16 +75,16 @@ struct HomeView: View {
                         TransactionListContent()
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, themeService.currentTheme == .white ? 8 : 16)
                 .padding(.vertical, 8)
-                .background(Color("BackgroundSecondary"))
-                .cornerRadius(24)
-                .padding(.horizontal, 16)
+                .background(themeService.currentTheme == .white ? Color.clear : themeService.backgroundSecondaryColor)
+                .cornerRadius(themeService.currentTheme == .white ? 0 : 24)
+                .padding(.horizontal, themeService.currentTheme == .white ? 0 : 16)
                 .padding(.top, 8)
                 
-                // Bottom padding for scroll content
+                // Bottom padding for scroll content to clear nav bar
                 Spacer()
-                    .frame(height: 24)
+                    .frame(height: 120)
             }
         }
         .scrollIndicators(.hidden)
@@ -120,8 +98,7 @@ struct HomeView: View {
             AddMoneyView(isPresented: $showAddMoney)
         }
         .fullScreenCover(isPresented: $showWithdraw) {
-            // TODO: Add WithdrawView when available
-            AddMoneyView(isPresented: $showWithdraw)
+            WithdrawView(isPresented: $showWithdraw)
         }
         .fullScreenCover(isPresented: $showSendMoney) {
             SendView(isPresented: $showSendMoney)
@@ -282,7 +259,7 @@ struct InvestPromoCard: View {
                     .multilineTextAlignment(.center)
             }
             
-            // Start investing button
+            // Start investing button - 32px from body copy
             Button(action: {
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
@@ -290,7 +267,7 @@ struct InvestPromoCard: View {
             }) {
                 Text("Start investing")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(themeService.textPrimaryColor)
+                    .foregroundColor(themeService.currentTheme == .white ? .white : themeService.textPrimaryColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .frame(height: 36)
@@ -298,6 +275,7 @@ struct InvestPromoCard: View {
                     .cornerRadius(12)
             }
             .buttonStyle(PressedButtonStyle())
+            .padding(.top, 8)
         }
         .padding(.vertical, 24)
         .padding(.horizontal, 40)
@@ -366,7 +344,7 @@ struct SlingCardPromoCard: View {
                         .multilineTextAlignment(.center)
                 }
                 
-                // Create Sling Card button
+                // Create Sling Card button - 32px from body copy
                 Button(action: {
                     let generator = UIImpactFeedbackGenerator(style: .light)
                     generator.impactOccurred()
@@ -374,7 +352,7 @@ struct SlingCardPromoCard: View {
                 }) {
                     Text("Create Sling Card")
                         .font(.custom("Inter-Bold", size: 14))
-                        .foregroundColor(themeService.textPrimaryColor)
+                        .foregroundColor(themeService.currentTheme == .white ? .white : themeService.textPrimaryColor)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                         .frame(height: 36)
@@ -382,6 +360,7 @@ struct SlingCardPromoCard: View {
                         .cornerRadius(12)
                 }
                 .buttonStyle(PressedButtonStyle())
+                .padding(.top, 8)
             }
             .padding(.vertical, 24)
             .padding(.horizontal, 40)
@@ -472,6 +451,13 @@ struct HomeEmptyStateCard: View {
     
     var body: some View {
         VStack(spacing: 16) {
+            // List icon
+            Image("IconList")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 24, height: 24)
+                .opacity(0.4)
+            
             // Text content
             VStack(spacing: 4) {
                 Text("Your activity feed")
@@ -485,7 +471,7 @@ struct HomeEmptyStateCard: View {
                     .multilineTextAlignment(.center)
             }
             
-            // Add transactions button
+            // Add transactions button - 32px from body copy
             Button(action: {
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
@@ -499,6 +485,7 @@ struct HomeEmptyStateCard: View {
                     .background(Color(hex: "EDEDED"))
                     .cornerRadius(12)
             }
+            .padding(.top, 16)
             .padding(.horizontal, 40)
             .confirmationDialog("Add Transaction", isPresented: $showTransactionOptions, titleVisibility: .visible) {
                 Button("Card Payment") {

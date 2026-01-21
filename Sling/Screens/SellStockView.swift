@@ -254,7 +254,7 @@ struct SellConfirmView: View {
     @Binding var isSellFlowPresented: Bool
     var onComplete: () -> Void = {}
     
-    @State private var showPendingScreen = false
+    @State private var isButtonLoading = false
     @State private var quoteTimeRemaining: Int = 30
     @State private var currentStockPrice: Double? = nil
     private let portfolioService = PortfolioService.shared
@@ -333,6 +333,8 @@ struct SellConfirmView: View {
                 }
                 .padding(.horizontal, 24)
                 .frame(height: 64)
+                .opacity(isButtonLoading ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
@@ -395,12 +397,15 @@ struct SellConfirmView: View {
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 16)
+                .opacity(isButtonLoading ? 0 : 1)
+                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Sell button
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-
+                // Sell button with smooth loading animation
+                LoadingButton(
+                    title: "Sell \(formattedShares) \(stock.symbol)",
+                    isLoadingBinding: $isButtonLoading,
+                    showLoader: true
+                ) {
                     // Execute the sale through PortfolioService
                     portfolioService.sell(
                         iconName: stock.iconName,
@@ -416,41 +421,24 @@ struct SellConfirmView: View {
                         shares: sharesToSell,
                         symbol: stock.symbol
                     )
-
-                    // Show pending screen
-                    showPendingScreen = true
-                }) {
-                    Text("Sell \(formattedShares) \(stock.symbol)")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color(hex: "FF5113"))
-                        .cornerRadius(20)
+                    
+                    // Navigate home and complete
+                    NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                    onComplete()
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
+            
         }
-        .overlay {
-            if showPendingScreen {
-                SellPendingView(
-                    stock: stock,
-                    amount: amount,
-                    numberOfShares: sharesToSell,
-                    onComplete: onComplete
-                )
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: showPendingScreen)
+        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
         .onAppear {
             // Initialize with current price
             currentStockPrice = StockService.shared.stockData[stock.iconName]?.currentPrice ?? 100
         }
         .onReceive(quoteTimer) { _ in
-            // Don't count down if showing pending screen
-            guard !showPendingScreen else { return }
+            // Don't count down if loading
+            guard !isButtonLoading else { return }
             
             if quoteTimeRemaining > 0 {
                 quoteTimeRemaining -= 1

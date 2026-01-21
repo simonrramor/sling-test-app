@@ -2,7 +2,7 @@ import SwiftUI
 
 struct BrowseStocksView: View {
     @Binding var isPresented: Bool
-    @StateObject private var stockService = StockService.shared
+    @ObservedObject private var stockService = StockService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedStock: Stock? = nil
     

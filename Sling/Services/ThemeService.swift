@@ -45,8 +45,8 @@ class ThemeService: ObservableObject {
     }
     
     private init() {
-        let saved = UserDefaults.standard.string(forKey: "appTheme") ?? AppTheme.grey.rawValue
-        self.currentTheme = AppTheme(rawValue: saved) ?? .grey
+        let saved = UserDefaults.standard.string(forKey: "appTheme") ?? AppTheme.white.rawValue
+        self.currentTheme = AppTheme(rawValue: saved) ?? .white
     }
     
     func toggleTheme() {
@@ -82,7 +82,7 @@ class ThemeService: ObservableObject {
         case .grey:
             return Color(hex: "FCFCFC")
         case .white:
-            return Color(hex: "FCFCFC")  // Light fill with border
+            return Color(hex: "F7F7F7")
         case .dark:
             return Color(hex: "1C1C1E")
         }
@@ -102,7 +102,7 @@ class ThemeService: ObservableObject {
         case .grey:
             return Color.white
         case .white:
-            return Color(hex: "EDEDED")  // Grey buttons on white background
+            return Color(hex: "080808")  // Black buttons on white background
         case .dark:
             return Color(hex: "2C2C2E")  // Dark grey buttons
         }

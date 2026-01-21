@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var showLinkedAccounts = false
     @State private var showProfile = false
     @State private var showPrivacy = false
+    @State private var showPassport = false
     @State private var showParticleTest = false
     @State private var showHomeTest = false
     @State private var showCurrencyPicker = false
@@ -128,6 +129,13 @@ struct SettingsView: View {
                                 position: .standalone,
                                 onTap: { showPrivacy = true }
                             )
+                            
+                            SettingsRow(
+                                iconSystem: "book.closed.fill",
+                                title: "Passport",
+                                position: .standalone,
+                                onTap: { showPassport = true }
+                            )
                         }
                         
                         // Log out row
@@ -215,6 +223,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showPrivacy) {
             PrivacySheet()
+        }
+        .fullScreenCover(isPresented: $showPassport) {
+            PassportView()
         }
         .fullScreenCover(isPresented: $showParticleTest) {
             ParticleTestView()
@@ -692,6 +703,302 @@ struct PrivacySheet: View {
     }
 }
 
+// MARK: - Passport View
+
+struct PassportView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var passportService = PassportService.shared
+    @State private var selectedPassport: PassportInfo?
+    @State private var showCountryPicker = false
+    @State private var searchText = ""
+    
+    private var accentColor: Color {
+        selectedPassport?.swiftUIColor ?? Color(hex: "1C3A6E")
+    }
+    
+    private var filteredPassports: [PassportInfo] {
+        if searchText.isEmpty {
+            return passportService.passports
+        }
+        return passportService.passports.filter {
+            $0.country.lowercased().contains(searchText.lowercased()) ||
+            $0.code.lowercased().contains(searchText.lowercased())
+        }
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with close button
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .frame(width: 44, height: 44)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Passport")
+                        .font(.custom("Inter-Bold", size: 18))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    
+                    Spacer()
+                    
+                    // Empty space to balance the close button
+                    Color.clear
+                        .frame(width: 44, height: 44)
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                
+                Spacer()
+                
+                // Passport Image
+                VStack(spacing: 24) {
+                    PassportCardView(passport: selectedPassport)
+                        .onTapGesture {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            showCountryPicker = true
+                        }
+                    
+                    VStack(spacing: 8) {
+                        Text(selectedPassport?.country ?? "Select a Country")
+                            .font(.custom("Inter-Bold", size: 20))
+                            .foregroundColor(themeService.textPrimaryColor)
+                        
+                        if let passport = selectedPassport {
+                            Text(passport.colorName)
+                                .font(.custom("Inter-Medium", size: 14))
+                                .foregroundColor(themeService.textSecondaryColor)
+                            
+                            Text(passport.emblemDescription)
+                                .font(.custom("Inter-Regular", size: 13))
+                                .foregroundColor(themeService.textTertiaryColor)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        } else {
+                            Text("Tap the passport to choose")
+                                .font(.custom("Inter-Medium", size: 14))
+                                .foregroundColor(themeService.textSecondaryColor)
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Country count
+                Text("\(passportService.passports.count) countries available")
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(themeService.textTertiaryColor)
+                    .padding(.bottom, 32)
+            }
+        }
+        .sheet(isPresented: $showCountryPicker) {
+            CountryPickerSheet(
+                passports: filteredPassports,
+                searchText: $searchText,
+                selectedPassport: $selectedPassport,
+                isPresented: $showCountryPicker
+            )
+        }
+    }
+}
+
+// MARK: - Passport Card View
+
+struct PassportCardView: View {
+    let passport: PassportInfo?
+    
+    private var passportColor: Color {
+        passport?.swiftUIColor ?? Color(hex: "1C3A6E")
+    }
+    
+    private var isLightColor: Bool {
+        // Gold/Yellow passports need dark text
+        passport?.colorName == "Gold"
+    }
+    
+    private var textColor: Color {
+        isLightColor ? Color.black.opacity(0.8) : Color(hex: "FFD700")
+    }
+    
+    private var subtextColor: Color {
+        isLightColor ? Color.black.opacity(0.5) : Color.white.opacity(0.7)
+    }
+    
+    var body: some View {
+        ZStack {
+            // Passport background
+            RoundedRectangle(cornerRadius: 16)
+                .fill(passportColor)
+                .frame(width: 280, height: 400)
+                .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+            
+            VStack(spacing: 20) {
+                // Top decoration
+                HStack {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Circle()
+                            .fill(textColor.opacity(0.8))
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .padding(.top, 24)
+                
+                Spacer()
+                
+                // Emblem/Logo
+                ZStack {
+                    Circle()
+                        .fill(textColor.opacity(0.2))
+                        .frame(width: 100, height: 100)
+                    
+                    Image(systemName: passport?.emblemIcon ?? "globe")
+                        .font(.system(size: 50, weight: .light))
+                        .foregroundColor(textColor)
+                }
+                
+                // Text
+                VStack(spacing: 8) {
+                    Text("PASSPORT")
+                        .font(.custom("Inter-Bold", size: 24))
+                        .tracking(4)
+                        .foregroundColor(textColor)
+                    
+                    Text(passport?.country.uppercased() ?? "SELECT COUNTRY")
+                        .font(.custom("Inter-Regular", size: 14))
+                        .tracking(2)
+                        .foregroundColor(subtextColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                
+                Spacer()
+                
+                // Chip
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(hex: "FFD700"),
+                            Color(hex: "FFA500")
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 50, height: 40)
+                    .overlay(
+                        VStack(spacing: 2) {
+                            ForEach(0..<4, id: \.self) { _ in
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.2))
+                                    .frame(height: 1)
+                            }
+                        }
+                        .padding(4)
+                    )
+                    .padding(.bottom, 32)
+            }
+            .frame(width: 280, height: 400)
+        }
+        .animation(.easeInOut(duration: 0.3), value: passport?.code)
+    }
+}
+
+// MARK: - Country Picker Sheet
+
+struct CountryPickerSheet: View {
+    let passports: [PassportInfo]
+    @Binding var searchText: String
+    @Binding var selectedPassport: PassportInfo?
+    @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(passports) { passport in
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        selectedPassport = passport
+                        isPresented = false
+                    }) {
+                        HStack(spacing: 12) {
+                            // Color swatch with emblem icon
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(passport.swiftUIColor)
+                                    .frame(width: 40, height: 28)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                                    )
+                                
+                                Image(systemName: passport.emblemIcon)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(passport.colorName == "Gold" ? .black.opacity(0.6) : Color(hex: "FFD700"))
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(passport.country)
+                                    .font(.custom("Inter-Bold", size: 16))
+                                    .foregroundColor(themeService.textPrimaryColor)
+                                
+                                Text("\(passport.colorName) · \(passport.emblem)")
+                                    .font(.custom("Inter-Regular", size: 13))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                    .lineLimit(1)
+                            }
+                            
+                            Spacer()
+                            
+                            Text(passport.code)
+                                .font(.custom("Inter-Medium", size: 14))
+                                .foregroundColor(themeService.textTertiaryColor)
+                            
+                            if selectedPassport?.code == passport.code {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(hex: "FF5113"))
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .searchable(text: $searchText, prompt: "Search countries")
+            .navigationTitle("Select Country")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color(hex: "FF5113"))
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
+
 #Preview {
     SettingsView(isPresented: .constant(true))
+}
+
+#Preview("Passport") {
+    PassportView()
 }

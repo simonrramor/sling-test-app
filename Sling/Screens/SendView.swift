@@ -319,7 +319,7 @@ struct SendAmountView: View {
                     iconName: "SlingBalanceLogo",
                     title: "Sling balance",
                     subtitleParts: [formattedBalance],
-                    showMenu: false
+                    showMenu: true
                 )
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
@@ -396,8 +396,8 @@ struct RecentContactButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.7 : 1.0)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? DesignSystem.Animation.pressedScale : 1.0)
+            .animation(.easeInOut(duration: DesignSystem.Animation.pressDuration), value: configuration.isPressed)
     }
 }
 

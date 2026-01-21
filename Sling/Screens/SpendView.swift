@@ -52,6 +52,10 @@ struct SpendView: View {
                         .padding(.horizontal, 24)
                     }
                 }
+                
+                // Bottom padding for scroll content to clear nav bar
+                Spacer()
+                    .frame(height: 120)
             }
         }
         .background(themeService.backgroundColor)

@@ -13,9 +13,9 @@ func debugLog(location: String, message: String, data: [String: Any], hypothesis
 struct StockDetailView: View {
     let stock: Stock
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var stockService = StockService.shared
+    @ObservedObject private var stockService = StockService.shared
     @ObservedObject private var themeService = ThemeService.shared
-    @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var portfolioService = PortfolioService.shared
     @State private var selectedPeriod = "1D"
     @State private var isDragging = false
     @State private var dragProgress: CGFloat = 1.0
@@ -548,12 +548,34 @@ struct StockChartView: View {
     var chartColor: Color
     var chartData: [CGFloat]
     @State private var lastHapticInterval: Int = -1
+    @State private var animatedPoints: [CGFloat] = []
 
     let periods = ["1H", "1D", "1W", "1M", "1Y", "All"]
     
-    // Get chart points - use chartData or fallback
-    var chartPoints: [CGFloat] {
+    // Source chart points - use chartData or fallback
+    var sourceChartPoints: [CGFloat] {
         chartData.isEmpty ? [0.5, 0.5] : chartData
+    }
+    
+    // Use animated points for display
+    var chartPoints: [CGFloat] {
+        animatedPoints.isEmpty ? normalizePoints(sourceChartPoints) : animatedPoints
+    }
+    
+    // Normalize points to a standard count for smooth animation between different data sizes
+    private func normalizePoints(_ points: [CGFloat], to count: Int = 20) -> [CGFloat] {
+        guard points.count > 1 else { return Array(repeating: points.first ?? 0.5, count: count) }
+        var result = [CGFloat]()
+        for i in 0..<count {
+            let progress = CGFloat(i) / CGFloat(count - 1)
+            let exactIndex = progress * CGFloat(points.count - 1)
+            let lowerIndex = Int(exactIndex)
+            let upperIndex = min(lowerIndex + 1, points.count - 1)
+            let fraction = exactIndex - CGFloat(lowerIndex)
+            let interpolated = points[lowerIndex] + (points[upperIndex] - points[lowerIndex]) * fraction
+            result.append(interpolated)
+        }
+        return result
     }
     
     func getYValue(at progress: CGFloat, height: CGFloat) -> CGFloat {
@@ -633,10 +655,12 @@ struct StockChartView: View {
                     if isDragging {
                         StockAnimatedChartLine(points: chartPoints, width: width, height: height, chartColor: chartColor)
                             .stroke(Color(hex: "EDEDED"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: animatedPoints)
                     }
 
                     StockAnimatedChartLine(points: chartPoints, width: width, height: height, trimEnd: dragProgress, chartColor: chartColor)
                         .stroke(chartColor, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: animatedPoints)
                     
                     if isDragging {
                         // Vertical line
@@ -745,6 +769,24 @@ struct StockChartView: View {
             .padding(.horizontal, 32)
         }
         .padding(.vertical, 16)
+        .onAppear {
+            // Initialize with normalized points
+            animatedPoints = normalizePoints(sourceChartPoints)
+        }
+        .onChange(of: selectedPeriod) { _, _ in
+            // Animate to new chart data when period changes
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                animatedPoints = normalizePoints(sourceChartPoints)
+            }
+        }
+        .onChange(of: chartData) { _, newValue in
+            // Animate when chart data changes
+            if !newValue.isEmpty {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                    animatedPoints = normalizePoints(newValue)
+                }
+            }
+        }
     }
 }
 
@@ -755,13 +797,18 @@ struct StockAnimatedChartLine: Shape {
     var trimEnd: CGFloat = 1.0
     var chartColor: Color
 
-    // Only animate trimEnd
-    var animatableData: CGFloat {
-        get { trimEnd }
-        set { trimEnd = newValue }
+    // Animate both points and trimEnd
+    var animatableData: AnimatablePair<AnimatableVector, CGFloat> {
+        get { AnimatablePair(AnimatableVector(values: points), trimEnd) }
+        set {
+            points = newValue.first.values
+            trimEnd = newValue.second
+        }
     }
 
     func path(in rect: CGRect) -> Path {
+        guard !points.isEmpty else { return Path() }
+        
         let cgPoints: [CGPoint] = points.enumerated().map { index, point in
             let x = width * CGFloat(index) / CGFloat(points.count - 1)
             let y = height * (1 - point)

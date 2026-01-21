@@ -3,8 +3,8 @@ import UIKit
 
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var activityService = ActivityService.shared
-    @StateObject private var stockService = StockService.shared
+    @ObservedObject private var activityService = ActivityService.shared
+    @ObservedObject private var stockService = StockService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool

@@ -1,18 +1,31 @@
 import Foundation
 import Combine
 
+// MARK: - Financial Modeling Prep API Configuration
+
+/// Get your free API key at https://financialmodelingprep.com (250 calls/day free tier)
+private let fmpAPIKey = "Ng1HqWPxPHz3ScqxhLKOb77HO4Q8zdvX" // TODO: Replace with your API key
+
+// MARK: - Debug Logging
+
 // #region agent log
 private let debugLogPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
-private var stockServiceCallCount = 0
-private func debugLog(_ location: String, _ message: String, _ data: [String: Any] = [:]) {
-    stockServiceCallCount += 1
+private func debugLog(_ location: String, _ message: String, _ data: [String: Any] = [:], hypothesisId: String = "") {
+    var safeData: [String: Any] = [:]
+    for (key, value) in data {
+        if let v = value as? String { safeData[key] = v }
+        else if let v = value as? Int { safeData[key] = v }
+        else if let v = value as? Double { safeData[key] = v }
+        else if let v = value as? Bool { safeData[key] = v }
+        else { safeData[key] = String(describing: value) }
+    }
     let entry: [String: Any] = [
         "timestamp": Date().timeIntervalSince1970 * 1000,
         "location": location,
         "message": message,
-        "data": data,
+        "data": safeData,
         "sessionId": "debug-session",
-        "callCount": stockServiceCallCount
+        "hypothesisId": hypothesisId
     ]
     if let jsonData = try? JSONSerialization.data(withJSONObject: entry),
        let jsonString = String(data: jsonData, encoding: .utf8) {
@@ -27,45 +40,24 @@ private func debugLog(_ location: String, _ message: String, _ data: [String: An
 }
 // #endregion
 
-// MARK: - Yahoo Finance Response Models
+// MARK: - FMP Response Models
 
-struct YahooFinanceResponse: Codable {
-    let chart: ChartResult
-}
-
-struct ChartResult: Codable {
-    let result: [ChartData]?
-    let error: YahooError?
-}
-
-struct YahooError: Codable {
-    let code: String
-    let description: String
-}
-
-struct ChartData: Codable {
-    let meta: MetaData
-    let timestamp: [Int]?
-    let indicators: Indicators
-}
-
-struct MetaData: Codable {
+struct FMPQuote: Codable {
     let symbol: String
-    let regularMarketPrice: Double?
-    let previousClose: Double?
-    let currency: String?
+    let price: Double
+    let changePercentage: Double  // Note: stable API uses "changePercentage" not "changesPercentage"
+    let change: Double
+    let previousClose: Double
+    let name: String?
 }
 
-struct Indicators: Codable {
-    let quote: [QuoteData]?
-}
-
-struct QuoteData: Codable {
-    let close: [Double?]?
-    let high: [Double?]?
-    let low: [Double?]?
-    let open: [Double?]?
-    let volume: [Int?]?
+struct FMPHistoricalPrice: Codable {
+    let date: String
+    let open: Double
+    let high: Double
+    let low: Double
+    let close: Double
+    let volume: Int
 }
 
 // MARK: - Stock Price Data
@@ -89,34 +81,25 @@ struct StockPriceData {
         return String(format: "%.2f%%", abs(percentChange))
     }
     
-    // Get price at a specific progress point (0-1)
     func priceAt(progress: Double) -> Double {
         guard !rawPrices.isEmpty else { return currentPrice }
-        
         let exactIndex = progress * Double(rawPrices.count - 1)
         let lowerIndex = Int(exactIndex)
         let upperIndex = min(lowerIndex + 1, rawPrices.count - 1)
         let fraction = exactIndex - Double(lowerIndex)
-        
         return rawPrices[lowerIndex] + (rawPrices[upperIndex] - rawPrices[lowerIndex]) * fraction
     }
     
-    // Get change from start to a specific progress point
     func changeAt(progress: Double) -> (value: Double, percent: Double, isPositive: Bool) {
-        // When at full progress (not dragging), use day-over-day change vs previous close
         if progress >= 1.0 {
             return (priceChange, percentChange, isPositive)
         }
-        
-        // When dragging, calculate change from start of chart data to current position
         guard !rawPrices.isEmpty, let startPrice = rawPrices.first else {
             return (priceChange, percentChange, isPositive)
         }
-        
         let currentPriceAtProgress = priceAt(progress: progress)
         let change = currentPriceAtProgress - startPrice
         let percent = startPrice > 0 ? (change / startPrice) * 100 : 0
-        
         return (change, percent, change >= 0)
     }
 }
@@ -133,19 +116,20 @@ class StockService: ObservableObject {
     private var cache: [String: (data: StockPriceData, timestamp: Date)] = [:]
     private let cacheTimeout: TimeInterval = 300 // 5 minute cache
     
+    private let baseURL = "https://financialmodelingprep.com/stable"
+    
     private init() {
-        // Prefetch stock data on initialization
         Task {
             await fetchAllStocksInParallel()
         }
     }
     
-    // Map our icon names to Yahoo Finance symbols
+    // Map icon names to stock symbols
     let symbolMapping: [String: String] = [
         "StockAmazon": "AMZN",
         "StockApple": "AAPL",
         "StockBankOfAmerica": "BAC",
-        "StockCircle": "CRCL", // Circle - Note: may not be on Yahoo
+        "StockCircle": "COIN",  // Circle is private, use Coinbase
         "StockCoinbase": "COIN",
         "StockGoogle": "GOOGL",
         "StockMcDonalds": "MCD",
@@ -155,14 +139,19 @@ class StockService: ObservableObject {
         "StockVisa": "V"
     ]
     
+    private let displaySymbols: [String: String] = [
+        "StockCircle": "CRCLx"
+    ]
+    
+    // MARK: - Public API
+    
     func fetchStockData(for iconName: String, range: String = "1d", interval: String = "5m") async {
-        // #region agent log
-        debugLog("StockService.swift:fetchStockData", "H2: API call started", ["iconName": iconName, "range": range, "interval": interval])
-        // #endregion
         guard let symbol = symbolMapping[iconName] else { return }
+        let displaySymbol = displaySymbols[iconName] ?? (symbol + "x")
         
         // Check cache
-        if let cached = cache["\(symbol)-\(range)"],
+        let cacheKey = "\(iconName)-\(range)"
+        if let cached = cache[cacheKey],
            Date().timeIntervalSince(cached.timestamp) < cacheTimeout {
             await MainActor.run {
                 self.stockData[iconName] = cached.data
@@ -175,45 +164,29 @@ class StockService: ObservableObject {
             self.error = nil
         }
         
-        let urlString = "https://query1.finance.yahoo.com/v8/finance/chart/\(symbol)?interval=\(interval)&range=\(range)"
-        
-        guard let url = URL(string: urlString) else {
+        do {
+            // Fetch quote and historical data
+            async let quoteData = fetchQuote(symbol: symbol)
+            async let historyData = fetchHistory(symbol: symbol, range: range)
+            
+            let (quote, history) = try await (quoteData, historyData)
+            
+            let priceData = processData(quote: quote, history: history, displaySymbol: displaySymbol)
+            
+            cache[cacheKey] = (priceData, Date())
+            
             await MainActor.run {
-                self.error = "Invalid URL"
+                self.stockData[iconName] = priceData
                 self.isLoading = false
             }
-            return
-        }
-        
-        do {
-            var request = URLRequest(url: url)
-            request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-            
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(YahooFinanceResponse.self, from: data)
-            
-            if let chartData = response.chart.result?.first {
-                // #region agent log
-                let priceCount = chartData.indicators.quote?.first?.close?.count ?? 0
-                debugLog("StockService.swift:fetchStockData", "H2: API response received", ["iconName": iconName, "priceCount": priceCount])
-                // #endregion
-                let priceData = processChartData(chartData, iconName: iconName)
-                
-                // Cache the result
-                cache["\(symbol)-\(range)"] = (priceData, Date())
-                
-                await MainActor.run {
-                    self.stockData[iconName] = priceData
-                    self.isLoading = false
-                }
-            } else if let error = response.chart.error {
-                await MainActor.run {
-                    self.error = error.description
-                    self.isLoading = false
-                }
-            }
         } catch {
+            // #region agent log
+            debugLog("StockService:fetchStockData", "Error", ["symbol": symbol, "error": error.localizedDescription], hypothesisId: "H5")
+            // #endregion
+            
+            let fallbackData = createFallbackData(for: displaySymbol)
             await MainActor.run {
+                self.stockData[iconName] = fallbackData
                 self.error = error.localizedDescription
                 self.isLoading = false
             }
@@ -224,16 +197,21 @@ class StockService: ObservableObject {
         await fetchAllStocksInParallel()
     }
     
-    // Fetch all stocks in parallel for much faster loading
     func fetchAllStocksInParallel(range: String = "1d", interval: String = "5m") async {
         await MainActor.run {
             self.isLoading = true
         }
         
+        // #region agent log
+        debugLog("StockService:fetchAllStocksInParallel", "Starting fetch with historical data", ["range": range], hypothesisId: "H1")
+        // #endregion
+        
+        // Fetch each stock with quote + historical data
+        // Use TaskGroup for parallel fetching (faster)
         await withTaskGroup(of: Void.self) { group in
-            for iconName in symbolMapping.keys {
+            for (iconName, symbol) in symbolMapping {
                 group.addTask {
-                    await self.fetchStockData(for: iconName, range: range, interval: interval)
+                    await self.fetchSingleStock(iconName: iconName, symbol: symbol, range: range)
                 }
             }
         }
@@ -243,72 +221,180 @@ class StockService: ObservableObject {
         }
     }
     
-    // Fetch all stocks for a specific period in parallel
+    private func fetchSingleStock(iconName: String, symbol: String, range: String) async {
+        let displaySymbol = displaySymbols[iconName] ?? (symbol + "x")
+        
+        do {
+            // Fetch quote and history in parallel
+            async let quoteTask = fetchQuote(symbol: symbol)
+            async let historyTask = fetchHistory(symbol: symbol, range: range)
+            
+            let (quote, history) = try await (quoteTask, historyTask)
+            
+            let priceData = processData(quote: quote, history: history, displaySymbol: displaySymbol)
+            cache["\(iconName)-\(range)"] = (priceData, Date())
+            
+            await MainActor.run {
+                self.stockData[iconName] = priceData
+            }
+            
+            // #region agent log
+            debugLog("StockService:fetchSingleStock", "Success", ["symbol": symbol, "price": quote.price, "historyCount": history.count], hypothesisId: "H1")
+            // #endregion
+            
+        } catch {
+            // #region agent log
+            debugLog("StockService:fetchSingleStock", "Failed", ["symbol": symbol, "error": error.localizedDescription], hypothesisId: "H5")
+            // #endregion
+            
+            // Set fallback data
+            let fallback = createFallbackData(for: displaySymbol)
+            await MainActor.run {
+                self.stockData[iconName] = fallback
+            }
+        }
+    }
+    
     func fetchAllStocksForPeriodInParallel(period: String) async {
-        let (range, interval) = getRangeAndInterval(for: period)
-        await fetchAllStocksInParallel(range: range, interval: interval)
+        await fetchAllStocksInParallel(range: period)
     }
     
     func fetchStockForPeriod(iconName: String, period: String) async {
-        let (range, interval) = getRangeAndInterval(for: period)
-        await fetchStockData(for: iconName, range: range, interval: interval)
+        await fetchStockData(for: iconName, range: period)
     }
     
-    private func getRangeAndInterval(for period: String) -> (range: String, interval: String) {
-        switch period {
-        case "1H":
-            return ("1d", "1m")
-        case "1D":
-            return ("1d", "5m")
-        case "1W":
-            return ("5d", "15m")
-        case "1M":
-            return ("1mo", "1h")
-        case "1Y":
-            return ("1y", "1d")
-        case "All":
-            return ("5y", "1wk")
-        default:
-            return ("1d", "5m")
+    // MARK: - Private API Methods
+    
+    private func fetchQuote(symbol: String) async throws -> FMPQuote {
+        // Use stable endpoint format: /stable/quote?symbol=AAPL
+        let urlString = "\(baseURL)/quote?symbol=\(symbol)&apikey=\(fmpAPIKey)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            throw URLError(.badServerResponse)
         }
+        
+        // Check for error message in response
+        if let errorString = String(data: data, encoding: .utf8),
+           errorString.contains("Restricted") || errorString.contains("Premium") {
+            throw URLError(.resourceUnavailable)
+        }
+        
+        let quotes = try JSONDecoder().decode([FMPQuote].self, from: data)
+        guard let quote = quotes.first else { throw URLError(.cannotParseResponse) }
+        return quote
     }
     
-    private func processChartData(_ chartData: ChartData, iconName: String) -> StockPriceData {
+    private func fetchBatchQuotes(symbols: [String]) async throws -> [FMPQuote] {
+        let symbolsParam = symbols.joined(separator: ",")
+        let urlString = "\(baseURL)/quote/\(symbolsParam)?apikey=\(fmpAPIKey)"
+        
         // #region agent log
-        debugLog("StockService.swift:processChartData", "H2: Processing chart data", ["iconName": iconName])
+        debugLog("StockService:fetchBatchQuotes", "Fetching", ["url": urlString.replacingOccurrences(of: fmpAPIKey, with: "***")], hypothesisId: "H1")
         // #endregion
-        let meta = chartData.meta
-        let currentPrice = meta.regularMarketPrice ?? 0
-        let previousClose = meta.previousClose ?? currentPrice
-        let priceChange = currentPrice - previousClose
-        let percentChange = previousClose > 0 ? (priceChange / previousClose) * 100 : 0
         
-        // Get closing prices
-        var closePrices: [Double] = []
-        var timestamps: [Date] = []
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        if let quotes = chartData.indicators.quote?.first,
-           let closes = quotes.close,
-           let times = chartData.timestamp {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            // #region agent log
+            debugLog("StockService:fetchBatchQuotes", "Response", ["statusCode": httpResponse.statusCode], hypothesisId: "H1")
+            // #endregion
             
-            for (index, close) in closes.enumerated() {
-                if let price = close {
-                    closePrices.append(price)
-                    if index < times.count {
-                        timestamps.append(Date(timeIntervalSince1970: TimeInterval(times[index])))
-                    }
-                }
+            guard (200...299).contains(httpResponse.statusCode) else {
+                throw URLError(.badServerResponse)
             }
         }
         
-        // Trim trailing flat prices (removes after-hours flat line)
-        let trimmedPrices = trimTrailingFlatPrices(closePrices)
+        let quotes = try JSONDecoder().decode([FMPQuote].self, from: data)
         
-        // Normalize prices to 0-1 range for chart
+        // #region agent log
+        debugLog("StockService:fetchBatchQuotes", "Parsed", ["quoteCount": quotes.count], hypothesisId: "H1")
+        // #endregion
+        
+        return quotes
+    }
+    
+    private func fetchHistory(symbol: String, range: String) async throws -> [FMPHistoricalPrice] {
+        let interval = getInterval(for: range)
+        // Stable endpoint format: /stable/historical-chart/5min?symbol=AAPL
+        let urlString = "\(baseURL)/historical-chart/\(interval)?symbol=\(symbol)&apikey=\(fmpAPIKey)"
+        
+        // #region agent log
+        debugLog("StockService:fetchHistory", "Fetching", ["symbol": symbol, "interval": interval], hypothesisId: "H1")
+        // #endregion
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+        
+        // Check for error message
+        if let errorString = String(data: data, encoding: .utf8),
+           errorString.contains("Restricted") || errorString.contains("Premium") {
+            throw URLError(.resourceUnavailable)
+        }
+        
+        let history = try JSONDecoder().decode([FMPHistoricalPrice].self, from: data)
+        
+        // #region agent log
+        debugLog("StockService:fetchHistory", "Received", ["symbol": symbol, "count": history.count], hypothesisId: "H1")
+        // #endregion
+        
+        return history
+    }
+    
+    // MARK: - Data Processing
+    
+    private func processData(quote: FMPQuote, history: [FMPHistoricalPrice], displaySymbol: String) -> StockPriceData {
+        let currentPrice = quote.price
+        let previousClose = quote.previousClose
+        let priceChange = quote.change
+        let percentChange = quote.changePercentage
+        
+        // Historical prices (newest first in FMP, so reverse)
+        var closePrices = history.map { $0.close }
+        if !closePrices.isEmpty {
+            closePrices = closePrices.reversed()
+        }
+        
+        // Parse timestamps
+        var timestamps: [Date] = []
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        for item in history.reversed() {
+            if let date = formatter.date(from: item.date) {
+                timestamps.append(date)
+            }
+        }
+        
+        // Use quote price if no history
+        if closePrices.isEmpty {
+            closePrices = [previousClose, currentPrice]
+        }
+        
+        let trimmedPrices = trimTrailingFlatPrices(closePrices)
         let normalizedPrices = normalizePrices(trimmedPrices)
-
+        
         return StockPriceData(
-            symbol: meta.symbol + "x", // Add "x" suffix for fractional shares display
+            symbol: displaySymbol,
             currentPrice: currentPrice,
             previousClose: previousClose,
             priceChange: priceChange,
@@ -320,18 +406,77 @@ class StockService: ObservableObject {
         )
     }
     
-    /// Removes trailing flat/low-volatility section that occurs after market close
+    private func processQuoteOnly(quote: FMPQuote, displaySymbol: String) -> StockPriceData {
+        // Generate synthetic chart data based on previous close and current price
+        let prices = generateSyntheticPrices(from: quote.previousClose, to: quote.price, points: 50)
+        let normalized = normalizePrices(prices)
+        
+        return StockPriceData(
+            symbol: displaySymbol,
+            currentPrice: quote.price,
+            previousClose: quote.previousClose,
+            priceChange: quote.change,
+            percentChange: quote.changePercentage,
+            isPositive: quote.change >= 0,
+            historicalPrices: normalized,
+            rawPrices: prices,
+            timestamps: []
+        )
+    }
+    
+    /// Generate synthetic price movement for chart visualization
+    private func generateSyntheticPrices(from start: Double, to end: Double, points: Int) -> [Double] {
+        guard points > 1 else { return [end] }
+        var prices: [Double] = []
+        let change = end - start
+        
+        for i in 0..<points {
+            let progress = Double(i) / Double(points - 1)
+            // Add some natural-looking variation
+            let noise = sin(Double(i) * 0.5) * abs(change) * 0.1
+            let price = start + (change * progress) + noise
+            prices.append(price)
+        }
+        // Ensure last price matches current
+        prices[prices.count - 1] = end
+        return prices
+    }
+    
+    private func createFallbackData(for displaySymbol: String) -> StockPriceData {
+        return StockPriceData(
+            symbol: displaySymbol,
+            currentPrice: 0,
+            previousClose: 0,
+            priceChange: 0,
+            percentChange: 0,
+            isPositive: true,
+            historicalPrices: [0.5, 0.5, 0.5, 0.5, 0.5],
+            rawPrices: [0, 0, 0, 0, 0],
+            timestamps: []
+        )
+    }
+    
+    // MARK: - Helpers
+    
+    private func getInterval(for range: String) -> String {
+        switch range {
+        case "1H": return "1min"
+        case "1D": return "5min"
+        case "1W": return "15min"
+        case "1M": return "1hour"
+        case "1Y": return "4hour"
+        case "All": return "4hour"
+        default: return "5min"
+        }
+    }
+    
     private func trimTrailingFlatPrices(_ prices: [Double]) -> [Double] {
         guard prices.count > 20 else { return prices }
-        
-        // Get overall price range
         guard let overallMin = prices.min(),
               let overallMax = prices.max(),
               overallMax > overallMin else { return prices }
         
         let overallRange = overallMax - overallMin
-        
-        // Check the last 40% of data for low volatility
         let checkStartIndex = Int(Double(prices.count) * 0.6)
         let tailPrices = Array(prices.suffix(from: checkStartIndex))
         
@@ -340,56 +485,41 @@ class StockService: ObservableObject {
         
         let tailRange = tailMax - tailMin
         
-        // If tail has less than 5% of the overall volatility, it's flat - trim it
         if tailRange < overallRange * 0.05 {
-            // Find where the flat section actually starts
             let flatPrice = tailPrices.last!
-            let tolerance = overallRange * 0.02 // 2% of overall range
-            
+            let tolerance = overallRange * 0.02
             var cutIndex = prices.count
             for i in stride(from: prices.count - 1, through: 0, by: -1) {
                 if abs(prices[i] - flatPrice) > tolerance {
-                    cutIndex = i + 2 // Keep 1 point after last movement
+                    cutIndex = i + 2
                     break
                 }
             }
-            
             return Array(prices.prefix(min(cutIndex, prices.count)))
         }
-        
         return prices
     }
     
     private func normalizePrices(_ prices: [Double]) -> [Double] {
         guard !prices.isEmpty else { return [] }
-        
         let minPrice = prices.min() ?? 0
         let maxPrice = prices.max() ?? 1
         let range = maxPrice - minPrice
-        
-        if range == 0 {
-            return prices.map { _ in 0.5 }
-        }
-        
+        if range == 0 { return prices.map { _ in 0.5 } }
         return prices.map { ($0 - minPrice) / range }
     }
     
-    // Sample to exactly 10 points for chart compatibility
     func samplePrices(_ prices: [Double], to count: Int = 10) -> [CGFloat] {
         guard prices.count >= count else {
-            // Pad with last value if not enough data
             let padding = Array(repeating: prices.last ?? 0.5, count: count - prices.count)
             return (prices + padding).map { CGFloat($0) }
         }
-        
         var sampled: [Double] = []
         let step = Double(prices.count - 1) / Double(count - 1)
-        
         for i in 0..<count {
             let index = Int(Double(i) * step)
             sampled.append(prices[min(index, prices.count - 1)])
         }
-        
         return sampled.map { CGFloat($0) }
     }
 }

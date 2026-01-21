@@ -10,6 +10,7 @@ struct SendConfirmView: View {
     var onComplete: () -> Void = {}
     
     @State private var isButtonLoading = false
+    @Namespace private var animation
     
     private let portfolioService = PortfolioService.shared
     private let activityService = ActivityService.shared
@@ -68,12 +69,11 @@ struct SendConfirmView: View {
                 .padding(.horizontal, 24)
                 .frame(height: 48)
                 .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Spacer pushes content to bottom
+                // Spacer - grows when loading to push content to center
                 Spacer()
                 
-                // Main content - avatar and title (LEFT ALIGNED)
+                // Main content - avatar and title (animates from bottom to center)
                 VStack(alignment: .leading, spacing: 24) {
                     // Large avatar with verified badge
                     ZStack(alignment: .topTrailing) {
@@ -95,6 +95,7 @@ struct SendConfirmView: View {
                                 .offset(x: 3, y: -3)
                         }
                     }
+                    .matchedGeometryEffect(id: "avatar", in: animation)
                     
                     // Title - left aligned
                     Text(titleText)
@@ -103,67 +104,73 @@ struct SendConfirmView: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
+                        .matchedGeometryEffect(id: "title", in: animation)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 40)
-                .padding(.bottom, 16)
-                .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
+                .padding(.bottom, isButtonLoading ? 0 : 16)
                 
-                // Info card section
-                VStack(spacing: 2) {
-                    // From row
-                    InfoListItem(
-                        label: mode == .send ? "From" : "To",
-                        detail: "Sling Balance",
-                        showImage: true
-                    )
-                    
-                    // Average speed row
-                    InfoListItem(
-                        label: "Average speed",
-                        detail: "Instant"
-                    )
-                    
-                    // Divider
-                    Rectangle()
-                        .fill(Color.black.opacity(0.06))
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    
-                    // Total sent row with pip
-                    InfoListItem(
-                        label: mode == .send ? "Total sent" : "Amount requested",
-                        detail: formattedAmount,
-                        showPip: true
-                    )
-                    
-                    // Fees row
-                    InfoListItem(
-                        label: "Fees",
-                        detail: "No fee"
-                    )
-                    
-                    // Recipient receives row
-                    InfoListItem(
-                        label: mode == .send ? "\(contact.name.components(separatedBy: " ").first ?? contact.name) gets" : "You receive",
-                        detail: formattedAmount
-                    )
-                }
-                .padding(.vertical, 16)
-                .padding(.horizontal, 24)
-                .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
-                
-                // 32px space between details and button
+                // Spacer - grows when loading to push content to center
                 Spacer()
-                    .frame(height: 32)
+                    .frame(maxHeight: isButtonLoading ? .infinity : 0)
+                
+                // Info card section - fades out when loading
+                if !isButtonLoading {
+                    VStack(spacing: 4) {
+                        // From row
+                        InfoListItem(
+                            label: mode == .send ? "From" : "To",
+                            detail: "Sling Balance",
+                            showImage: true
+                        )
+                        
+                        // Average speed row
+                        InfoListItem(
+                            label: "Average speed",
+                            detail: "Instant"
+                        )
+                        
+                        // Divider
+                        Rectangle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 1)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                        
+                        // Total sent row with pip
+                        InfoListItem(
+                            label: mode == .send ? "Total sent" : "Amount requested",
+                            detail: formattedAmount,
+                            showPip: true
+                        )
+                        
+                        // Fees row
+                        InfoListItem(
+                            label: "Fees",
+                            detail: "No fee"
+                        )
+                        
+                        // Recipient receives row
+                        InfoListItem(
+                            label: mode == .send ? "\(contact.name.components(separatedBy: " ").first ?? contact.name) gets" : "You receive",
+                            detail: formattedAmount
+                        )
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
+                    .padding(.horizontal, 24)
+                    .transition(.opacity)
+                }
+                
+                // Space between details and button
+                Spacer()
+                    .frame(height: 16)
                 
                 // Action button
-                AnimatedLoadingButton(
+                LoadingButton(
                     title: "\(mode.buttonPrefix) \(shortAmount)",
-                    isLoadingBinding: $isButtonLoading
+                    isLoadingBinding: $isButtonLoading,
+                    showLoader: true
                 ) {
                     if mode == .send {
                         portfolioService.deductCash(amount)
@@ -186,48 +193,8 @@ struct SendConfirmView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 16)
             }
-            
-            // Centered title overlay (appears when loading)
-            if isButtonLoading {
-                VStack {
-                    Spacer()
-                    
-                    VStack(alignment: .leading, spacing: 24) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(contact.avatarName)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 56, height: 56)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                                )
-                            
-                            if contact.isVerified {
-                                Image("BadgeVerified")
-                                    .resizable()
-                                    .frame(width: 20, height: 20)
-                                    .offset(x: 3, y: -3)
-                            }
-                        }
-                        
-                        Text(titleText)
-                            .font(.custom("Inter-Bold", size: 32))
-                            .foregroundColor(themeService.textPrimaryColor)
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 40)
-                    
-                    Spacer()
-                }
-                .transition(.opacity)
-            }
         }
-        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isButtonLoading)
     }
 }
 

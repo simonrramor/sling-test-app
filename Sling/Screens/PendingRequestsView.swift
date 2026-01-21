@@ -3,8 +3,8 @@ import UIKit
 
 struct PendingRequestsView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var requestService = RequestService.shared
-    @StateObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var requestService = RequestService.shared
+    @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedRequest: PaymentRequest?
     @State private var showPayConfirmation = false
