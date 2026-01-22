@@ -1,8 +1,6 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Stem -->
-  <rect x="10.5" y="11" width="3" height="11" rx="1.5" fill="currentColor"/>
-  <!-- Left leaf -->
-  <path d="M12 12C12 12 12 8 12 6C12 4 10 2 7 2C4 2 2 4 2 7C2 10 4 12 7 12C9 12 12 12 12 12Z" fill="currentColor"/>
-  <!-- Right leaf -->
-  <path d="M12 12C12 12 12 8 12 6C12 4 14 2 17 2C20 2 22 4 22 7C22 10 20 12 17 12C15 12 12 12 12 12Z" fill="currentColor"/>
+<rect width="24" height="24" fill="white" style="fill:white;fill-opacity:1;"/>
+<path d="M19.8364 4.8335C16.5195 5.4781 10.4217 8.24258 12.5662 14.1437C18.6764 14.9666 19.9589 8.27975 19.8364 4.8335Z" fill="black" style="fill:black;fill-opacity:1;"/>
+<path d="M5.27894 1.85633C8.5959 2.50093 14.6937 5.26541 12.5491 11.1665C6.43899 11.9894 5.15645 5.30258 5.27894 1.85633Z" fill="black" style="fill:black;fill-opacity:1;"/>
+<rect x="11.5" y="10.5" width="1" height="11" rx="0.5" fill="#D9D9D9" stroke="black" style="fill:#D9D9D9;fill:color(display-p3 0.8510 0.8510 0.8510);fill-opacity:1;stroke:black;stroke-opacity:1;"/>
 </svg>

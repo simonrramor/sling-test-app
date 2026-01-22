@@ -36,6 +36,7 @@ struct ContentView: View {
         case .home: return 0
         case .card: return 1
         case .invest: return 2
+        case .savings: return 3
         }
     }
     
@@ -91,6 +92,9 @@ struct ContentView: View {
                             .transition(tabTransition)
                     case .invest:
                         InvestView()
+                            .transition(tabTransition)
+                    case .savings:
+                        SavingsView()
                             .transition(tabTransition)
                     }
                 }
