@@ -13,6 +13,7 @@ import Foundation
 
 struct Secrets {
     static let anthropicAPIKey = "${ANTHROPIC_API_KEY}"
+    static let linearAPIKey = "${LINEAR_API_KEY}"
 }
 EOF
 
