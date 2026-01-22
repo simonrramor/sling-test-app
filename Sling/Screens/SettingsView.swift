@@ -44,40 +44,39 @@ struct SettingsView: View {
                 .padding(.horizontal, 8)
                 .padding(.top, 8)
                 
-                // Profile Section
-                VStack(spacing: 24) {
-                    // Profile Image with verified badge
-                    ZStack(alignment: .topTrailing) {
-                        Image("AvatarProfile")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 120, height: 120)
-                            .clipShape(Circle())
-                        
-                        // Verified badge
-                        Image("BadgeVerified")
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .offset(x: 5, y: -5)
-                    }
-                    
-                    // Name and username
-                    VStack(spacing: 4) {
-                        Text("Brendon Arnold")
-                            .font(.custom("Inter-Bold", size: 32))
-                            .tracking(-0.64)
-                            .foregroundColor(.black)
-                        
-                        Text("@brendon")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(Color.black.opacity(0.6))
-                    }
-                }
-                .padding(.top, 16)
-                .padding(.bottom, 24)
-                
-                // Settings List
+                // Settings List (everything scrolls)
                 ScrollView {
+                    // Profile Section
+                    VStack(spacing: 24) {
+                        // Profile Image with verified badge
+                        ZStack(alignment: .topTrailing) {
+                            Image("AvatarProfile")
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 120)
+                                .clipShape(Circle())
+                            
+                            // Verified badge
+                            Image("BadgeVerified")
+                                .resizable()
+                                .frame(width: 40, height: 40)
+                                .offset(x: 5, y: -5)
+                        }
+                        
+                        // Name and username
+                        VStack(spacing: 4) {
+                            Text("Brendon Arnold")
+                                .font(.custom("Inter-Bold", size: 32))
+                                .tracking(-0.64)
+                                .foregroundColor(.black)
+                            
+                            Text("@brendon")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .foregroundColor(Color.black.opacity(0.6))
+                        }
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 24)
                     VStack(spacing: 0) {
                         // Invite Friends Row (standalone top)
                         SettingsRow(
@@ -129,13 +128,6 @@ struct SettingsView: View {
                                 position: .standalone,
                                 onTap: { showPrivacy = true }
                             )
-                            
-                            SettingsRow(
-                                iconSystem: "book.closed.fill",
-                                title: "Passport",
-                                position: .standalone,
-                                onTap: { showPassport = true }
-                            )
                         }
                         
                         // Log out row
@@ -146,14 +138,30 @@ struct SettingsView: View {
                             onTap: { showLogoutConfirmation = true }
                         )
                         
-                        Spacer().frame(height: 16)
+                        Spacer().frame(height: 24)
+                        
+                        // Test Area section header
+                        Text("Test Area")
+                            .font(.custom("Inter-Bold", size: 13))
+                            .foregroundColor(Color(hex: "8E8E93"))
+                            .textCase(.uppercase)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 8)
                         
                         // Developer section
                         VStack(spacing: 0) {
                             SettingsRow(
+                                iconSystem: "book.closed.fill",
+                                title: "Passport",
+                                position: .top,
+                                onTap: { showPassport = true }
+                            )
+                            
+                            SettingsRow(
                                 iconSystem: "sparkles",
                                 title: "Particle Burst Test",
-                                position: .top,
+                                position: .middle,
                                 onTap: { showParticleTest = true }
                             )
                             

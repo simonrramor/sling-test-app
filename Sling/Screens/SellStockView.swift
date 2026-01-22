@@ -370,16 +370,16 @@ struct SellConfirmView: View {
                     // Quote validity countdown
                     QuoteValidityRow(secondsRemaining: quoteTimeRemaining)
                     
-                    // Aprox share price
+                    // Approx. share price
                     DetailRow(
-                        label: "Aprox share price",
+                        label: "Approx. share price",
                         value: String(format: "~$%.2f", stockPrice),
                         isHighlighted: true
                     )
                     
-                    // Aprox shares
+                    // Approx. shares
                     DetailRow(
-                        label: "Aprox shares",
+                        label: "Approx. shares",
                         value: String(format: "~%.2f", sharesToSell)
                     )
                     

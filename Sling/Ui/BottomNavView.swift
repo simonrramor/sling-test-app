@@ -5,10 +5,11 @@ enum Tab: String, CaseIterable {
     case home = "Home"
     case card = "Card"
     case invest = "Invest"
+    case savings = "Savings"
     
     // Tabs that appear in the left pill (no transfer - it's a sheet now)
     static var pillTabs: [Tab] {
-        [.home, .card, .invest]
+        [.home, .card, .invest, .savings]
     }
 }
 
@@ -62,6 +63,7 @@ struct PillTabButton: View {
         case .home: return "NavHomeFilled"
         case .card: return "NavCardFilled"
         case .invest: return "NavInvest"
+        case .savings: return "NavSavings"
         }
     }
     

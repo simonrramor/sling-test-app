@@ -40,6 +40,7 @@ struct HeaderView: View {
         case .home: return 0
         case .card: return 1
         case .invest: return 2
+        case .savings: return 3
         }
     }
     
