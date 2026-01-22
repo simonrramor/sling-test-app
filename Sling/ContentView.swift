@@ -24,6 +24,7 @@ struct ContentView: View {
     
     
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var feedbackManager = FeedbackModeManager.shared
     
     var backgroundColor: Color {
         themeService.backgroundColor
@@ -137,7 +138,15 @@ struct ContentView: View {
             // In-app notification overlay
             NotificationOverlay()
                 .ignoresSafeArea(.container, edges: .top)
+            
+            // Feedback selection overlay
+            if feedbackManager.isActive {
+                FeedbackSelectionOverlay()
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: feedbackManager.isActive)
         .fullScreenCover(isPresented: $showFABMenu) {
             FABMenuSheet(
                 onSend: {
@@ -188,6 +197,9 @@ struct ContentView: View {
         .sheet(isPresented: $showInviteSheet) {
             InviteShareSheet()
         }
+        .sheet(isPresented: $feedbackManager.showFeedbackPopup) {
+            FeedbackPopupView()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToHome)) { _ in
             previousTab = selectedTab
             selectedTab = .home
@@ -199,6 +211,14 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .navigateToCard)) { _ in
             previousTab = selectedTab
             selectedTab = .card
+        }
+        .onFlip {
+            // Only activate if not already in feedback mode and no popups are showing
+            if !feedbackManager.isActive && !feedbackManager.showFeedbackPopup {
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.warning)
+                feedbackManager.toggleFeedbackMode()
+            }
         }
         .preferredColorScheme(themeService.colorScheme)
     }
