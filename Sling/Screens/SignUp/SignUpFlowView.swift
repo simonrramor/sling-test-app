@@ -136,6 +136,12 @@ struct SignUpFlowView: View {
                         withAnimation(.easeOut(duration: 0.25)) {
                             showStagePicker = true
                         }
+                    },
+                    onProgressTap: {
+                        // Show stage picker when progress bar is tapped
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            showStagePicker = true
+                        }
                     }
                 )
                 
@@ -209,9 +215,8 @@ struct SignUpFlowView: View {
                 SignUpStagePicker(
                     currentStep: currentStep,
                     onSelectStep: { step in
-                        // Navigate FIRST, then hide picker - so correct screen is underneath
+                        // Navigate to new screen - picker handles its own fade-out and dismissal
                         goToStep(step)
-                        showStagePicker = false
                     },
                     onDismiss: {
                         showStagePicker = false
@@ -946,11 +951,20 @@ struct SignUpStepHeader: View {
     let onBack: () -> Void
     var onSkip: (() -> Void)? = nil
     var onLongPress: (() -> Void)? = nil
+    var onProgressTap: (() -> Void)? = nil
     
     var body: some View {
         ZStack {
-            // Centered progress bar
+            // Centered progress bar - tappable to open stage picker
             ProgressBarView(progress: progress)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if let onProgressTap = onProgressTap {
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        onProgressTap()
+                    }
+                }
             
             // Back button on left, skip button on right
             HStack {
@@ -1063,8 +1077,9 @@ struct SignUpStagePicker: View {
         return StagePickerScreen.allCases.first { $0.signUpStep == currentStep } ?? .phone
     }
     
-    // Spring animation for smooth motion
-    private let smoothSpring = Animation.spring(response: 0.5, dampingFraction: 0.85)
+    // Spring animation for smooth motion - tuned to match iOS app switcher feel
+    private let smoothSpring = Animation.spring(response: 0.45, dampingFraction: 0.82)
+    private let quickSpring = Animation.spring(response: 0.35, dampingFraction: 0.78)
     
     var body: some View {
         GeometryReader { geometry in
@@ -1081,39 +1096,57 @@ struct SignUpStagePicker: View {
             
             
             ZStack {
-                // Blur background - fades with intro, fades out with selection
+                // Blur background - fades with intro, fades out faster during selection
                 Rectangle()
                     .fill(.regularMaterial)
                     .environment(\.colorScheme, .dark)
                     .ignoresSafeArea()
-                    .opacity(introProgress * (1 - selectionProgress))
+                    .opacity(introProgress * max(0, 1 - selectionProgress * 2.5))
                     .onTapGesture {
                         dismissWithAnimation()
                     }
                 
                 // Main content layer
                 ZStack {
-                    // Morphing card (current screen during intro, or selected screen during selection)
-                    let morphScreen = selectedScreen ?? currentScreen
-                    let morphScale = selectedScreen != nil ? selectionScale : introScale
-                    let morphCornerRadius = selectedScreen != nil ? selectionCornerRadius : introCornerRadius
-                    // Morph card fades out as scroll cards fade in, but reappears for selection
-                    let morphCardOpacity = selectedScreen != nil ? 1.0 : (1 - cardsVisible)
-                    
-                    
-                    VStack(spacing: 10) {
-                        // App icon and name
-                        appHeader(for: morphScreen)
-                            .opacity(selectedScreen != nil ? (1 - selectionProgress) : introProgress * (1 - cardsVisible))
+                    // During selection: card grows to full screen
+                    // During intro: morphing preview card
+                    if let selected = selectedScreen {
+                        // Growing preview card - scales from card size to full screen
+                        VStack(spacing: 10) {
+                            // App icon and name - fades out as card grows
+                            appHeader(for: selected)
+                                .opacity(max(0.0, 1.0 - selectionProgress * 3.0))
+                            
+                            StageCardPreview(screen: selected)
+                                .frame(width: cardWidth, height: cardHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: selectionCornerRadius, style: .continuous))
+                                .overlay(cardOverlay(cornerRadius: selectionCornerRadius))
+                                .scaleEffect(selectionScale)
+                                .shadow(color: .black.opacity(0.4 * (1 - selectionProgress)), radius: 30, x: 0, y: 15)
+                        }
+                        // Fade out preview as it reaches full size to reveal actual screen
+                        .opacity(1 - selectionProgress)
+                    } else {
+                        // Morphing card (only during intro, not selection)
+                        let morphScreen = currentScreen
+                        let morphCornerRadius = introCornerRadius
+                        // Morph card fades out as scroll cards fade in
+                        let morphCardOpacity: CGFloat = 1 - cardsVisible
                         
-                        StageCardPreview(screen: morphScreen)
-                            .frame(width: cardWidth, height: cardHeight)
-                            .clipShape(RoundedRectangle(cornerRadius: morphCornerRadius, style: .continuous))
-                            .overlay(cardOverlay(cornerRadius: morphCornerRadius))
-                            .scaleEffect(morphScale)
-                            .shadow(color: .black.opacity(0.5 * (1 - selectionProgress)), radius: 40, x: 0, y: 20)
+                        VStack(spacing: 10) {
+                            // App icon and name
+                            appHeader(for: morphScreen)
+                                .opacity(introProgress * (1 - cardsVisible))
+                            
+                            StageCardPreview(screen: morphScreen)
+                                .frame(width: cardWidth, height: cardHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: morphCornerRadius, style: .continuous))
+                                .overlay(cardOverlay(cornerRadius: morphCornerRadius))
+                                .scaleEffect(introScale)
+                                .shadow(color: .black.opacity(0.5), radius: 40, x: 0, y: 20)
+                        }
+                        .opacity(morphCardOpacity)
                     }
-                    .opacity(morphCardOpacity)
                     
                     // Scrollable cards view
                     VStack(spacing: 0) {
@@ -1123,28 +1156,46 @@ struct SignUpStagePicker: View {
                             ScrollViewReader { proxy in
                                 HStack(spacing: 16) {
                                     ForEach(StagePickerScreen.allCases) { screen in
-                                        let isCurrentScreen = screen == currentScreen
-                                        // All cards fade in together - current screen no longer hidden
+                                        // All cards fade in together
                                         let cardOpacity = cardsVisible
                                         
-                                        
-                                        VStack(spacing: 10) {
-                                            appHeader(for: screen)
+                                        // Use GeometryReader to get position-based scaling
+                                        GeometryReader { cardGeometry in
+                                            let screenWidth = geometry.size.width
+                                            let cardCenterX = cardGeometry.frame(in: .global).midX
+                                            let screenCenterX = screenWidth / 2
+                                            let distanceFromCenter: CGFloat = abs(cardCenterX - screenCenterX)
+                                            let maxDistance = screenWidth / 2
+                                            let normalizedDistance = min(distanceFromCenter / maxDistance, 1.0)
+                                            // Scale: 1.0 at center, 0.85 at edges
+                                            let positionScale = 1.0 - (normalizedDistance * 0.15)
                                             
-                                            StageCardPreview(screen: screen)
-                                                .frame(width: cardWidth, height: cardHeight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))
-                                                .overlay(cardOverlay(cornerRadius: 40))
-                                                .shadow(color: .black.opacity(0.5), radius: 40, x: 0, y: 20)
-                                                .onTapGesture {
-                                                    selectScreen(screen)
-                                                }
+                                            VStack(spacing: 10) {
+                                                appHeader(for: screen)
+                                                    .opacity(positionScale) // Fade header slightly at edges
+                                                
+                                                StageCardPreview(screen: screen)
+                                                    .frame(width: cardWidth, height: cardHeight)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))
+                                                    .overlay(cardOverlay(cornerRadius: 40))
+                                                    .shadow(color: .black.opacity(0.5 * positionScale), radius: 40, x: 0, y: 20)
+                                                    .onTapGesture {
+                                                        selectScreen(screen)
+                                                    }
+                                            }
+                                            .scaleEffect(positionScale * (0.8 + 0.2 * cardsVisible))
+                                            .opacity(cardOpacity)
+                                            .frame(width: cardWidth, height: cardHeight + 50) // Account for header
                                         }
+                                        .frame(width: cardWidth, height: cardHeight + 50)
                                         .id(screen.rawValue)
-                                        .opacity(cardOpacity)
-                                        .scaleEffect(0.8 + 0.2 * cardsVisible)
+                                        .scrollTransition { content, phase in
+                                            content
+                                                .opacity(phase.isIdentity ? 1 : 0.8)
+                                        }
                                     }
                                 }
+                                .scrollTargetLayout()
                                 .padding(.horizontal, (geometry.size.width - cardWidth) / 2)
                                 .padding(.top, 20)
                                 .padding(.bottom, 80)
@@ -1153,6 +1204,7 @@ struct SignUpStagePicker: View {
                                 }
                             }
                         }
+                        .scrollTargetBehavior(.viewAligned)
                         
                         Spacer()
                     }
@@ -1228,22 +1280,24 @@ struct SignUpStagePicker: View {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        // Set selected screen and animate expansion together
         selectedScreen = screen
         
-        withAnimation(smoothSpring) {
+        // Navigate IMMEDIATELY - actual screen appears behind picker
+        if let step = screen.signUpStep {
+            onSelectStep(step)
+        } else {
+            onSkipToHome?()
+        }
+        
+        // Animate picker chrome out while revealing actual screen
+        withAnimation(quickSpring) {
             cardsVisible = 0
             selectionProgress = 1
         }
         
-        // Complete transition after animation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-            if let step = screen.signUpStep {
-                self.onSelectStep(step)
-            } else {
-                self.onSkipToHome?()
-                self.onDismiss()
-            }
+        // Dismiss after animation settles
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.onDismiss()
         }
     }
     

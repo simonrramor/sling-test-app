@@ -26,14 +26,6 @@ struct LoginView: View {
                     Spacer()
                         .frame(height: 60)
                     
-                    // Large heading
-                    Text("The global account for global people")
-                        .h1Style()
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 24)
-                    
                     // Feature list with staggered animation
                     VStack(spacing: 24) {
                         ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
@@ -57,6 +49,14 @@ struct LoginView: View {
                     
                     // Bottom section
                     VStack(spacing: 0) {
+                        // Large heading - positioned above terms
+                        Text("The global\naccount for\nglobal people")
+                            .h1Style()
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 32)
+                        
                         // Terms and Privacy
                         Text("Read our Privacy Policy. Continue to accept the Terms of service.")
                             .font(.custom("Inter-Regular", size: 14))
@@ -125,10 +125,9 @@ struct LoginView: View {
                 SignUpStagePicker(
                     currentStep: .phone,
                     onSelectStep: { step in
-                        // Set step and show flow FIRST, then hide picker
+                        // Navigate to sign-up flow - picker handles its own fade-out and dismissal
                         selectedStartStep = step
                         showSignUpFlow = true
-                        showStagePicker = false
                     },
                     onDismiss: {
                         showStagePicker = false
