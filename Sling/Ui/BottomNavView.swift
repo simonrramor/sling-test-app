@@ -8,8 +8,9 @@ enum Tab: String, CaseIterable {
     case savings = "Savings"
     
     // Tabs that appear in the left pill (no transfer - it's a sheet now)
+    // TODO: Add .savings back when ready
     static var pillTabs: [Tab] {
-        [.home, .card, .invest, .savings]
+        [.home, .card, .invest]
     }
 }
 

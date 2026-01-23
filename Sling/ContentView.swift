@@ -315,7 +315,7 @@ struct FABMenuSheet: View {
                         iconColor: Color(hex: "FFC774"),
                         iconBgColor: Color(hex: "FFF5E5"),
                         title: "Transfer",
-                        subtitle: "Move money between your accounts",
+                        subtitle: "Move money between accounts",
                         isLast: true,
                         action: onTransfer
                     )

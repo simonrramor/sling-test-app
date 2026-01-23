@@ -116,6 +116,7 @@ extension View {
 @main
 struct sling_test_app_2App: App {
     @State private var showScreenshotMode = false
+    @AppStorage("isLoggedIn") private var isLoggedIn = false
     
     // Initialize flip detector on app launch
     private let flipDetector = FlipGestureDetector.shared
@@ -127,16 +128,20 @@ struct sling_test_app_2App: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .fullScreenCover(isPresented: $showScreenshotMode) {
-                    ScreenshotModeView()
-                }
-                .onAppear {
-                    // Auto-open screenshot mode if launched with argument
-                    if isScreenshotMode {
-                        showScreenshotMode = true
+            if isLoggedIn {
+                ContentView()
+                    .fullScreenCover(isPresented: $showScreenshotMode) {
+                        ScreenshotModeView()
                     }
-                }
+                    .onAppear {
+                        // Auto-open screenshot mode if launched with argument
+                        if isScreenshotMode {
+                            showScreenshotMode = true
+                        }
+                    }
+            } else {
+                LoginView(isLoggedIn: $isLoggedIn)
+            }
         }
     }
 }

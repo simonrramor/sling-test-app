@@ -71,7 +71,7 @@ class PortfolioService: ObservableObject {
         }
     }
     
-    private let stockService = StockService.shared
+    private let ondoService = OndoService.shared
     private let persistence = PersistenceService.shared
     
     private init() {
@@ -172,8 +172,8 @@ class PortfolioService: ObservableObject {
     func portfolioValue() -> Double {
         var total: Double = 0
         for (iconName, holding) in holdings {
-            if let stockData = stockService.stockData[iconName] {
-                total += holding.shares * stockData.currentPrice
+            if let tokenData = ondoService.tokenData[iconName] {
+                total += holding.shares * tokenData.currentPrice
             } else {
                 // Use average cost if no current price available
                 total += holding.totalCost
@@ -190,8 +190,8 @@ class PortfolioService: ObservableObject {
     /// Get value of a specific holding at current price
     func holdingValue(for iconName: String) -> Double {
         guard let holding = holdings[iconName] else { return 0 }
-        if let stockData = stockService.stockData[iconName] {
-            return holding.shares * stockData.currentPrice
+        if let tokenData = ondoService.tokenData[iconName] {
+            return holding.shares * tokenData.currentPrice
         }
         return holding.totalCost
     }
@@ -199,11 +199,11 @@ class PortfolioService: ObservableObject {
     /// Get profit/loss for a specific holding
     func holdingProfitLoss(for iconName: String) -> (value: Double, percent: Double, isPositive: Bool) {
         guard let holding = holdings[iconName],
-              let stockData = stockService.stockData[iconName] else {
+              let tokenData = ondoService.tokenData[iconName] else {
             return (0, 0, true)
         }
         
-        let currentValue = holding.shares * stockData.currentPrice
+        let currentValue = holding.shares * tokenData.currentPrice
         let costBasis = holding.totalCost
         let profitLoss = currentValue - costBasis
         let percent = costBasis > 0 ? (profitLoss / costBasis) * 100 : 0
@@ -218,8 +218,8 @@ class PortfolioService: ObservableObject {
         
         for (iconName, holding) in holdings {
             totalCost += holding.totalCost
-            if let stockData = stockService.stockData[iconName] {
-                totalValue += holding.shares * stockData.currentPrice
+            if let tokenData = ondoService.tokenData[iconName] {
+                totalValue += holding.shares * tokenData.currentPrice
             } else {
                 totalValue += holding.totalCost
             }
@@ -412,17 +412,17 @@ class PortfolioService: ObservableObject {
             var adjustedValue: Double = 0
             
             for (iconName, holding) in holdings {
-                if let stockData = stockService.stockData[iconName], !stockData.rawPrices.isEmpty {
-                    // Calculate how much time has passed since event relative to stock data period
+                if let tokenData = ondoService.tokenData[iconName], !tokenData.rawPrices.isEmpty {
+                    // Calculate how much time has passed since event relative to token data period
                     let timeSinceEvent = time.timeIntervalSince(lastEvent.timestamp)
                     let totalPeriod = Date().timeIntervalSince(lastEvent.timestamp)
                     
                     if totalPeriod > 0 {
                         let progress = min(timeSinceEvent / totalPeriod, 1.0)
-                        let price = stockData.priceAt(progress: progress)
+                        let price = tokenData.priceAt(progress: progress)
                         adjustedValue += holding.shares * price
                     } else {
-                        adjustedValue += holding.shares * stockData.currentPrice
+                        adjustedValue += holding.shares * tokenData.currentPrice
                     }
                 } else {
                     // No price data, use event value

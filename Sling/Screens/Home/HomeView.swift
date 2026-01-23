@@ -1,0 +1,510 @@
+import SwiftUI
+import UIKit
+
+struct HomeView: View {
+    @State private var showAddMoney = false
+    @State private var showWithdraw = false
+    @State private var showSendMoney = false
+    @State private var showSetup = false
+    @ObservedObject private var activityService = ActivityService.shared
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                // Balance (without button - buttons are below)
+                BalanceView()
+                    .padding(.horizontal, 24)
+                
+                // Add money + Withdraw buttons
+                HStack(spacing: 8) {
+                    // Add money button
+                    TertiaryButton(title: "Add money") {
+                        showAddMoney = true
+                    }
+                    
+                    // Withdraw button
+                    TertiaryButton(title: "Withdraw") {
+                        showWithdraw = true
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                
+                // Get started on Sling section
+                GetStartedSection(
+                    onAddMoney: { showAddMoney = true },
+                    onSendMoney: { showSendMoney = true },
+                    onSetup: { showSetup = true }
+                )
+                
+                // Activity Section
+                Text("Activity")
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color("TextSecondary"))
+                    .padding(.horizontal, 24)
+                    .padding(.top, 24)
+                    .padding(.bottom, -8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                VStack(spacing: 0) {
+                    if activityService.activities.isEmpty && !activityService.isLoading {
+                        // Empty state
+                        HomeEmptyStateCard()
+                            .padding(.vertical, 24)
+                    } else if activityService.isLoading && activityService.activities.isEmpty {
+                        // Loading state with skeleton rows
+                        VStack(spacing: 0) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                SkeletonTransactionRow()
+                            }
+                        }
+                        .padding(.top, 8)
+                    } else {
+                        // Transaction list
+                        TransactionListContent()
+                    }
+                }
+                .padding(.horizontal, themeService.currentTheme == .white ? 8 : 16)
+                .padding(.vertical, 8)
+                .background(themeService.currentTheme == .white ? Color.clear : themeService.backgroundSecondaryColor)
+                .cornerRadius(themeService.currentTheme == .white ? 0 : 24)
+                .padding(.horizontal, themeService.currentTheme == .white ? 0 : 16)
+                .padding(.top, 8)
+                
+                // Bottom padding for scroll content to clear nav bar
+                Spacer()
+                    .frame(height: 120)
+            }
+        }
+        .scrollIndicators(.hidden)
+        .background(themeService.backgroundColor)
+        .onAppear {
+            Task {
+                await activityService.fetchActivities()
+            }
+        }
+        .fullScreenCover(isPresented: $showAddMoney) {
+            AddMoneyView(isPresented: $showAddMoney)
+        }
+        .fullScreenCover(isPresented: $showWithdraw) {
+            WithdrawView(isPresented: $showWithdraw)
+        }
+        .fullScreenCover(isPresented: $showSendMoney) {
+            SendView(isPresented: $showSendMoney)
+        }
+        .fullScreenCover(isPresented: $showSetup) {
+            SettingsView(isPresented: $showSetup)
+        }
+    }
+}
+
+// MARK: - Get Started Section
+
+struct GetStartedSection: View {
+    @ObservedObject private var portfolioService = PortfolioService.shared
+    @AppStorage("hasCard") private var hasCard = false
+    @AppStorage("hasAddedMoney") private var hasAddedMoney = false
+    @AppStorage("hasSentMoney") private var hasSentMoney = false
+    @AppStorage("hasSetupAccount") private var hasSetupAccount = false
+    
+    let onAddMoney: () -> Void
+    let onSendMoney: () -> Void
+    let onSetup: () -> Void
+    
+    @State private var showStockList = false
+    
+    // Only show invest card if user has no stock holdings
+    private var showInvestCard: Bool {
+        portfolioService.holdings.isEmpty
+    }
+    
+    // Check if any cards should be shown
+    private var hasAnyCards: Bool {
+        !hasAddedMoney || !hasSentMoney || !hasSetupAccount || showInvestCard || !hasCard
+    }
+    
+    var body: some View {
+        if hasAnyCards {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                Text("Get started on Sling")
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color("TextSecondary"))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 8)
+                
+                // Horizontal scrollable cards
+                ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    // Add money card
+                    if !hasAddedMoney {
+                        GetStartedCard(
+                            iconContent: AnyView(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "E9FAEB"))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(hex: "78D381"))
+                                }
+                            ),
+                            title: "Add money to your account",
+                            subtitle: "Top up your balance to start sending and spending.",
+                            buttonTitle: "Add money",
+                            action: onAddMoney
+                        )
+                    }
+                    
+                    // Send money card
+                    if !hasSentMoney {
+                        GetStartedCard(
+                            iconContent: AnyView(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "E8F8FF"))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(hex: "74CDFF"))
+                                }
+                            ),
+                            title: "Send money to anyone, instantly",
+                            subtitle: "Pay friends and family with zero fees.",
+                            buttonTitle: "Send money",
+                            action: onSendMoney
+                        )
+                    }
+                    
+                    // Account details card
+                    if !hasSetupAccount {
+                        GetStartedCard(
+                            iconContent: AnyView(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "FFE8F9"))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "building.columns.fill")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FF74E0"))
+                                }
+                            ),
+                            title: "Create your USD and EUR account details",
+                            subtitle: "Get your own account details to receive payments from anywhere.",
+                            buttonTitle: "Create details",
+                            action: onSetup
+                        )
+                    }
+                    
+                    // Invest promo card
+                    if showInvestCard {
+                        GetStartedCard(
+                            iconContent: AnyView(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "EDE8FF"))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "chart.line.uptrend.xyaxis")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(hex: "8B74FF"))
+                                }
+                            ),
+                            title: "Start investing from just $1",
+                            subtitle: "Buy stocks in your favorite companies to give your money a chance to grow.",
+                            buttonTitle: "Start investing",
+                            action: { showStockList = true }
+                        )
+                    }
+                    
+                    // Sling Card promo card
+                    if !hasCard {
+                        GetStartedCard(
+                            iconContent: AnyView(
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(hex: "FFF0E8"))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "creditcard.fill")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FF8C42"))
+                                }
+                            ),
+                            title: "Create your Sling Card today",
+                            subtitle: "Get your new virtual debit card, and start spending around the world.",
+                            buttonTitle: "Create Sling Card",
+                            action: {
+                                NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+            }
+            }
+            .padding(.top, 16)
+            .fullScreenCover(isPresented: $showStockList) {
+                BrowseStocksView(isPresented: $showStockList)
+            }
+        }
+    }
+}
+
+// MARK: - Get Started Card
+
+struct GetStartedCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    let iconContent: AnyView
+    let title: String
+    let subtitle: String
+    let buttonTitle: String
+    let action: () -> Void
+    
+    private let cardWidth: CGFloat = 280
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            action()
+        }) {
+            VStack(spacing: 0) {
+                // Icon/Image content
+                iconContent
+                    .frame(height: 80)
+                
+                Spacer().frame(height: 16)
+                
+                // Text content
+                VStack(spacing: 4) {
+                    Text(title)
+                        .font(.custom("Inter-Bold", size: 20))
+                        .foregroundColor(Color("TextPrimary"))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    Text(subtitle)
+                        .font(.custom("Inter-Regular", size: 14))
+                        .foregroundColor(Color("TextSecondary"))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                // Space between body and button
+                Spacer()
+                    .frame(height: 24)
+                
+                // Button
+                Text(buttonTitle)
+                    .font(.custom("Inter-Bold", size: 14))
+                    .foregroundColor(themeService.currentTheme == .white ? .white : themeService.textPrimaryColor)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .frame(height: 36)
+                    .background(themeService.buttonSecondaryColor)
+                    .cornerRadius(12)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 24)
+            .frame(width: cardWidth)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(themeService.cardBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(PressedButtonStyle())
+    }
+}
+
+
+// MARK: - Pending Requests Card
+
+struct PendingRequestsCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    let count: Int
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            onTap()
+        }) {
+            HStack(spacing: 12) {
+                // Icon with badge
+                ZStack(alignment: .topTrailing) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "FF5113").opacity(0.1))
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(Color(hex: "FF5113"))
+                    }
+                    
+                    // Badge
+                    Text("\(count)")
+                        .font(.custom("Inter-Bold", size: 11))
+                        .foregroundColor(.white)
+                        .frame(width: 18, height: 18)
+                        .background(Color(hex: "FF5113"))
+                        .clipShape(Circle())
+                        .offset(x: 4, y: -4)
+                }
+                
+                // Text
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Payment Requests")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    
+                    Text("\(count) pending request\(count == 1 ? "" : "s")")
+                        .font(.custom("Inter-Regular", size: 14))
+                        .foregroundColor(themeService.textSecondaryColor)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(themeService.textTertiaryColor)
+            }
+            .padding(16)
+            .background(Color(hex: "FFF8F5"))
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color(hex: "FF5113").opacity(0.2), lineWidth: 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Home Empty State Card
+
+struct HomeEmptyStateCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    var onAddTransactions: (() -> Void)? = nil
+    @State private var showTransactionOptions = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // List icon
+            Image("IconList")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 24, height: 24)
+                .opacity(0.4)
+            
+            // Text content
+            VStack(spacing: 4) {
+                Text("Your activity feed")
+                    .font(.custom("Inter-Bold", size: 24))
+                    .foregroundColor(Color("TextPrimary"))
+                    .multilineTextAlignment(.center)
+                
+                Text("When you send, spend, or receive money, it will show here.")
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(Color("TextSecondary"))
+                    .multilineTextAlignment(.center)
+            }
+            
+            // Add transactions button - 32px from body copy
+            Button(action: {
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                showTransactionOptions = true
+            }) {
+                Text("Add transactions")
+                    .font(.custom("Inter-Bold", size: 14))
+                    .foregroundColor(themeService.textPrimaryColor)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(hex: "EDEDED"))
+                    .cornerRadius(12)
+            }
+            .padding(.top, 16)
+            .padding(.horizontal, 40)
+            .confirmationDialog("Add Transaction", isPresented: $showTransactionOptions, titleVisibility: .visible) {
+                Button("Card Payment") {
+                    ActivityService.shared.generateCardPayment()
+                }
+                Button("P2P Outbound (Send)") {
+                    ActivityService.shared.generateP2POutbound()
+                }
+                Button("P2P Inbound (Receive)") {
+                    ActivityService.shared.generateP2PInbound()
+                }
+                Button("Top Up") {
+                    ActivityService.shared.generateTopUp()
+                }
+                Button("Withdrawal") {
+                    ActivityService.shared.generateWithdrawal()
+                }
+                Button("Random Mix (8 transactions)") {
+                    ActivityService.shared.generateRandomMix()
+                }
+                Button("Cancel", role: .cancel) { }
+            }
+        }
+    }
+}
+
+// MARK: - Skeleton Transaction Row
+
+struct SkeletonTransactionRow: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Avatar placeholder
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(hex: "F7F7F7"))
+                .frame(width: 44, height: 44)
+            
+            // Text placeholders
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 32) {
+                    // Title placeholder
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(hex: "F7F7F7"))
+                        .frame(height: 16)
+                    
+                    // Status placeholder
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(hex: "F7F7F7"))
+                        .frame(width: 59, height: 16)
+                }
+                .padding(.vertical, 4)
+                
+                // Subtitle placeholder
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(hex: "F7F7F7"))
+                    .frame(width: 150, height: 16)
+                    .padding(.vertical, 4)
+            }
+        }
+        .padding(16)
+        .opacity(isAnimating ? 0.5 : 1.0)
+        .animation(
+            Animation.easeInOut(duration: 0.8)
+                .repeatForever(autoreverses: true),
+            value: isAnimating
+        )
+        .onAppear {
+            isAnimating = true
+        }
+    }
+}
+
+#Preview {
+    HomeView()
+}

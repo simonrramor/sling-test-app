@@ -37,7 +37,7 @@ struct SecondaryButton: View {
     // Text color depends on theme - white text on black button (white theme), dark text otherwise
     private var textColor: Color {
         if !isEnabled {
-            return themeService.textPrimaryColor.opacity(0.4)
+            return .white.opacity(0.4)  // White text at 40% opacity when disabled
         }
         switch themeService.currentTheme {
         case .white:

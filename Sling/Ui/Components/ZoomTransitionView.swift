@@ -13,7 +13,7 @@ enum ZoomMenuOption: String, CaseIterable, Identifiable {
         switch self {
         case .send: return "Pay anyone on Sling in seconds"
         case .request: return "Ask someone to pay you back"
-        case .transfer: return "Move money between your accounts"
+        case .transfer: return "Move money between accounts"
         case .receiveSalary: return "Get paid into Sling"
         }
     }

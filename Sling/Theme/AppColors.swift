@@ -53,4 +53,10 @@ extension Color {
     
     /// Divider color - #2A2A2A
     static let appDivider = Color(hex: DesignSystem.Colors.divider)
+    
+    /// Positive/increase state (inbound payments, gains, APY) - #57CE43
+    static let appPositiveGreen = Color(hex: DesignSystem.Colors.positiveGreen)
+    
+    /// Negative/decrease state (outbound, losses) - #E30000
+    static let appNegativeRed = Color(hex: DesignSystem.Colors.negativeRed)
 }

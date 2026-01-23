@@ -32,7 +32,7 @@ struct TransferView: View {
         ),
         TransferAction(
             title: "Transfer",
-            subtitle: "Move money between your accounts",
+            subtitle: "Move money between accounts",
             iconName: "TransferTransfer"
         ),
         TransferAction(
