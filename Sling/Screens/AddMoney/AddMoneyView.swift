@@ -4,6 +4,7 @@ import UIKit
 struct AddMoneyView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @State private var amountString: String = ""
     @State private var showConfirmation = false
     @State private var showAccountSelector = false
@@ -12,9 +13,12 @@ struct AddMoneyView: View {
     @State private var sourceAmount: Double = 0 // Amount in source account currency (GBP, EUR, etc.)
     @State private var usdAmount: Double = 0 // Amount in USD (what gets added to Sling balance)
     @State private var currentExchangeRate: Double = 1.0 // Rate from source currency to USD
+    @State private var shakeOffset: CGFloat = 0
+    @State private var isOverLimit: Bool = false
     
     private let exchangeService = ExchangeRateService.shared
-    private let slingCurrency = "USD" // Sling balance is always stored in USD
+    private let slingBaseCurrency = "USD" // Sling balance is always stored in USD
+    private let depositLimitGBP: Double = 7000 // Deposit limit in GBP
     
     var amountValue: Double {
         Double(amountString) ?? 0
@@ -25,12 +29,28 @@ struct AddMoneyView: View {
         selectedAccount.currency.isEmpty ? "GBP" : selectedAccount.currency
     }
     
-    /// Whether the source account has a different currency than USD
-    var hasCurrencyDifference: Bool {
-        sourceCurrency != slingCurrency
+    /// The display currency (what the user wants to see their balance in)
+    var displayCurrency: String {
+        displayCurrencyService.displayCurrency
     }
     
-    /// Formatted source amount (GBP, EUR, etc. - what user is paying)
+    /// The secondary currency to show (USD if source matches display, otherwise display currency)
+    var secondaryCurrency: String {
+        if sourceCurrency == displayCurrency {
+            // GBP-GBP: show USD as secondary (since Sling stores in USD)
+            return slingBaseCurrency
+        } else {
+            // USD-GBP: show display currency as secondary
+            return displayCurrency
+        }
+    }
+    
+    /// Whether we need to show currency conversion (always true unless source is USD and display is USD)
+    var needsCurrencyConversion: Bool {
+        sourceCurrency != secondaryCurrency
+    }
+    
+    /// Formatted source amount (what user is paying from their account)
     var formattedSourceAmount: String {
         let symbol = ExchangeRateService.symbol(for: sourceCurrency)
         if sourceAmount == 0 && amountString.isEmpty {
@@ -44,32 +64,17 @@ struct AddMoneyView: View {
         return "\(symbol)\(formattedNumber)"
     }
     
-    /// Formatted USD amount (what gets added to Sling balance)
-    var formattedUSDAmount: String {
-        let symbol = ExchangeRateService.symbol(for: slingCurrency)
+    /// Formatted secondary currency amount
+    var formattedSecondaryAmount: String {
+        let symbol = ExchangeRateService.symbol(for: secondaryCurrency)
         if usdAmount == 0 && amountString.isEmpty {
             return "\(symbol)0"
         }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
+        formatter.minimumFractionDigits = 2  // Always show 2 decimals for USD
         formatter.maximumFractionDigits = 2
         let formattedNumber = formatter.string(from: NSNumber(value: usdAmount)) ?? String(format: "%.2f", usdAmount)
-        return "\(symbol)\(formattedNumber)"
-    }
-    
-    /// Formatted amount for non-currency-difference case (when source is USD)
-    var formattedAmount: String {
-        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
-        if amountString.isEmpty {
-            return "\(symbol)0"
-        }
-        let number = Double(amountString) ?? 0
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = amountString.contains(".") ? 2 : 0
-        let formattedNumber = formatter.string(from: NSNumber(value: number)) ?? amountString
         return "\(symbol)\(formattedNumber)"
     }
     
@@ -77,6 +82,45 @@ struct AddMoneyView: View {
         switch selectedAccount.iconType {
         case .asset(let assetName):
             return assetName
+        }
+    }
+    
+    /// Check if the current amount exceeds the deposit limit
+    var exceedsDepositLimit: Bool {
+        // Convert limit to source currency if needed
+        if sourceCurrency == "GBP" {
+            return sourceAmount > depositLimitGBP
+        } else {
+            // For other currencies, we'd need to convert the limit
+            // For now, assume 1:1 or use the exchange rate
+            return sourceAmount > depositLimitGBP * currentExchangeRate
+        }
+    }
+    
+    /// Trigger shake animation
+    private func triggerShake() {
+        withAnimation(.linear(duration: 0.05)) {
+            shakeOffset = 8
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.linear(duration: 0.05)) {
+                shakeOffset = -8
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.linear(duration: 0.05)) {
+                shakeOffset = 6
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.linear(duration: 0.05)) {
+                shakeOffset = -4
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.linear(duration: 0.05)) {
+                shakeOffset = 0
+            }
         }
     }
     
@@ -124,8 +168,8 @@ struct AddMoneyView: View {
                     
                     Spacer()
                     
-                    // Currency tag (shows source account currency)
-                    Text(sourceCurrency)
+                    // Currency tag (shows wallet display currency)
+                    Text(displayCurrencyService.displayCurrency)
                         .font(.custom("Inter-Medium", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
                         .padding(.horizontal, 12)
@@ -140,18 +184,19 @@ struct AddMoneyView: View {
                 
                 Spacer()
                 
-                // Amount display with swap animation
-                if hasCurrencyDifference {
-                    CurrencySwapView(
-                        primaryDisplay: formattedSourceAmount,  // Source currency (GBP) - what user types
-                        secondaryDisplay: formattedUSDAmount,   // USD - what gets added to Sling
+                // Amount display with swap animation - always show USD equivalent
+                if needsCurrencyConversion {
+                    AnimatedCurrencySwapView(
+                        primaryDisplay: formattedSourceAmount,  // Source currency - what user pays
+                        secondaryDisplay: formattedSecondaryAmount,   // Secondary currency (USD or display)
                         showingPrimaryOnTop: showingSourceCurrency,
                         onSwap: {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showingSourceCurrency.toggle()
+                            // Don't allow swap when over limit
+                            if isOverLimit {
+                                triggerShake()
+                                return
                             }
+                            showingSourceCurrency.toggle()
                             // Update amountString to match the new primary currency
                             if showingSourceCurrency {
                                 // Now showing source currency, set amountString to source amount
@@ -160,14 +205,17 @@ struct AddMoneyView: View {
                                 // Now showing USD, set amountString to USD amount
                                 amountString = usdAmount > 0 ? formatForInput(usdAmount) : ""
                             }
-                        }
+                        },
+                        errorMessage: isOverLimit ? "Deposit limit reached" : nil
                     )
+                    .offset(x: shakeOffset)
                 } else {
-                    Text(formattedAmount)
+                    Text(formattedSourceAmount)
                         .font(.custom("Inter-Bold", size: 56))
                         .foregroundColor(themeService.textPrimaryColor)
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                        .offset(x: shakeOffset)
                 }
                 
                 Spacer()
@@ -193,7 +241,7 @@ struct AddMoneyView: View {
                 // Next button
                 SecondaryButton(
                     title: "Next",
-                    isEnabled: amountValue > 0
+                    isEnabled: amountValue > 0 && !isOverLimit
                 ) {
                     showConfirmation = true
                 }
@@ -214,12 +262,31 @@ struct AddMoneyView: View {
                         isPresented = false
                     }
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: showConfirmation)
-        .onChange(of: amountString) { _, newValue in
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
+        .onChange(of: amountString) { oldValue, newValue in
+            // If already over limit, prevent adding more characters (allow backspace)
+            if isOverLimit && newValue.count > oldValue.count {
+                // Revert the change
+                amountString = oldValue
+                triggerShake()
+                return
+            }
+            
             updateAmounts()
+            
+            // Check deposit limit after amounts are updated
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let wasOverLimit = isOverLimit
+                isOverLimit = exceedsDepositLimit
+                
+                // Trigger shake when first exceeding limit
+                if isOverLimit && !wasOverLimit {
+                    triggerShake()
+                }
+            }
         }
         .onChange(of: selectedAccount.id) { _, _ in
             // Reset to source currency when account changes
@@ -246,8 +313,8 @@ struct AddMoneyView: View {
     }
     
     private func updateAmounts() {
-        guard hasCurrencyDifference else {
-            // Source is USD, no conversion needed
+        guard needsCurrencyConversion else {
+            // No conversion needed (source is USD and display is USD)
             sourceAmount = amountValue
             usdAmount = amountValue
             currentExchangeRate = 1.0
@@ -257,11 +324,11 @@ struct AddMoneyView: View {
         let inputAmount = amountValue
         
         if showingSourceCurrency {
-            // User is entering source currency (e.g., GBP), convert to USD
+            // User is entering source currency, convert to secondary currency
             sourceAmount = inputAmount
             Task {
-                // Get the rate from source currency to USD
-                if let rate = await exchangeService.getRate(from: sourceCurrency, to: slingCurrency) {
+                // Get the rate from source currency to secondary currency
+                if let rate = await exchangeService.getRate(from: sourceCurrency, to: secondaryCurrency) {
                     await MainActor.run {
                         currentExchangeRate = rate
                     }
@@ -269,7 +336,7 @@ struct AddMoneyView: View {
                 if let converted = await exchangeService.convert(
                     amount: inputAmount,
                     from: sourceCurrency,
-                    to: slingCurrency
+                    to: secondaryCurrency
                 ) {
                     await MainActor.run {
                         usdAmount = converted
@@ -277,18 +344,18 @@ struct AddMoneyView: View {
                 }
             }
         } else {
-            // User is entering USD, convert to source currency
+            // User is entering secondary currency, convert to source currency
             usdAmount = inputAmount
             Task {
-                // Get the rate from source currency to USD (for display)
-                if let rate = await exchangeService.getRate(from: sourceCurrency, to: slingCurrency) {
+                // Get the rate from source currency to secondary currency (for display)
+                if let rate = await exchangeService.getRate(from: sourceCurrency, to: secondaryCurrency) {
                     await MainActor.run {
                         currentExchangeRate = rate
                     }
                 }
                 if let converted = await exchangeService.convert(
                     amount: inputAmount,
-                    from: slingCurrency,
+                    from: secondaryCurrency,
                     to: sourceCurrency
                 ) {
                     await MainActor.run {
@@ -297,59 +364,6 @@ struct AddMoneyView: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Currency Swap View
-
-struct CurrencySwapView: View {
-    @ObservedObject private var themeService = ThemeService.shared
-    let primaryDisplay: String // The primary currency amount (what user is typing)
-    let secondaryDisplay: String // The secondary currency amount (converted)
-    let showingPrimaryOnTop: Bool // true = primary is on top (large), false = secondary is on top
-    let onSwap: () -> Void
-    
-    private let topOffset: CGFloat = 0
-    private let bottomOffset: CGFloat = 45
-    
-    var body: some View {
-        Button(action: onSwap) {
-            ZStack {
-                // Primary currency amount (e.g., GBP - source)
-                HStack(spacing: 4) {
-                    // Swap icon (visible when primary is secondary/bottom)
-                    Image(systemName: "arrow.up.arrow.down")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(themeService.textSecondaryColor)
-                        .opacity(showingPrimaryOnTop ? 0 : 1)
-                    
-                    Text(primaryDisplay)
-                        .font(.custom(showingPrimaryOnTop ? "Inter-Bold" : "Inter-Medium", size: showingPrimaryOnTop ? 56 : 18))
-                        .foregroundColor(showingPrimaryOnTop ? Color(hex: "080808") : Color(hex: "7B7B7B"))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                }
-                .offset(y: showingPrimaryOnTop ? topOffset : bottomOffset)
-                
-                // Secondary currency amount (e.g., USD - Sling balance)
-                HStack(spacing: 4) {
-                    // Swap icon (visible when secondary is on bottom)
-                    Image(systemName: "arrow.up.arrow.down")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(themeService.textSecondaryColor)
-                        .opacity(showingPrimaryOnTop ? 1 : 0)
-                    
-                    Text(secondaryDisplay)
-                        .font(.custom(showingPrimaryOnTop ? "Inter-Medium" : "Inter-Bold", size: showingPrimaryOnTop ? 18 : 56))
-                        .foregroundColor(showingPrimaryOnTop ? Color(hex: "7B7B7B") : Color(hex: "080808"))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                }
-                .offset(y: showingPrimaryOnTop ? bottomOffset : topOffset)
-            }
-            .frame(height: 100)
-        }
-        .buttonStyle(.plain)
     }
 }
 
