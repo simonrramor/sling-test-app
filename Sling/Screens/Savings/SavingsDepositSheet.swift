@@ -59,7 +59,8 @@ struct SavingsDepositSheet: View {
         if displayCurrency == "USD" {
             return String(format: "$%.2f", availableBalance)
         }
-        let convertedBalance = availableBalance * exchangeRate
+        // exchangeRate is displayCurrency to USD, so divide to convert USD to displayCurrency
+        let convertedBalance = exchangeRate > 0 ? availableBalance / exchangeRate : availableBalance
         return String(format: "%@%.2f", displayCurrencySymbol, convertedBalance)
     }
     
@@ -93,7 +94,7 @@ struct SavingsDepositSheet: View {
     
     var body: some View {
         ZStack {
-            Color.white
+            themeService.backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -134,19 +135,8 @@ struct SavingsDepositSheet: View {
                     }
                     
                     Spacer()
-                    
-                    // Currency tag
-                    Text(displayCurrency)
-                        .font(.custom("Inter-Medium", size: 14))
-                        .foregroundColor(themeService.textSecondaryColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(hex: "F7F7F7"))
-                        )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
@@ -197,7 +187,7 @@ struct SavingsDepositSheet: View {
                     title: "Sling balance",
                     balanceText: formattedAvailableBalance
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -212,7 +202,7 @@ struct SavingsDepositSheet: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -319,7 +309,7 @@ struct SavingsDepositConfirmView: View {
     
     var body: some View {
         ZStack {
-            Color.white
+            themeService.backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -361,7 +351,7 @@ struct SavingsDepositConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -504,9 +494,9 @@ struct SavingsDepositConfirmView: View {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
+                        .fill(themeService.cardBackgroundColor)
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 40)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -536,7 +526,7 @@ struct SavingsDepositConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }

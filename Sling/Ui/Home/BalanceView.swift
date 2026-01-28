@@ -3,11 +3,13 @@ import UIKit
 
 struct BalanceView: View {
     @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @ObservedObject private var exchangeRateService = ExchangeRateService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @State private var displayBalance: Double?
     
     var onAddMoney: (() -> Void)? = nil
+    var onBalanceTap: (() -> Void)? = nil
     
     // USD balance (stored value)
     var usdBalance: Double {
@@ -22,39 +24,46 @@ struct BalanceView: View {
     // Formatted display currency balance
     var formattedDisplayBalance: String {
         if let displayAmount = displayBalance {
-            return ExchangeRateService.format(amount: displayAmount, currency: portfolioService.displayCurrency)
+            return ExchangeRateService.format(amount: displayAmount, currency: displayCurrencyService.displayCurrency)
         }
         // Fallback while loading - show USD with display currency symbol
-        return ExchangeRateService.format(amount: usdBalance, currency: portfolioService.displayCurrency)
+        return ExchangeRateService.format(amount: usdBalance, currency: displayCurrencyService.displayCurrency)
     }
     
     var body: some View {
         HStack(alignment: .center) {
-            // Left side: Balance info
-            VStack(alignment: .leading, spacing: 4) {
-                // Subtitle: "Cash balance ・ $X,XXX.XX"
-                HStack(spacing: 0) {
-                    Text("Cash balance")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
+            // Left side: Balance info - tappable to show currency sheet
+            Button(action: {
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                onBalanceTap?()
+            }) {
+                VStack(alignment: .leading, spacing: 4) {
+                    // Subtitle: "Cash balance ・ $X,XXX.XX"
+                    HStack(spacing: 0) {
+                        Text("Cash balance")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        
+                        Text("・")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        
+                        Text(formattedUSDBalance)
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
+                    }
                     
-                    Text("・")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
-                    
-                    Text(formattedUSDBalance)
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
+                    // Main balance in display currency (animated) - H1 style from Figma
+                    SlidingNumberText(
+                        text: formattedDisplayBalance,
+                        font: .custom("Inter-Bold", size: 48),
+                        color: themeService.textPrimaryColor
+                    )
+                    .tracking(-0.96) // -2% letter spacing at 48pt
                 }
-                
-                // Main balance in display currency (animated) - H1 style from Figma
-                SlidingNumberText(
-                    text: formattedDisplayBalance,
-                    font: .custom("Inter-Bold", size: 48),
-                    color: themeService.textPrimaryColor
-                )
-                .tracking(-0.96) // -2% letter spacing at 48pt
             }
+            .buttonStyle(PressedButtonStyle())
             
             Spacer()
             
@@ -77,14 +86,15 @@ struct BalanceView: View {
                 .buttonStyle(PressedButtonStyle())
             }
         }
-        .padding(.vertical, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
         .task {
             await updateDisplayBalance()
         }
         .onChange(of: portfolioService.cashBalance) { _, _ in
             Task { await updateDisplayBalance() }
         }
-        .onChange(of: portfolioService.displayCurrency) { _, _ in
+        .onChange(of: displayCurrencyService.displayCurrency) { _, _ in
             Task { await updateDisplayBalance() }
         }
     }
@@ -93,7 +103,7 @@ struct BalanceView: View {
         let converted = await exchangeRateService.convert(
             amount: usdBalance,
             from: "USD",
-            to: portfolioService.displayCurrency
+            to: displayCurrencyService.displayCurrency
         )
         await MainActor.run {
             displayBalance = converted

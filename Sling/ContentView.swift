@@ -6,7 +6,10 @@ extension Notification.Name {
     static let navigateToHome = Notification.Name("navigateToHome")
     static let navigateToInvest = Notification.Name("navigateToInvest")
     static let navigateToCard = Notification.Name("navigateToCard")
+    static let navigateToSavings = Notification.Name("navigateToSavings")
+    static let showBalanceSheet = Notification.Name("showBalanceSheet")
 }
+
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .home
@@ -25,9 +28,11 @@ struct ContentView: View {
     
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var feedbackManager = FeedbackModeManager.shared
+    @State private var showSubscriptionsOverlay = false
+    @State private var showBalanceSheet = false
     
-    var backgroundColor: Color {
-        themeService.backgroundColor
+    var backgroundGradient: LinearGradient {
+        themeService.backgroundGradient
     }
     
     // Get index of a tab for directional comparison
@@ -55,7 +60,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            backgroundColor
+            backgroundGradient
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -79,7 +84,7 @@ struct ContentView: View {
                         showInviteSheet = true
                     }
                 )
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                 
                 // Tab Content with directional transitions
                 ZStack {
@@ -88,7 +93,7 @@ struct ContentView: View {
                         HomeView()
                             .transition(tabTransition)
                     case .card:
-                        SpendView()
+                        SpendView(showSubscriptionsOverlay: $showSubscriptionsOverlay)
                             .transition(tabTransition)
                     case .invest:
                         InvestView()
@@ -104,8 +109,8 @@ struct ContentView: View {
             // Progressive blur behind nav - positioned at very bottom
             ProgressiveBlurView(
                 blurAmount: 1.0,
-                blurStyle: .prominent,
-                backgroundColorValue: 0.05,
+                blurStyle: themeService.currentTheme == .dark ? .dark : .prominent,
+                backgroundColorValue: themeService.currentTheme == .dark ? 0.95 : 0.05,
                 backgroundOpacity: 0.79
             )
                 .frame(height: 140)
@@ -148,6 +153,17 @@ struct ContentView: View {
                 FeedbackSelectionOverlay()
                     .ignoresSafeArea()
                     .transition(.opacity)
+            }
+            
+            // Subscriptions card overlay (covers everything including nav)
+            if showSubscriptionsOverlay {
+                SubscriptionsCardOverlay(isPresented: $showSubscriptionsOverlay)
+            }
+            
+            // Balance sheet overlay (covers everything including nav)
+            if showBalanceSheet {
+                BalanceSheet(isPresented: $showBalanceSheet)
+                    .zIndex(100)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: feedbackManager.isActive)
@@ -216,6 +232,13 @@ struct ContentView: View {
             previousTab = selectedTab
             selectedTab = .card
         }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToSavings)) { _ in
+            previousTab = selectedTab
+            selectedTab = .savings
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showBalanceSheet)) { _ in
+            showBalanceSheet = true
+        }
         .onFlip {
             // Only activate if not already in feedback mode and no popups are showing
             if !feedbackManager.isActive && !feedbackManager.showFeedbackPopup {
@@ -241,7 +264,7 @@ struct FloatingActionButton: View {
         }) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "080808"))
+                    .fill(Color(hex: "FF5113"))
                     .frame(width: 56, height: 56)
                     .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 
