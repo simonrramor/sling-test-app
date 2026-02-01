@@ -39,6 +39,7 @@ enum ZoomMenuOption: String, CaseIterable, Identifiable {
 
 /// A simple morph transition view that animates between a circle and a rectangle
 struct ZoomTransitionView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @State private var isExpanded = false
     @State private var isPressed = false
     
@@ -121,7 +122,7 @@ struct ZoomTransitionView: View {
                         }
                     }
                     .frame(width: width(in: geometry.size.width), height: height)
-                    .background(Color(hex: DesignSystem.Colors.dark))
+                    .background(isExpanded ? themeService.cardBackgroundColor : Color(hex: DesignSystem.Colors.primary))
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                     .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
                     .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
@@ -174,16 +175,17 @@ struct ZoomTransitionView: View {
 // MARK: - Menu Row
 
 struct ZoomMenuRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let option: ZoomMenuOption
     let onTap: () -> Void
     @State private var isPressed = false
     
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.md) {
-            // Icon with dark background
+            // Icon with light background
             ZStack {
                 RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                    .fill(Color(hex: DesignSystem.Colors.cardDark))
+                    .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7"))
                     .frame(width: DesignSystem.IconSize.large, height: DesignSystem.IconSize.large)
                 
                 Image(option.iconName)
@@ -198,11 +200,11 @@ struct ZoomMenuRow: View {
             VStack(alignment: .leading, spacing: DesignSystem.Spacing.xs) {
                 Text(option.rawValue)
                     .font(DesignSystem.Typography.headerTitle)
-                    .foregroundColor(.white)
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text(option.subtitle)
                     .font(DesignSystem.Typography.caption)
-                    .foregroundColor(Color(hex: DesignSystem.Colors.textSecondary))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()
@@ -211,7 +213,7 @@ struct ZoomMenuRow: View {
         .padding(.horizontal, DesignSystem.CornerRadius.small)
         .background(
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                .fill(isPressed ? Color.white.opacity(0.1) : Color.clear)
+                .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0")) : Color.clear)
         )
         .contentShape(Rectangle())
         .gesture(

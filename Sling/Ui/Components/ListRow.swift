@@ -80,7 +80,7 @@ struct ListRow<TrailingContent: View>: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        .stroke(themeService.textPrimaryColor.opacity(0.06), lineWidth: 1)
                 )
                 .accessibilityHidden(true)
         case .plain:
@@ -116,6 +116,7 @@ extension ListRow where TrailingContent == EmptyView {
 // MARK: - Pressable Row (instant press detection)
 
 struct PressableRow<Content: View>: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let onTap: (() -> Void)?
     let content: () -> Content
     
@@ -130,7 +131,7 @@ struct PressableRow<Content: View>: View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isPressed ? Color(hex: "F5F5F5") : Color.clear)
+                    .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F5F5F5")) : Color.clear)
             )
             .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
                 isPressed = pressing

@@ -14,18 +14,10 @@ struct FeeRow: View {
             Spacer()
             
             if fee.isFree {
-                // Free or waived fee
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("No fee")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "57CE43"))
-                    
-                    if let reason = fee.waiverReason, fee.isWaived {
-                        Text(reason)
-                            .font(.custom("Inter-Regular", size: 12))
-                            .foregroundColor(themeService.textSecondaryColor)
-                    }
-                }
+                // Free fee
+                Text("No fee")
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(themeService.textPrimaryColor)
             } else {
                 // Fee applies
                 Text(fee.formattedCombined)
@@ -33,39 +25,29 @@ struct FeeRow: View {
                     .foregroundColor(themeService.textPrimaryColor)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .padding(.horizontal, 16)
     }
 }
 
 /// Compact fee display for inline use
 struct FeeLabel: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let fee: FeeResult
-    let showWaiverReason: Bool
     
-    init(fee: FeeResult, showWaiverReason: Bool = false) {
+    init(fee: FeeResult) {
         self.fee = fee
-        self.showWaiverReason = showWaiverReason
     }
     
     var body: some View {
         if fee.isFree {
-            HStack(spacing: 4) {
-                Text("No fee")
-                    .foregroundColor(Color(hex: "57CE43"))
-                
-                if showWaiverReason, let reason = fee.waiverReason, fee.isWaived {
-                    Text("•")
-                        .foregroundColor(Color(hex: "7B7B7B"))
-                    Text(reason)
-                        .foregroundColor(Color(hex: "7B7B7B"))
-                }
-            }
-            .font(.custom("Inter-Medium", size: 14))
+            Text("No fee")
+                .font(.custom("Inter-Medium", size: 14))
+                .foregroundColor(themeService.textPrimaryColor)
         } else {
             Text(fee.formattedCombined)
                 .font(.custom("Inter-Medium", size: 14))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
         }
     }
 }
@@ -96,10 +78,10 @@ struct FeeInfoCard: View {
             if isFree {
                 Text("Free")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color(hex: "57CE43"))
+                    .foregroundColor(Color.appPositiveGreen)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color(hex: "57CE43").opacity(0.1))
+                    .background(Color.appPositiveGreen.opacity(0.1))
                     .cornerRadius(8)
             } else {
                 let symbol = feeService.accountStablecoin == "EURC" ? "€" : "$"
@@ -108,74 +90,28 @@ struct FeeInfoCard: View {
                     .foregroundColor(themeService.textPrimaryColor)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color(hex: "F7F7F7"))
+                    .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
                     .cornerRadius(8)
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(themeService.cardBackgroundColor)
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "EDEDED"), lineWidth: 1)
+                .stroke(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"), lineWidth: 1)
         )
     }
 }
 
-/// Fee waiver banner for promotions
-struct FeeWaiverBanner: View {
-    @ObservedObject private var feeService = FeeService.shared
-    
-    var body: some View {
-        if feeService.freeTransfersRemaining > 0 || feeService.isEarlyAdopter {
-            HStack(spacing: 12) {
-                Image(systemName: "gift.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(Color(hex: "FF5113"))
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    if feeService.isEarlyAdopter {
-                        Text("Early Adopter Bonus")
-                            .font(.custom("Inter-Bold", size: 14))
-                            .foregroundColor(Color(hex: "080808"))
-                        Text("All fees waived")
-                            .font(.custom("Inter-Regular", size: 13))
-                            .foregroundColor(Color(hex: "7B7B7B"))
-                    } else {
-                        Text("\(feeService.freeTransfersRemaining) Free Transfer\(feeService.freeTransfersRemaining == 1 ? "" : "s")")
-                            .font(.custom("Inter-Bold", size: 14))
-                            .foregroundColor(Color(hex: "080808"))
-                        Text("Foreign currency fees waived")
-                            .font(.custom("Inter-Regular", size: 13))
-                            .foregroundColor(Color(hex: "7B7B7B"))
-                    }
-                }
-                
-                Spacer()
-            }
-            .padding(16)
-            .background(Color(hex: "FF5113").opacity(0.08))
-            .cornerRadius(16)
-        }
-    }
-}
 
 #Preview("FeeRow - Free") {
     VStack(spacing: 16) {
         FeeRow(fee: .free)
         
         FeeRow(fee: FeeResult(
-            amount: 0.50,
-            stablecoin: "USDP",
-            displayAmount: 0.40,
-            displayCurrency: "GBP",
-            isWaived: true,
-            waiverReason: "2 free transfers remaining"
-        ))
-        
-        FeeRow(fee: FeeResult(
-            amount: 0.50,
-            stablecoin: "USDP",
+            amount: 0.40,
+            stablecoin: "GBP",
             displayAmount: 0.40,
             displayCurrency: "GBP",
             isWaived: false,

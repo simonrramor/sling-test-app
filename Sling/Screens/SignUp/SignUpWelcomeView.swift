@@ -25,7 +25,7 @@ struct SignUpWelcomeView: View {
                     }
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 // Scrollable content
@@ -41,7 +41,7 @@ struct SignUpWelcomeView: View {
                                 .bodyTextStyle()
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                         .padding(.bottom, 32)
                         
@@ -71,7 +71,7 @@ struct SignUpWelcomeView: View {
                                 isAssetIcon: true
                             )
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         
                     }
                 }
@@ -90,7 +90,7 @@ struct SignUpWelcomeView: View {
                         showCountryView = true
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }

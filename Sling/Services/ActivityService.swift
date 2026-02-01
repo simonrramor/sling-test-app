@@ -1,6 +1,24 @@
 import Foundation
 import Combine
 
+// MARK: - KMP Migration Guide
+// ============================================================================
+// This service is being migrated to Kotlin Multiplatform (KMP).
+// The shared business logic is now in: shared/src/commonMain/kotlin/com/sling/shared/services/
+//
+// To complete the migration:
+// 1. Build the shared KMP framework:
+//    ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64  (for simulator)
+//    ./gradlew :shared:linkDebugFrameworkIosArm64          (for device)
+//
+// 2. Run pod install to integrate the framework
+//
+// 3. Replace usages of ActivityService.shared with SharedActivityService.shared
+//    The SharedActivityService wrapper provides the same API while using KMP logic.
+//
+// 4. Once verified, this file can be removed in favor of SharedActivityService.swift
+// ============================================================================
+
 // MARK: - Activity Item Model
 
 struct ActivityItem: Identifiable {
@@ -335,16 +353,16 @@ class ActivityService: ObservableObject {
     // MARK: - Test Data Generation
     
     private let sampleMerchants: [(name: String, avatar: String)] = [
-        ("Tesco", "🛒"),
-        ("Amazon", "📦"),
-        ("Uber", "🚗"),
-        ("Deliveroo", "🍔"),
-        ("Netflix", "🎬"),
-        ("Spotify", "🎵"),
-        ("Costa", "☕️"),
-        ("Apple", "🍎"),
-        ("TfL", "🚇"),
-        ("Sainsbury's", "🛍️")
+        ("Tesco", "tesco.com"),
+        ("Amazon", "amazon.com"),
+        ("Uber", "uber.com"),
+        ("Deliveroo", "deliveroo.com"),
+        ("Netflix", "netflix.com"),
+        ("Spotify", "spotify.com"),
+        ("Costa", "costa.co.uk"),
+        ("Apple", "apple.com"),
+        ("TfL", "tfl.gov.uk"),
+        ("Sainsbury's", "sainsburys.co.uk")
     ]
     
     private let sampleContacts: [(name: String, avatar: String)] = [

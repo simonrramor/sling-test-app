@@ -1,94 +1,311 @@
 import SwiftUI
 import UIKit
 
-struct TransactionDetailView: View {
+/// Transaction detail drawer with the new card-based design
+struct TransactionDetailDrawer: View {
     let activity: ActivityItem
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
     @State private var showSplitBill = false
+    @State private var showSendView = false
+    @State private var showRequestView = false
+    @State private var sheetOffset: CGFloat = 500
+    @State private var backgroundOpacity: Double = 0
     
     private var isOutgoing: Bool {
         activity.titleRight.hasPrefix("-")
     }
     
-    // Check if this is a card payment (can be split)
-    private var isCardPayment: Bool {
-        guard isOutgoing else { return false }
-        
-        // Exclude P2P transfers (person avatars)
+    // Transaction type detection
+    private var transactionType: TransactionType {
         let avatar = activity.avatar
-        if avatar.count <= 2 { return false }  // Initials
-        if avatar.hasPrefix("Avatar") { return false }  // Person avatar
+        let subtitle = activity.subtitleLeft.lowercased()
+        let title = activity.titleLeft.lowercased()
         
-        return true
+        // Explicit card payment check first (subtitle says "card payment")
+        if subtitle.contains("card payment") {
+            return .cardPayment
+        }
+        
+        // Check for transfers/deposits/withdrawals
+        if subtitle.contains("transfer") || subtitle.contains("deposit") || subtitle.contains("withdrawal") {
+            return .transfer
+        }
+        
+        // Check for savings transactions
+        if subtitle.contains("saving") || subtitle.contains("interest") || title.contains("saving") {
+            return .transfer
+        }
+        
+        // Check for investment/stock transactions
+        if avatar.hasPrefix("Stock") || 
+           subtitle.contains("stock") || subtitle.contains("invest") || 
+           subtitle.contains("buy") || subtitle.contains("sell") ||
+           subtitle.contains("dividend") {
+            return .transfer
+        }
+        
+        // P2P: person avatars or initials (but not emojis)
+        // Emojis typically have unicode scalars > 255, letters/numbers don't
+        let isLikelyEmoji = avatar.unicodeScalars.contains { $0.value > 255 }
+        if !isLikelyEmoji && avatar.count <= 2 { return .p2p }
+        if avatar.hasPrefix("Avatar") { return .p2p }
+        
+        // Card payment: merchant with domain or company name
+        if isOutgoing {
+            return .cardPayment
+        }
+        
+        return .transfer
+    }
+    
+    enum TransactionType {
+        case cardPayment
+        case p2p
+        case transfer
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Drawer handle
-            DrawerHandle()
+        ZStack(alignment: .bottom) {
+            // Dimmed background
+            Color.black.opacity(backgroundOpacity)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    dismissDrawer()
+                }
             
-            // Transaction header
-            TransactionHeader(activity: activity)
-            
-            // Divider
-            Rectangle()
-                .fill(Color.black.opacity(0.06))
-                .frame(height: 1)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            
-            // Detail rows
+            // Drawer content - hugs content height
             VStack(spacing: 0) {
-                TransactionDetailRow(label: isOutgoing ? "To" : "From", value: activity.titleLeft)
-                TransactionDetailRow(label: "Date", value: activity.formattedDateLong)
-                TransactionDetailRow(label: "Status", value: "Completed", valueColor: Color(hex: "57CE43"))
+                // Drawer handle
+                DrawerHandle()
                 
-                if !activity.subtitleLeft.isEmpty {
-                    TransactionDetailRow(label: "Note", value: activity.subtitleLeft)
+                // Content with padding
+                VStack(spacing: 16) {
+                    // Transaction header
+                    TransactionHeaderNew(activity: activity)
+                    
+                    // Action rows based on transaction type
+                    actionRows
+                    
+                    // Info cards
+                    infoCards
+                    
+                    // Help row
+                    TransactionActionRow(
+                        title: "Need help with this payment?",
+                        onTap: {
+                            // TODO: Open help/support flow
+                        }
+                    )
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
             }
-            .padding(.top, 16)
-            
-            Spacer()
-            
-            // Split bill button for card payments
-            if isCardPayment {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    showSplitBill = true
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "person.2.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                        Text("Split bill")
-                            .font(.custom("Inter-Bold", size: 16))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color(hex: "080808"))
-                    .cornerRadius(20)
-                }
-                .buttonStyle(PressedButtonStyle())
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+            .frame(maxWidth: .infinity)
+            .background(Color(hex: "F2F2F2"))
+            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+            .offset(y: sheetOffset)
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                sheetOffset = 0
+                backgroundOpacity = 0.4
             }
         }
-        .background(Color.white)
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.hidden)
         .fullScreenCover(isPresented: $showSplitBill) {
             SplitBillFromTransactionView(
                 isPresented: $showSplitBill,
                 payment: activity
             )
         }
+        .fullScreenCover(isPresented: $showSendView) {
+            SendView(
+                isPresented: $showSendView,
+                mode: .send,
+                preselectedContact: Contact(
+                    name: activity.titleLeft,
+                    username: "@\(activity.titleLeft.lowercased().replacingOccurrences(of: " ", with: "_"))",
+                    avatarName: activity.avatar
+                )
+            )
+        }
+        .fullScreenCover(isPresented: $showRequestView) {
+            SendView(
+                isPresented: $showRequestView,
+                mode: .request,
+                preselectedContact: Contact(
+                    name: activity.titleLeft,
+                    username: "@\(activity.titleLeft.lowercased().replacingOccurrences(of: " ", with: "_"))",
+                    avatarName: activity.avatar
+                )
+            )
+        }
+    }
+    
+    // MARK: - Action Rows
+    
+    @ViewBuilder
+    private var actionRows: some View {
+        switch transactionType {
+        case .cardPayment:
+            TransactionActionRow(
+                iconName: "TransferSplit",
+                iconColor: Color(hex: "2CC2FF"),
+                title: "Split the cost",
+                onTap: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showSplitBill = true
+                }
+            )
+            
+        case .p2p:
+            // Two buttons side by side
+            HStack(spacing: 8) {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showSendView = true
+                }) {
+                    Text("Send again")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color(hex: "080808"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showRequestView = true
+                }) {
+                    Text("Request")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color(hex: "080808"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
+        case .transfer:
+            EmptyView()
+        }
+    }
+    
+    // MARK: - Info Cards
+    
+    private var infoCards: some View {
+        VStack(spacing: 8) {
+            // First card: Status, Location, Category
+            InfoCardSection {
+                InfoCardRow(label: "Status", value: "Completed")
+                InfoCardRow(label: "Date", value: activity.formattedDateLong)
+                InfoCardRow(
+                    label: "Category",
+                    value: categoryInfo.name,
+                    valueColor: Color(hex: "FF5113"),
+                    icon: categoryInfo.icon
+                )
+            }
+            
+            // Second card: Fees, Total
+            InfoCardSection {
+                InfoCardRow(label: "Fees", value: "No fee")
+                InfoCardRow(label: "Total", value: activity.titleRight, showPip: true)
+            }
+        }
+    }
+    
+    private var categoryInfo: (name: String, icon: String) {
+        // P2P transactions should be categorized as Transfers
+        if transactionType == .p2p {
+            return ("Transfers", "arrow.up.right")
+        }
+        
+        let merchant = activity.titleLeft.lowercased()
+        let subtitle = activity.subtitleLeft.lowercased()
+        
+        // Subscriptions - streaming services, apps, recurring payments
+        let subscriptionKeywords = ["spotify", "netflix", "disney", "hulu", "apple music", "apple tv", 
+                                     "youtube", "amazon prime", "hbo", "paramount", "peacock",
+                                     "adobe", "microsoft 365", "dropbox", "icloud", "google one",
+                                     "gym", "fitness", "membership", "subscription", "monthly",
+                                     "audible", "kindle", "notion", "slack", "zoom", "canva"]
+        for keyword in subscriptionKeywords {
+            if merchant.contains(keyword) || subtitle.contains(keyword) {
+                return ("Subscriptions", "repeat")
+            }
+        }
+        
+        // Shopping
+        if merchant.contains("boot") || merchant.contains("shop") || merchant.contains("store") ||
+           merchant.contains("amazon") || merchant.contains("walmart") || merchant.contains("target") {
+            return ("Shopping", "bag.fill")
+        }
+        
+        // Transport
+        if merchant.contains("uber") || merchant.contains("lyft") || merchant.contains("transport") ||
+           merchant.contains("taxi") || merchant.contains("train") || merchant.contains("bus") {
+            return ("Transport", "car.fill")
+        }
+        
+        // Food & Drink
+        if merchant.contains("restaurant") || merchant.contains("cafe") || merchant.contains("food") ||
+           merchant.contains("starbucks") || merchant.contains("mcdonald") || merchant.contains("coffee") {
+            return ("Food & Drink", "fork.knife")
+        }
+        
+        // Entertainment
+        if merchant.contains("cinema") || merchant.contains("movie") || merchant.contains("theater") ||
+           merchant.contains("concert") || merchant.contains("ticket") {
+            return ("Entertainment", "ticket.fill")
+        }
+        
+        return ("General", "bag.fill")
+    }
+    
+    private func dismissDrawer() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            sheetOffset = 500
+            backgroundOpacity = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            isPresented = false
+        }
     }
 }
 
-// MARK: - Split Bill From Transaction (skips transaction selector)
+// MARK: - View Modifier for Transaction Detail
+
+extension View {
+    func transactionDetailDrawer(
+        isPresented: Binding<Bool>,
+        activity: ActivityItem?
+    ) -> some View {
+        self.fullScreenCover(isPresented: isPresented) {
+            if let activity = activity {
+                TransactionDetailDrawer(
+                    activity: activity,
+                    isPresented: isPresented
+                )
+                .background(ClearBackgroundView())
+            }
+        }
+        .transaction { transaction in
+            transaction.disablesAnimations = true
+        }
+    }
+}
+
+
+// MARK: - Split Bill From Transaction
 
 struct SplitBillFromTransactionView: View {
     @Binding var isPresented: Bool
@@ -103,22 +320,9 @@ struct SplitBillFromTransactionView: View {
     }
 }
 
-// MARK: - Drawer Handle
+// MARK: - New Transaction Header
 
-struct DrawerHandle: View {
-    var body: some View {
-        RoundedRectangle(cornerRadius: 3)
-            .fill(Color.black.opacity(0.2))
-            .frame(width: 32, height: 6)
-            .padding(.top, 8)
-            .padding(.bottom, 16)
-    }
-}
-
-// MARK: - Transaction Header
-
-struct TransactionHeader: View {
-    @ObservedObject private var themeService = ThemeService.shared
+struct TransactionHeaderNew: View {
     let activity: ActivityItem
     
     private var isPositive: Bool {
@@ -129,34 +333,38 @@ struct TransactionHeader: View {
         isPositive ? Color(hex: "57CE43") : Color(hex: "080808")
     }
     
-    private var prefix: String {
-        isPositive ? "From" : "To"
-    }
-    
     var body: some View {
-        VStack(spacing: 16) {
-            // Large avatar
+        VStack(alignment: .leading, spacing: 12) {
+            // Large avatar (left-aligned)
             TransactionAvatarLarge(identifier: activity.avatar)
             
-            // Transaction info
-            VStack(spacing: 4) {
-                // To/From label
-                HStack(spacing: 4) {
-                    Text(prefix)
-                        .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(themeService.textSecondaryColor)
+            // Name + subtitle on left, amount on right
+            HStack(alignment: .center) {
+                // Left side: Name and subtitle
+                VStack(alignment: .leading, spacing: 6) {
                     Text(activity.titleLeft)
-                        .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(themeService.textSecondaryColor)
+                        .font(.custom("Inter-Bold", size: 28))
+                        .foregroundColor(Color(hex: "080808"))
+                        .lineLimit(1)
+                    
+                    // Subtitle (note or category)
+                    if !activity.subtitleLeft.isEmpty {
+                        Text(activity.subtitleLeft)
+                            .font(.custom("Inter-Medium", size: 14))
+                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .lineLimit(1)
+                    }
                 }
                 
-                // Amount
+                Spacer()
+                
+                // Right side: Amount
                 Text(activity.titleRight)
-                    .font(.custom("Inter-Bold", size: 32))
+                    .font(.custom("Inter-Bold", size: 20))
                     .foregroundColor(amountColor)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.top, 24)
         .padding(.bottom, 16)
     }
 }
@@ -269,40 +477,143 @@ struct TransactionAvatarLarge: View {
     }
 }
 
-// MARK: - Transaction Detail Row
+// MARK: - Transaction Action Row
 
-struct TransactionDetailRow: View {
-    @ObservedObject private var themeService = ThemeService.shared
+struct TransactionActionRow: View {
+    var iconName: String? = nil
+    var iconColor: Color = Color(hex: "080808")
+    let title: String
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                // Icon container (if icon provided)
+                if let iconName = iconName {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(hex: "F7F7F7"))
+                            .frame(width: 44, height: 44)
+                        
+                        Image(iconName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(iconColor)
+                    }
+                }
+                
+                // Title
+                Text(title)
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color(hex: "080808"))
+                
+                Spacer()
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "999999"))
+            }
+            .padding(16)
+            .background(Color.white)
+            .cornerRadius(16)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Info Card Section
+
+struct InfoCardSection<Content: View>: View {
+    let content: Content
+    
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+        }
+        .padding(.vertical, 12)
+        .background(Color.white)
+        .cornerRadius(16)
+    }
+}
+
+// MARK: - Info Card Row
+
+struct InfoCardRow: View {
     let label: String
     let value: String
     var valueColor: Color = Color(hex: "080808")
+    var icon: String? = nil
+    var showPip: Bool = false
     
     var body: some View {
         HStack {
             Text(label)
                 .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(themeService.textSecondaryColor)
+                .foregroundColor(Color(hex: "7B7B7B"))
             
             Spacer()
             
-            Text(value)
-                .font(.custom("Inter-Medium", size: 16))
-                .foregroundColor(valueColor)
+            HStack(spacing: 6) {
+                if showPip {
+                    Circle()
+                        .fill(Color.black.opacity(0.1))
+                        .frame(width: 4, height: 4)
+                }
+                
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(valueColor)
+                }
+                
+                Text(value)
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(valueColor)
+            }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - TransactionDetailView (for screenshot mode compatibility)
+
+struct TransactionDetailView: View {
+    let activity: ActivityItem
+    @State private var isPresented = true
+    
+    var body: some View {
+        ZStack {
+            Color.gray.ignoresSafeArea()
+            
+            TransactionDetailDrawer(
+                activity: activity,
+                isPresented: $isPresented
+            )
+        }
     }
 }
 
 #Preview {
-    TransactionDetailView(
-        activity: ActivityItem(
-            avatar: "monzo.com",
-            titleLeft: "Monzo",
-            subtitleLeft: "Bank transfer",
-            titleRight: "-£10.00",
-            subtitleRight: "",
-            date: Date()
+    ZStack {
+        Color.gray.ignoresSafeArea()
+        
+        TransactionDetailDrawer(
+            activity: ActivityItem(
+                avatar: "boots.com",
+                titleLeft: "Boots",
+                subtitleLeft: "SA *BOOTS FARMA London GBR",
+                titleRight: "-£100.00",
+                subtitleRight: "",
+                date: Date()
+            ),
+            isPresented: .constant(true)
         )
-    )
+    }
 }

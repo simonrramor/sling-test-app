@@ -8,9 +8,8 @@ enum Tab: String, CaseIterable {
     case savings = "Savings"
     
     // Tabs that appear in the left pill (no transfer - it's a sheet now)
-    // TODO: Add .savings back when ready
     static var pillTabs: [Tab] {
-        [.home, .card, .invest]
+        [.home, .card, .invest, .savings]
     }
 }
 
@@ -40,7 +39,7 @@ struct BottomNavView: View {
             .padding(DesignSystem.Spacing.sm)
             .background(
                 Capsule()
-                    .fill(themeService.currentTheme == .dark ? Color(hex: "1C1C1E") : Color.white)
+                    .fill(themeService.currentTheme == .dark ? Color.black : Color.white)
                     .shadow(color: Color.black.opacity(0.08), radius: DesignSystem.CornerRadius.small, x: 0, y: 4)
             )
             
@@ -68,6 +67,26 @@ struct PillTabButton: View {
         }
     }
     
+    // Icon color based on theme
+    private var iconColor: Color {
+        switch themeService.currentTheme {
+        case .dark:
+            return .white
+        case .grey, .white:
+            return Color(hex: DesignSystem.Colors.dark)
+        }
+    }
+    
+    // Selected pill background color based on theme
+    private var selectedBackgroundColor: Color {
+        switch themeService.currentTheme {
+        case .dark:
+            return Color(hex: "2C2C2E") // Slightly lighter dark
+        case .grey, .white:
+            return Color(hex: DesignSystem.Colors.backgroundLight)
+        }
+    }
+    
     var body: some View {
         Button(action: onTap) {
             Image(iconName)
@@ -75,12 +94,12 @@ struct PillTabButton: View {
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: DesignSystem.IconSize.medium, height: DesignSystem.IconSize.medium)
-                .foregroundColor(Color(hex: DesignSystem.Colors.dark))
+                .foregroundColor(iconColor)
                 .padding(.horizontal, 20)
                 .padding(.vertical, DesignSystem.CornerRadius.small)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Color(hex: DesignSystem.Colors.backgroundLight) : Color.clear)
+                        .fill(isSelected ? selectedBackgroundColor : Color.clear)
                 )
         }
         .buttonStyle(NoFeedbackButtonStyle())

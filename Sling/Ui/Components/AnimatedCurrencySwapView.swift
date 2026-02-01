@@ -79,7 +79,7 @@ struct AnimatedCurrencySwapView: View {
                             .font(.custom("Inter-Bold", size: 64))
                             .foregroundColor(showingPrimaryOnTop ? secondaryColor : primaryColor)
                             .tracking(-1.6)
-                            .lineLimit(1)
+                            .lineLimit(1)   
                             .fixedSize()
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)

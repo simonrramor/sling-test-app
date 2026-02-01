@@ -17,6 +17,7 @@ enum SignUpStep: Int, CaseIterable {
 
 /// Container view that manages the signup flow with slide transitions
 struct SignUpFlowView: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Binding var isComplete: Bool
     var startStep: SignUpStep = .phone
     
@@ -108,13 +109,14 @@ struct SignUpFlowView: View {
             goToStep(.reviewTerms)
         case .reviewTerms:
             signUpData.hasAcceptedTerms = true
+            AnalyticsService.shared.track("signup_completed")
             isComplete = true
         }
     }
     
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            themeService.backgroundColor.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Static header - doesn't animate
@@ -129,6 +131,7 @@ struct SignUpFlowView: View {
                     },
                     onSkip: {
                         // Skip sign-up for development
+                        AnalyticsService.shared.track("signup_skipped", properties: ["method": "header_button"])
                         isComplete = true
                     },
                     onLongPress: {
@@ -239,6 +242,10 @@ struct SignUpFlowView: View {
     }
     
     private func goToStep(_ step: SignUpStep) {
+        // Track step transition
+        AnalyticsService.shared.trackSignUpStep(String(describing: currentStep), completed: true)
+        AnalyticsService.shared.trackSignUpStep(String(describing: step))
+        
         previousStep = currentStep
         currentStep = step
     }
@@ -249,6 +256,7 @@ struct SignUpFlowView: View {
 /// Phone entry content
 struct SignUpPhoneContent: View {
     @ObservedObject var signUpData: SignUpData
+    var disableAutoFocus: Bool = false
     
     @State private var showCountryPicker = false
     @FocusState private var isPhoneFocused: Bool
@@ -266,7 +274,7 @@ struct SignUpPhoneContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
                 
@@ -277,7 +285,7 @@ struct SignUpPhoneContent: View {
                     isFocused: $isPhoneFocused,
                     onCountryTap: { showCountryPicker = true }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 // Bottom padding for button
                 Spacer().frame(height: 150)
@@ -289,13 +297,19 @@ struct SignUpPhoneContent: View {
                 isPresented: $showCountryPicker
             )
         }
-        .onAppear { isPhoneFocused = true }
+        .onAppear {
+            if !disableAutoFocus {
+                isPhoneFocused = true
+            }
+        }
     }
 }
 
 /// Verification code content
 struct SignUpVerificationContent: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject var signUpData: SignUpData
+    var disableAutoFocus: Bool = false
     
     @FocusState private var isCodeFocused: Bool
     
@@ -314,7 +328,7 @@ struct SignUpVerificationContent: View {
                         HStack(spacing: 0) {
                             Text("Didn't receive a code? ")
                                 .font(.custom("Inter-Regular", size: 16))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .foregroundColor(themeService.textSecondaryColor)
                             
                             Button(action: { /* Resend */ }) {
                                 Text("Request again.")
@@ -325,17 +339,21 @@ struct SignUpVerificationContent: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 32)
                 
                 VerificationCodeInput(code: $signUpData.verificationCode, length: 6, isFocused: $isCodeFocused)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                 
                 Spacer().frame(height: 150)
             }
         }
-        .onAppear { isCodeFocused = true }
+        .onAppear {
+            if !disableAutoFocus {
+                isCodeFocused = true
+            }
+        }
     }
 }
 
@@ -354,7 +372,7 @@ struct SignUpWelcomeContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 32)
                 
@@ -381,7 +399,7 @@ struct SignUpWelcomeContent: View {
                         isAssetIcon: true
                     )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 Spacer().frame(height: 170)
             }
@@ -419,12 +437,12 @@ struct SignUpCountryContent: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 16)
             
             SearchField(text: $searchText, placeholder: "Search countries")
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             
             ScrollView {
@@ -468,6 +486,7 @@ struct SignUpNameContent: View {
     @Binding var validationTrigger: Bool
     var onValidationStateChanged: ((Bool, String?) -> Void)? = nil
     var onValidatedContinue: (() -> Void)? = nil
+    var disableAutoFocus: Bool = false
     
     @StateObject private var nameValidationService = NameValidationService()
     @FocusState private var focusedField: NameField?
@@ -492,7 +511,7 @@ struct SignUpNameContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
                 
@@ -532,12 +551,16 @@ struct SignUpNameContent: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 Spacer().frame(height: 150)
             }
         }
-        .onAppear { focusedField = .firstName }
+        .onAppear {
+            if !disableAutoFocus {
+                focusedField = .firstName
+            }
+        }
         .onChange(of: isValidating) { _, newValue in
             onValidationStateChanged?(newValue, validationError)
         }
@@ -608,6 +631,7 @@ struct SignUpNameContent: View {
 /// Birthday entry content
 struct SignUpBirthdayContent: View {
     @ObservedObject var signUpData: SignUpData
+    var disableAutoFocus: Bool = false
     
     @State private var showMonthPicker = false
     @State private var selectedMonthName = ""
@@ -630,7 +654,7 @@ struct SignUpBirthdayContent: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
                 
@@ -661,12 +685,16 @@ struct SignUpBirthdayContent: View {
                     .focused($focusedField, equals: .year)
                     .frame(width: 100)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 Spacer().frame(height: 150)
             }
         }
-        .onAppear { focusedField = .day }
+        .onAppear {
+            if !disableAutoFocus {
+                focusedField = .day
+            }
+        }
         .sheet(isPresented: $showMonthPicker) {
             MonthPickerSheet(selectedMonth: $selectedMonthName, isPresented: $showMonthPicker)
         }
@@ -678,235 +706,11 @@ struct SignUpBirthdayContent: View {
     }
 }
 
-/// Review terms content - agreements list and e-signature toggle
-struct SignUpReviewTermsContent: View {
-    @ObservedObject var signUpData: SignUpData
-    @Environment(\.openURL) private var openURL
-    
-    // Terms URLs
-    private let bridgeTermsURL = URL(string: "https://www.bridge.xyz/legal/terms-of-service")!
-    private let bridgePrivacyURL = URL(string: "https://www.bridge.xyz/legal/privacy-policy")!
-    private let leadCardholderURL = URL(string: "https://www.lead.bank/legal/cardholder-agreement")!
-    private let leadPrivacyURL = URL(string: "https://www.lead.bank/privacy-policy")!
-    
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Review terms")
-                        .h2Style()
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    Text("To verify your identity and activate your card and account, please review and accept these agreements.")
-                        .bodyTextStyle()
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
-                
-                // Service cards
-                VStack(spacing: 12) {
-                    TermsServiceCard(
-                        icon: "person.text.rectangle",
-                        title: "Secure ID verification",
-                        subtitle: "Verify your identity with Persona"
-                    )
-                    
-                    TermsServiceCard(
-                        icon: "creditcard",
-                        title: "Debit card",
-                        subtitle: "Issued by Bridge and Lead Bank"
-                    )
-                    
-                    TermsServiceCard(
-                        icon: "building.columns",
-                        title: "Account details",
-                        subtitle: "Issued by Bridge"
-                    )
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
-                
-                // Divider
-                Divider()
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
-                
-                // Agreement links
-                VStack(spacing: 0) {
-                    TermsLinkRow(title: "Bridge Terms of Service") {
-                        openURL(bridgeTermsURL)
-                    }
-                    
-                    TermsLinkRow(title: "Bridge Privacy Policy") {
-                        openURL(bridgePrivacyURL)
-                    }
-                    
-                    TermsLinkRow(title: "Lead Card Holder Agreement") {
-                        openURL(leadCardholderURL)
-                    }
-                    
-                    TermsLinkRow(title: "Lead Privacy Policy") {
-                        openURL(leadPrivacyURL)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
-                
-                // E-signature toggle
-                ESignatureToggle(isEnabled: $signUpData.useESignature)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
-                
-                // Disclaimer text
-                Text("Tap 'I agree' to confirm that you have reviewed and accepted the terms above.")
-                    .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                
-                Spacer().frame(height: 150)
-            }
-        }
-    }
-}
-
-// MARK: - Terms Components
-
-/// Card showing a service that requires agreement
-struct TermsServiceCard: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Icon
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: "F7F7F7"))
-                    .frame(width: 40, height: 40)
-                
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(Color(hex: "7B7B7B"))
-            }
-            
-            // Text content
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
-                
-                Text(subtitle)
-                    .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(Color(hex: "7B7B7B"))
-            }
-            
-            Spacer()
-            
-            // Chevron
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color(hex: "7B7B7B"))
-        }
-        .padding(16)
-        .background(Color.white)
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(hex: "E5E5E5"), lineWidth: 1)
-        )
-    }
-}
-
-/// Row showing a terms link with external icon
-struct TermsLinkRow: View {
-    let title: String
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                // Document icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(hex: "F7F7F7"))
-                        .frame(width: 40, height: 40)
-                    
-                    Image(systemName: "doc.text")
-                        .font(.system(size: 18))
-                        .foregroundColor(Color(hex: "7B7B7B"))
-                }
-                
-                // Title
-                Text(title)
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
-                
-                Spacer()
-                
-                // External link icon
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "7B7B7B"))
-            }
-            .padding(.vertical, 12)
-        }
-    }
-}
-
-/// Toggle for e-signature agreement
-struct ESignatureToggle: View {
-    @Binding var isEnabled: Bool
-    
-    var body: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
-            isEnabled.toggle()
-        }) {
-            HStack(spacing: 16) {
-                // Text
-                Text("Sign with e-signature")
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "080808"))
-                
-                Spacer()
-                
-                // Checkbox
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(isEnabled ? Color(hex: "FF5113") : Color(hex: "D1D1D1"), lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                    
-                    if isEnabled {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color(hex: "FF5113"))
-                            .frame(width: 24, height: 24)
-                        
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isEnabled ? Color(hex: "FF5113") : Color(hex: "E5E5E5"), lineWidth: isEnabled ? 2 : 1)
-            )
-        }
-    }
-}
-
 // MARK: - Shared Components
 
 /// Fixed bottom button container for consistent positioning
 struct SignUpBottomButton: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let title: String
     let isEnabled: Bool
     let action: () -> Void
@@ -930,12 +734,12 @@ struct SignUpBottomButton: View {
                 if let subtitle = subtitle {
                     Text(subtitle)
                         .font(.custom("Inter-Regular", size: 14))
-                        .foregroundColor(Color(hex: "7B7B7B"))
+                        .foregroundColor(themeService.textSecondaryColor)
                         .padding(.bottom, 16)
                 }
                 
                 SecondaryButton(title: title, isEnabled: isEnabled, action: action)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
             }
             .padding(.bottom, 16)
             .frame(maxWidth: .infinity)
@@ -947,6 +751,7 @@ struct SignUpBottomButton: View {
 
 /// Header with progress bar and back button for signup steps
 struct SignUpStepHeader: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let progress: CGFloat
     let onBack: () -> Void
     var onSkip: (() -> Void)? = nil
@@ -975,7 +780,7 @@ struct SignUpStepHeader: View {
                 }) {
                     Image(systemName: "arrow.left")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 44, height: 44)
                 }
                 
@@ -986,7 +791,7 @@ struct SignUpStepHeader: View {
                 if onSkip != nil || onLongPress != nil {
                     Text("•••")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(Color(hex: "080808"))
+                        .foregroundColor(themeService.textPrimaryColor)
                         .frame(width: 44, height: 44)
                         .background(Color(hex: "F7F7F7"))
                         .cornerRadius(12)
@@ -1090,9 +895,9 @@ struct SignUpStagePicker: View {
             // Selection: scale from 1 up to fullScale
             let selectionScale = 1 + (fullScale - 1) * selectionProgress
             
-            // Corner radius interpolation
-            let introCornerRadius = 40 * introProgress
-            let selectionCornerRadius = 40 * (1 - selectionProgress)
+            // Corner radius interpolation - 47pt matches iPhone device corners
+            let introCornerRadius = 47 * introProgress
+            let selectionCornerRadius = 47 * (1 - selectionProgress)
             
             
             ZStack {
@@ -1154,7 +959,7 @@ struct SignUpStagePicker: View {
                         
                         ScrollView(.horizontal, showsIndicators: false) {
                             ScrollViewReader { proxy in
-                                HStack(spacing: 16) {
+                                HStack(spacing: 24) {
                                     ForEach(StagePickerScreen.allCases) { screen in
                                         // All cards fade in together
                                         let cardOpacity = cardsVisible
@@ -1176,8 +981,8 @@ struct SignUpStagePicker: View {
                                                 
                                                 StageCardPreview(screen: screen)
                                                     .frame(width: cardWidth, height: cardHeight)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))
-                                                    .overlay(cardOverlay(cornerRadius: 40))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 47, style: .continuous))
+                                                    .overlay(cardOverlay(cornerRadius: 47))
                                                     .shadow(color: .black.opacity(0.5 * positionScale), radius: 40, x: 0, y: 20)
                                                     .onTapGesture {
                                                         selectScreen(screen)
@@ -1315,6 +1120,7 @@ struct SignUpStagePicker: View {
 
 /// Preview card showing actual screen content
 struct StageCardPreview: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let screen: StagePickerScreen
     
     @StateObject private var previewData = SignUpData()
@@ -1352,12 +1158,12 @@ struct StageCardPreview: View {
         case .phone:
             VStack(spacing: 0) {
                 headerPreview(progress: SignUpStep.phone.progress)
-                SignUpPhoneContent(signUpData: previewData)
+                SignUpPhoneContent(signUpData: previewData, disableAutoFocus: true)
             }
         case .verification:
             VStack(spacing: 0) {
                 headerPreview(progress: SignUpStep.verification.progress)
-                SignUpVerificationContent(signUpData: previewData)
+                SignUpVerificationContent(signUpData: previewData, disableAutoFocus: true)
             }
         case .welcomeInfo:
             VStack(spacing: 0) {
@@ -1372,12 +1178,12 @@ struct StageCardPreview: View {
         case .name:
             VStack(spacing: 0) {
                 headerPreview(progress: SignUpStep.name.progress)
-                SignUpNameContent(signUpData: previewData, validationTrigger: .constant(false))
+                SignUpNameContent(signUpData: previewData, validationTrigger: .constant(false), disableAutoFocus: true)
             }
         case .birthday:
             VStack(spacing: 0) {
                 headerPreview(progress: SignUpStep.birthday.progress)
-                SignUpBirthdayContent(signUpData: previewData)
+                SignUpBirthdayContent(signUpData: previewData, disableAutoFocus: true)
             }
         case .reviewTerms:
             VStack(spacing: 0) {
@@ -1394,7 +1200,7 @@ struct StageCardPreview: View {
             HStack {
                 Image(systemName: "arrow.left")
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                     .frame(width: 44, height: 44)
                 Spacer()
             }
@@ -1407,6 +1213,8 @@ struct StageCardPreview: View {
 
 /// Preview content for the login/welcome screen
 struct LoginPreviewContent: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -1414,10 +1222,10 @@ struct LoginPreviewContent: View {
             
             Text("The global account for global people")
                 .font(.custom("Inter-Bold", size: 32))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             
             VStack(spacing: 24) {
@@ -1427,7 +1235,7 @@ struct LoginPreviewContent: View {
                 FeatureRowPreview(icon: "building.columns.fill", title: "EUR and USD accounts")
                 FeatureRowPreview(icon: "clock.fill", title: "Sign up in minutes")
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             Spacer()
             
@@ -1438,16 +1246,17 @@ struct LoginPreviewContent: View {
                     .frame(width: 56, height: 56)
                 
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(hex: "080808"))
+                    .fill(themeService.textPrimaryColor)
                     .frame(height: 56)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.bottom, 50)
         }
     }
 }
 
 struct FeatureRowPreview: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let icon: String
     let title: String
     
@@ -1465,7 +1274,7 @@ struct FeatureRowPreview: View {
             
             Text(title)
                 .font(.custom("Inter-Bold", size: 18))
-                .foregroundColor(Color(hex: "080808"))
+                .foregroundColor(themeService.textPrimaryColor)
             
             Spacer()
         }

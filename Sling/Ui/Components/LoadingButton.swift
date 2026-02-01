@@ -178,11 +178,11 @@ struct ShrinkingButton: View {
         LoadingButton.withLoader(title: "Send £50.00") {
             print("Complete with loader!")
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 16)
         
         LoadingButton.shrinkOnly(title: "Buy 0.56 AAPL") {
             print("Complete without loader!")
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 16)
     }
 }

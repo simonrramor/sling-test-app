@@ -167,9 +167,9 @@ struct InvestView: View {
     
     var changeColor: Color {
         if isNoChange {
-            return Color(hex: "7B7B7B") // Grey for no change
+            return themeService.textSecondaryColor // Grey for no change
         }
-        return isPositiveChange ? Color(hex: "57CE43") : Color(hex: "E30000")
+        return isPositiveChange ? Color.appPositiveGreen : Color.appNegativeRed
     }
     
     var changeText: String {
@@ -204,7 +204,7 @@ struct InvestView: View {
                 // Portfolio Header
                 VStack(alignment: .leading, spacing: 4) {
                     if isPortfolioEmpty {
-                        Text("Your portfolio")
+                        Text("Portfolio")
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                         
@@ -214,7 +214,7 @@ struct InvestView: View {
                             .foregroundColor(themeService.textPrimaryColor)
                     } else {
                         HStack(spacing: 6) {
-                            Text("Your portfolio")
+                            Text("Portfolio")
                                 .font(.custom("Inter-Medium", size: 16))
                                 .foregroundColor(themeService.textSecondaryColor)
                             
@@ -233,20 +233,20 @@ struct InvestView: View {
                         SlidingNumberText(
                             text: displayPortfolioTotal > 0 ? portfolioTotalText : "$0.00",
                             font: .custom("Inter-Bold", size: 48),
-                            color: Color(hex: "080808")
+                            color: themeService.textPrimaryColor
                         )
                         .tracking(-0.96)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 16)
                 .animation(.easeInOut(duration: 0.1), value: dragProgress)
                 
                 // Promotional card for empty portfolio
                 if isPortfolioEmpty {
                     StartInvestingCard()
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
                 
@@ -422,10 +422,10 @@ struct StartInvestingCard: View {
             }) {
                 Text("Start investing")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(.white)
+                    .foregroundColor(themeService.currentTheme == .dark ? .black : .white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color(hex: "080808"))
+                    .background(themeService.textPrimaryColor)
                     .cornerRadius(12)
             }
         }
@@ -434,7 +434,7 @@ struct StartInvestingCard: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(Color(hex: "F7F7F7"))
+                .fill(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
         )
         .fullScreenCover(isPresented: $showStockList) {
             BrowseStocksView(isPresented: $showStockList)

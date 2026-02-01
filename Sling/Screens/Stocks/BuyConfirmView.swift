@@ -92,7 +92,7 @@ struct BuyConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -190,7 +190,7 @@ struct BuyConfirmView: View {
                         isButtonLoading = false
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

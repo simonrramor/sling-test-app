@@ -135,20 +135,20 @@ struct ChartView: View {
                     // Grey line (full chart - shown when dragging)
                     if isDragging {
                         AnimatedChartLine(points: animatedPoints.isEmpty ? normalizePoints(sourceChartPoints) : animatedPoints, width: width, height: height)
-                            .stroke(Color(hex: "EDEDED"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                            .stroke(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
                             .animation(.spring(response: 0.25, dampingFraction: 0.8), value: animatedPoints)
                     }
                     
-                    // Black line (partial or full based on drag)
+                    // Primary line (partial or full based on drag)
                     AnimatedChartLine(points: animatedPoints.isEmpty ? normalizePoints(sourceChartPoints) : animatedPoints, width: width, height: height, trimEnd: dragProgress)
-                        .stroke(Color(hex: "080808"), style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                        .stroke(themeService.textPrimaryColor, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
                         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: animatedPoints)
                     
                     // Vertical line at drag position with time label
                     if isDragging {
                         // Vertical line
                         Rectangle()
-                            .fill(Color(hex: "EDEDED"))
+                            .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"))
                             .frame(width: 1)
                             .position(x: dotX, y: height / 2)
                         
@@ -160,7 +160,7 @@ struct ChartView: View {
                             .padding(.vertical, 3)
                             .background(
                                 RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color(hex: "EDEDED"))
+                                    .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"))
                             )
                             .position(x: dotX, y: -12)
                     }
@@ -169,11 +169,11 @@ struct ChartView: View {
                     if isDragging {
                         // Static dot when dragging
                         Circle()
-                            .fill(Color(hex: "080808"))
+                            .fill(themeService.textPrimaryColor)
                             .frame(width: 12, height: 12)
                             .overlay(
                                 Circle()
-                                    .stroke(Color.white, lineWidth: 3)
+                                    .stroke(themeService.cardBackgroundColor, lineWidth: 3)
                             )
                             .position(x: dotX, y: dotY)
                     } else {
@@ -251,15 +251,15 @@ struct ChartView: View {
                         Text(period)
                             .font(.custom(selectedPeriod == period ? "Inter-Medium" : "Inter-Regular", size: 14))
                             .foregroundColor(
-                                isDisabled ? Color(hex: "CFCFCF") :
-                                (selectedPeriod == period ? Color(hex: "080808") : Color(hex: "7B7B7B"))
+                                isDisabled ? themeService.textTertiaryColor :
+                                (selectedPeriod == period ? themeService.textPrimaryColor : themeService.textSecondaryColor)
                             )
                             .frame(height: 20) // Line height 20
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(selectedPeriod == period && !isDisabled ? Color(hex: "E8E8E8") : Color.clear)
+                                    .fill(selectedPeriod == period && !isDisabled ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "E8E8E8")) : Color.clear)
                             )
                     }
                     .buttonStyle(.plain)
@@ -380,21 +380,26 @@ struct AnimatedChartLine: Shape {
 }
 
 struct PulsingDot: View {
-    var color: Color = Color(hex: "080808")
+    @ObservedObject private var themeService = ThemeService.shared
+    var color: Color? = nil
     @State private var isPulsing = false
+    
+    private var dotColor: Color {
+        color ?? themeService.textPrimaryColor
+    }
 
     var body: some View {
         ZStack {
             // Pulsing outer ring
             Circle()
-                .fill(color.opacity(0.2))
+                .fill(dotColor.opacity(0.2))
                 .frame(width: 32, height: 32)
                 .scaleEffect(isPulsing ? 1.0 : 0.5)
                 .opacity(isPulsing ? 0 : 1)
 
             // Solid center dot
             Circle()
-                .fill(color)
+                .fill(dotColor)
                 .frame(width: 12, height: 12)
         }
         .onAppear {

@@ -70,14 +70,14 @@ struct SplitBillView: View {
                     Color.clear
                         .frame(width: 32, height: 32)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 // Scan Receipt Card
                 ScanReceiptCard(onTap: {
                     showReceiptScanner = true
                 })
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Section header
@@ -87,7 +87,7 @@ struct SplitBillView: View {
                         .foregroundColor(themeService.textPrimaryColor)
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 8)
                 
                 // Payment list
@@ -133,7 +133,7 @@ struct SplitBillView: View {
                     payment: payment,
                     onDismissAll: { isPresented = false }
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showUserSelection)
@@ -229,7 +229,7 @@ struct PaymentRow: View {
                     .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(themeService.textPrimaryColor)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
@@ -322,7 +322,7 @@ struct SplitUserSelectionView: View {
                 Color.clear
                     .frame(width: 24, height: 24)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .frame(height: 64)
             
             // Search bar
@@ -339,7 +339,7 @@ struct SplitUserSelectionView: View {
             .frame(height: 56)
             .background(Color(hex: "F5F5F5"))
             .cornerRadius(16)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.bottom, 16)
             
             // User list
@@ -395,7 +395,7 @@ struct SplitUserSelectionView: View {
                 }
                 .buttonStyle(PressedButtonStyle())
                 .disabled(!hasSelection)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 24)
                 .background(Color.white)
@@ -411,7 +411,7 @@ struct SplitUserSelectionView: View {
                     selectedContacts: selectedContacts,
                     onDismissAll: onDismissAll
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showSplitAmount)
@@ -472,7 +472,7 @@ struct SelectableUserRow: View {
                     }
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .contentShape(Rectangle())
         }
@@ -576,7 +576,7 @@ struct SplitAmountView: View {
                     Color.clear
                         .frame(width: 24, height: 24)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -606,7 +606,7 @@ struct SplitAmountView: View {
                         .font(.custom("Inter-Bold", size: 16))
                         .foregroundColor(themeService.textPrimaryColor)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -615,7 +615,7 @@ struct SplitAmountView: View {
                 Rectangle()
                     .fill(Color(hex: "EEEEEE"))
                     .frame(height: 1)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                     .opacity(isButtonLoading ? 0 : 1)
                     .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -638,7 +638,7 @@ struct SplitAmountView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
@@ -677,7 +677,7 @@ struct SplitAmountView: View {
                     
                     onDismissAll()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 24)
                 .background(Color.white)

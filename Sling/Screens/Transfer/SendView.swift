@@ -44,6 +44,7 @@ enum PaymentMode {
 struct SendView: View {
     @Binding var isPresented: Bool
     var mode: PaymentMode = .send
+    var preselectedContact: Contact? = nil
     @ObservedObject private var themeService = ThemeService.shared
     @State private var searchText = ""
     @State private var selectedContact: Contact? = nil
@@ -109,7 +110,7 @@ struct SendView: View {
                     Spacer()
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .frame(height: 56)
             
             // Search bar
@@ -138,7 +139,7 @@ struct SendView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color(hex: "F7F7F7"))
             )
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
             
             ScrollView {
@@ -153,7 +154,7 @@ struct SendView: View {
                                     }
                                 }
                             }
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                         }
                         .padding(.top, 16)
@@ -182,10 +183,17 @@ struct SendView: View {
                         isPresented = false
                     }
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
             }
         }
         .animation(.easeInOut(duration: 0.3), value: showAmountInput)
+        .onAppear {
+            // If a contact was preselected, automatically show the amount input
+            if let preselected = preselectedContact {
+                selectedContact = preselected
+                showAmountInput = true
+            }
+        }
     }
     
     private func selectContact(_ contact: Contact) {
@@ -209,9 +217,10 @@ struct SendAmountView: View {
     @State private var showConfirmation = false
     
     private let portfolioService = PortfolioService.shared
+    private let displayCurrencyService = DisplayCurrencyService.shared
     
     var currencySymbol: String {
-        ExchangeRateService.symbol(for: portfolioService.displayCurrency)
+        ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
     }
     
     var amountValue: Double {
@@ -294,7 +303,7 @@ struct SendAmountView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
@@ -321,7 +330,7 @@ struct SendAmountView: View {
                     subtitleParts: [formattedBalance],
                     showMenu: true
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -338,7 +347,7 @@ struct SendAmountView: View {
                     generator.impactOccurred()
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -353,10 +362,10 @@ struct SendAmountView: View {
                         onDismissAll()
                     }
                 )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .transition(.fluidConfirm)
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showConfirmation)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
     }
 }
 

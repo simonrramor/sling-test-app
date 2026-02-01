@@ -62,7 +62,7 @@ struct SignUpVerificationView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                         .padding(.bottom, 24)
                         
@@ -72,7 +72,7 @@ struct SignUpVerificationView: View {
                             length: codeLength,
                             isFocused: $isCodeFocused
                         )
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         
                         // Error message
                         if let error = errorMessage {
@@ -84,7 +84,7 @@ struct SignUpVerificationView: View {
                             }
                             .foregroundColor(Color(hex: "E53935"))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.top, 16)
                         }
                     }
@@ -112,7 +112,7 @@ struct SignUpVerificationView: View {
                 }
                 .buttonStyle(PressedButtonStyle())
                 .disabled(!canContinue)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

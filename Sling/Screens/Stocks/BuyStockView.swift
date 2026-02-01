@@ -137,20 +137,17 @@ struct BuyStockView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
                 
                 // Amount input display with swap animation
-                AmountSwapView(
-                    dollarDisplay: dollarDisplay,
-                    sharesDisplay: sharesDisplay,
-                    isSharesMode: isSharesMode,
+                AnimatedCurrencySwapView(
+                    primaryDisplay: dollarDisplay,
+                    secondaryDisplay: sharesDisplay,
+                    showingPrimaryOnTop: !isSharesMode,
                     onSwap: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        
                         // Convert current value to the other mode
                         if isSharesMode {
                             let dollars = dollarAmount
@@ -159,14 +156,11 @@ struct BuyStockView: View {
                             let shares = sharesAmount
                             amountString = shares > 0 ? String(format: "%.2f", shares) : ""
                         }
-                        
-                        withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) {
-                            isSharesMode.toggle()
-                        }
+                        isSharesMode.toggle()
                     },
                     errorMessage: isOverBalance ? "Insufficient balance" : nil
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 Spacer()
                 
@@ -192,7 +186,7 @@ struct BuyStockView: View {
                         // TODO: Show payment source selector
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -216,7 +210,7 @@ struct BuyStockView: View {
                 }
                 .buttonStyle(PressedButtonStyle())
                 .disabled(!(dollarAmount > 0 && dollarAmount <= portfolioService.cashBalance))
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }
@@ -229,11 +223,11 @@ struct BuyStockView: View {
                     isBuyFlowPresented: $isPresented,
                     onComplete: onComplete
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
                 .zIndex(1)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: showConfirmation)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
     }
 }
 
@@ -317,61 +311,6 @@ struct NumberKeyView: View {
                         }
                     }
             )
-    }
-}
-
-struct AmountSwapView: View {
-    @ObservedObject private var themeService = ThemeService.shared
-    let dollarDisplay: String
-    let sharesDisplay: String
-    let isSharesMode: Bool
-    let onSwap: () -> Void
-    var textColor: Color = Color(hex: "080808")
-    var errorMessage: String? = nil
-    
-    private let topOffset: CGFloat = 0
-    private let bottomOffset: CGFloat = 45
-    
-    private var hasError: Bool {
-        errorMessage != nil
-    }
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            Button(action: onSwap) {
-                VStack(spacing: 4) {
-                    // Primary amount (always visible)
-                    Text(isSharesMode ? sharesDisplay : dollarDisplay)
-                        .font(.custom("Inter-Bold", size: 56))
-                        .foregroundColor(textColor)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                    
-                    // Secondary amount with swap icon (hidden when error)
-                    if !hasError {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(themeService.textSecondaryColor)
-                            
-                            Text(isSharesMode ? dollarDisplay : sharesDisplay)
-                                .font(.custom("Inter-Medium", size: 18))
-                                .foregroundColor(themeService.textSecondaryColor)
-                                .minimumScaleFactor(0.5)
-                                .lineLimit(1)
-                        }
-                    }
-                    
-                    // Error message (shown instead of secondary amount)
-                    if let error = errorMessage {
-                        Text(error)
-                            .font(.custom("Inter-Medium", size: 14))
-                            .foregroundColor(Color(hex: "E30000"))
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-        }
     }
 }
 

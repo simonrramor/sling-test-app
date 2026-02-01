@@ -49,7 +49,7 @@ struct OnboardingView: View {
                     }
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.top, 16)
             .frame(height: 44)
             
@@ -91,7 +91,7 @@ struct OnboardingView: View {
                     .background(Color(hex: "080808"))
                     .cornerRadius(16)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
         .background(Color.white)

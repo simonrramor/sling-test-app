@@ -20,7 +20,7 @@ struct ScreenshotModeView: View {
     let screens: [(name: String, id: String, view: AnyView)] = [
         ("Home", "home", AnyView(HomeView())),
         ("Invest", "invest", AnyView(InvestView())),
-        ("Spend", "spend", AnyView(SpendView())),
+        ("Spend", "spend", AnyView(SpendView(showSubscriptionsOverlay: .constant(false)))),
         ("Activity", "activity", AnyView(ActivityView())),
         ("Settings", "settings", AnyView(ScreenshotSettingsWrapper())),
         ("Search", "search", AnyView(SearchView())),

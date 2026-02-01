@@ -11,7 +11,7 @@ struct ActivityView: View {
                 .font(.custom("Inter-Bold", size: 24))
                 .foregroundColor(themeService.textPrimaryColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
             

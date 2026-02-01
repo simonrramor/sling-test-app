@@ -156,8 +156,24 @@ struct HeaderView: View {
                     .accessibilityLabel("Help")
                     .transition(buttonTransition)
                 }
+                
+                // Theme Switcher Button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    themeService.toggleTheme()
+                }) {
+                    Image(systemName: themeService.currentTheme.iconName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color("TextPrimary"))
+                        .frame(width: 36, height: 36)
+                        .background(Color("BackgroundTertiary"))
+                        .cornerRadius(12)
+                }
+                .accessibilityLabel("Theme: \(themeService.currentTheme.displayName)")
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: currentTab)
+            .animation(.easeInOut(duration: 0.2), value: themeService.currentTheme)
         }
         .padding(.vertical, 16)
     }

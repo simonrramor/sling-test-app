@@ -1,5 +1,26 @@
 import SwiftUI
 
+// MARK: - Fluid Transitions
+
+/// A fluid transition for confirmation screens - scales and fades instead of sliding
+extension AnyTransition {
+    /// Fluid scale + fade transition for confirm screens
+    static var fluidConfirm: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.96).combined(with: .opacity),
+            removal: .scale(scale: 0.96).combined(with: .opacity)
+        )
+    }
+    
+    /// Fluid transition from trailing edge with scale
+    static var fluidTrailing: AnyTransition {
+        .asymmetric(
+            insertion: .scale(scale: 0.98, anchor: .trailing).combined(with: .opacity),
+            removal: .scale(scale: 0.98, anchor: .leading).combined(with: .opacity)
+        )
+    }
+}
+
 // MARK: - Pressed Button Style
 
 /// Standard pressed button style that shrinks by ~2px on all sides (0.97 scale)
@@ -7,7 +28,7 @@ struct PressedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? DesignSystem.Animation.pressedScale : 1.0)
-            .animation(.easeInOut(duration: DesignSystem.Animation.pressDuration), value: configuration.isPressed)
+            .animation(.spring(response: 0.15, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
@@ -29,7 +50,7 @@ struct OpacityPressedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? pressedOpacity : 1.0)
-            .animation(.easeInOut(duration: DesignSystem.Animation.pressDuration), value: configuration.isPressed)
+            .animation(.spring(response: 0.15, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
@@ -44,6 +65,6 @@ struct CombinedPressedButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? scale : 1.0)
             .opacity(configuration.isPressed ? pressedOpacity : 1.0)
-            .animation(.easeInOut(duration: DesignSystem.Animation.pressDuration), value: configuration.isPressed)
+            .animation(.spring(response: 0.15, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }

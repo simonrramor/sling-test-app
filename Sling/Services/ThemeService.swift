@@ -60,9 +60,38 @@ class ThemeService: ObservableObject {
         case .grey:
             return Color(hex: "F2F2F2")  // Light grey
         case .white:
-            return Color(hex: "FEFFFF")  // Slight off-white
+            return Color.white
         case .dark:
             return Color(hex: "000000")  // Pure black
+        }
+    }
+    
+    /// Background gradient for main app screens
+    var backgroundGradient: LinearGradient {
+        switch currentTheme {
+        case .grey:
+            return LinearGradient(
+                colors: [Color(hex: "F2F2F2"), Color(hex: "E5E5E5")],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .white:
+            // White to light grey gradient (45% white, then fade to grey)
+            return LinearGradient(
+                stops: [
+                    .init(color: .white, location: 0.0),
+                    .init(color: .white, location: 0.45),
+                    .init(color: Color(hex: "F2F2F2"), location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        case .dark:
+            return LinearGradient(
+                colors: [Color(hex: "000000"), Color(hex: "1C1C1E")],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
     }
     
@@ -99,10 +128,8 @@ class ThemeService: ObservableObject {
     
     var buttonSecondaryColor: Color {
         switch currentTheme {
-        case .grey:
-            return Color.white
-        case .white:
-            return Color(hex: "080808")  // Black buttons on white background
+        case .grey, .white:
+            return Color(hex: "080808")  // Black buttons on grey and white backgrounds
         case .dark:
             return Color(hex: "2C2C2E")  // Dark grey buttons
         }

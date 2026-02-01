@@ -109,7 +109,7 @@ private struct SingleDigitView: View {
     VStack(spacing: 40) {
         SlidingNumberText(
             text: "$8,800.10",
-            font: .custom("Inter-Bold", size: 33),
+            font: .custom("Inter-Bold", size: 32),
             color: Color(hex: "080808")
         )
         

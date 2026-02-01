@@ -3,15 +3,13 @@ import SwiftUI
 /// A text input field with animated floating label
 /// Based on the input/text-form Figma component
 struct TextFormInput: View {
+    @ObservedObject private var themeService = ThemeService.shared
     let label: String
     @Binding var text: String
     @FocusState private var isFocused: Bool
     
     // Design constants from Figma
     private enum Constants {
-        static let backgroundColor = Color(hex: "F7F7F7")
-        static let labelColor = Color(hex: "7B7B7B")
-        static let inputColor = Color(hex: "080808")
         static let cursorColor = Color(hex: "FF5113")
         static let cornerRadius: CGFloat = 16
         static let horizontalPadding: CGFloat = 16
@@ -19,6 +17,10 @@ struct TextFormInput: View {
         static let labelFontSizeSmall: CGFloat = 13
         static let labelFontSizeLarge: CGFloat = 16
         static let height: CGFloat = 72
+    }
+    
+    private var backgroundColor: Color {
+        themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")
     }
     
     private var isActive: Bool {
@@ -34,21 +36,21 @@ struct TextFormInput: View {
         ZStack(alignment: .topLeading) {
             // Background - tappable
             RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                .fill(Constants.backgroundColor)
+                .fill(backgroundColor)
             
             // Content container
             VStack(alignment: .leading, spacing: 0) {
                 // Animated floating label
                 Text(label)
                     .font(.custom("Inter-Medium", size: Constants.labelFontSizeLarge))
-                    .foregroundColor(Constants.labelColor)
+                    .foregroundColor(themeService.textSecondaryColor)
                     .scaleEffect(labelScale, anchor: .topLeading)
                     .padding(.top, isActive ? Constants.verticalPadding : (Constants.height - 24) / 2)
                 
                 // TextField - always present, visibility controlled
                 TextField("", text: $text)
                     .font(.custom("Inter-Medium", size: Constants.labelFontSizeLarge))
-                    .foregroundColor(Constants.inputColor)
+                    .foregroundColor(themeService.textPrimaryColor)
                     .focused($isFocused)
                     .tint(Constants.cursorColor)
                     .padding(.top, 4)
@@ -84,7 +86,7 @@ struct TextFormInput: View {
         // Interactive example
         StatefulPreviewWrapper("")
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, 16)
 }
 
 /// Helper for interactive preview

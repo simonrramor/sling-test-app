@@ -49,7 +49,7 @@ struct SignUpNameView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                         .padding(.bottom, 16)
                         
@@ -76,7 +76,7 @@ struct SignUpNameView: View {
                                 .padding(.top, 4)
                             }
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 16)
                     }
                 }
@@ -106,7 +106,7 @@ struct SignUpNameView: View {
                 }
                 .buttonStyle(PressedButtonStyle())
                 .disabled(!canContinue)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -196,7 +196,7 @@ struct SignUpHeader: View {
                 }
                 Spacer()
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
         }
         .frame(height: 64)
     }

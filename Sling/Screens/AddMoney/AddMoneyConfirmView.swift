@@ -20,11 +20,11 @@ struct AddMoneyConfirmView: View {
     private let slingCurrency = "USD" // Sling balance is always in USD
     
     /// Calculate fee for this deposit
+    /// Fee applies when payment instrument currency differs from display currency
     private var depositFee: FeeResult {
         feeService.calculateFee(
             for: .deposit,
-            sourceCurrency: sourceCurrency,
-            destinationCurrency: slingCurrency
+            paymentInstrumentCurrency: sourceCurrency
         )
     }
     
@@ -128,7 +128,7 @@ struct AddMoneyConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -170,7 +170,7 @@ struct AddMoneyConfirmView: View {
                                 .foregroundColor(themeService.textPrimaryColor)
                         }
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
                     .padding(.horizontal, 16)
                     
                     // Transfer speed row
@@ -185,7 +185,7 @@ struct AddMoneyConfirmView: View {
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textPrimaryColor)
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
                     .padding(.horizontal, 16)
                     
                     // Divider
@@ -193,7 +193,7 @@ struct AddMoneyConfirmView: View {
                         .fill(Color(hex: "EDEDED"))
                         .frame(height: 1)
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 4)
                     
                     // Total withdrawn row (in source currency)
                     HStack {
@@ -207,26 +207,28 @@ struct AddMoneyConfirmView: View {
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textPrimaryColor)
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
                     .padding(.horizontal, 16)
                     
                     // Fees row
                     FeeRow(fee: depositFee)
                     
-                    // Amount exchanged row (in source currency)
-                    HStack {
-                        Text("Amount exchanged")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text(formattedSourceAmount)
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
+                    // Amount exchanged row (only show when there's a fee)
+                    if !depositFee.isFree {
+                        HStack {
+                            Text("Amount exchanged")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .foregroundColor(themeService.textSecondaryColor)
+                            
+                            Spacer()
+                            
+                            Text(formattedSourceAmount)
+                                .font(.custom("Inter-Medium", size: 16))
+                                .foregroundColor(themeService.textPrimaryColor)
+                        }
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 16)
                     }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
                     
                     // Exchange rate row (only show if currencies differ)
                     if hasCurrencyDifference {
@@ -241,7 +243,7 @@ struct AddMoneyConfirmView: View {
                                 .font(.custom("Inter-Medium", size: 16))
                                 .foregroundColor(Color(hex: "FF5113"))
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 4)
                         .padding(.horizontal, 16)
                     }
                     
@@ -263,14 +265,14 @@ struct AddMoneyConfirmView: View {
                                 .foregroundColor(themeService.textPrimaryColor)
                         }
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
                     .padding(.horizontal, 16)
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
+                        .fill(themeService.cardBackgroundColor)
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 40)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -281,11 +283,6 @@ struct AddMoneyConfirmView: View {
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Use free transfer if applicable
-                    if depositFee.isWaived && feeService.freeTransfersRemaining > 0 {
-                        feeService.useFreeTransfer()
-                    }
-                    
                     // Add money to portfolio (in USD, after fees)
                     portfolioService.addCash(amountAfterFee)
                     
@@ -304,7 +301,7 @@ struct AddMoneyConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

@@ -14,6 +14,7 @@ struct BalanceSheet: View {
     @State private var exchangeRate: Double = 1.0
     @State private var sheetOffset: CGFloat = 500
     @State private var backgroundOpacity: Double = 0
+    @State private var isRateSwapped: Bool = false
     
     private let exchangeRateService = ExchangeRateService.shared
     
@@ -42,7 +43,14 @@ struct BalanceSheet: View {
             return "1 USDP = $1.00"
         }
         let symbol = ExchangeRateService.symbol(for: selectedCurrency)
-        return String(format: "1 USDP = %@%.2f", symbol, exchangeRate)
+        if isRateSwapped {
+            // Show: 1 USDP = €0.84
+            return String(format: "1 USDP = %@%.2f", symbol, exchangeRate)
+        } else {
+            // Show: €1.00 = $X.XX USDP (inverted rate)
+            let invertedRate = exchangeRate > 0 ? 1.0 / exchangeRate : 0
+            return String(format: "%@1.00 = $%.2f", symbol, invertedRate)
+        }
     }
     
     var body: some View {
@@ -89,7 +97,9 @@ struct BalanceSheet: View {
             .frame(maxWidth: .infinity)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 47))
-            .padding(8) // 8px from all edges including bottom
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
             .offset(y: sheetOffset)
         }
         .ignoresSafeArea()
@@ -245,9 +255,17 @@ struct BalanceSheet: View {
                     .tracking(-0.36)
                     .foregroundColor(Color.black.opacity(0.8))
                 
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isRateSwapped.toggle()
+                    }
+                }) {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                }
                 
                 Spacer()
             }

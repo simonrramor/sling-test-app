@@ -37,7 +37,7 @@ struct LoginView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .onAppear {
                         // Trigger animation after a short delay
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -54,7 +54,7 @@ struct LoginView: View {
                             .h1Style()
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.bottom, 32)
                         
                         // Terms and Privacy
@@ -108,7 +108,7 @@ struct LoginView: View {
                             }
                             .buttonStyle(PressedButtonStyle())
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 50)
                     }
                 }

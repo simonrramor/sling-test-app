@@ -42,7 +42,7 @@ struct ComponentShowcaseView: View {
                     Color.clear
                         .frame(width: 36, height: 36)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.vertical, 16)
                 
                 ScrollView {
@@ -213,7 +213,7 @@ struct ComponentShowcaseView: View {
                         
                         Spacer(minLength: 100)
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                 }
             }
         }

@@ -14,11 +14,12 @@ struct SendConfirmView: View {
     @Namespace private var animation
     
     private let portfolioService = PortfolioService.shared
+    private let displayCurrencyService = DisplayCurrencyService.shared
     private let activityService = ActivityService.shared
     
     // Get the currency symbol from user's display currency
     var currencySymbol: String {
-        ExchangeRateService.symbol(for: portfolioService.displayCurrency)
+        ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
     }
     
     // Full formatted amount with decimals (for info rows)
@@ -67,7 +68,7 @@ struct SendConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 48)
                 .opacity(isButtonLoading ? 0 : 1)
                 
@@ -159,7 +160,7 @@ struct SendConfirmView: View {
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 32)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .transition(.opacity)
                 }
                 
@@ -194,7 +195,7 @@ struct SendConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             }
         }

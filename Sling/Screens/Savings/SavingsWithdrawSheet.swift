@@ -80,7 +80,7 @@ struct SavingsWithdrawSheet: View {
     
     var body: some View {
         ZStack {
-            Color.white
+            themeService.backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -133,7 +133,7 @@ struct SavingsWithdrawSheet: View {
                                 .fill(Color(hex: "F7F7F7"))
                         )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
@@ -169,7 +169,7 @@ struct SavingsWithdrawSheet: View {
                     title: "Savings",
                     balanceText: "\(savingsService.formatTokens(availableUSDY)) USDY"
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -184,7 +184,7 @@ struct SavingsWithdrawSheet: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -237,7 +237,7 @@ struct SavingsWithdrawConfirmView: View {
     
     var body: some View {
         ZStack {
-            Color.white
+            themeService.backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -279,7 +279,7 @@ struct SavingsWithdrawConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -409,7 +409,7 @@ struct SavingsWithdrawConfirmView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.white)
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 40)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -439,7 +439,7 @@ struct SavingsWithdrawConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }

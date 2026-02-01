@@ -44,6 +44,28 @@ struct TransactionListContent: View {
     @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     
+    /// Maximum number of transactions to show (nil = show all)
+    var limit: Int? = nil
+    /// Callback when "See more" is tapped
+    var onSeeMore: (() -> Void)? = nil
+    
+    @State private var selectedActivity: ActivityItem?
+    @State private var showDetail = false
+    
+    private var displayedActivities: [ActivityItem] {
+        if let limit = limit {
+            return Array(activityService.activities.prefix(limit))
+        }
+        return activityService.activities
+    }
+    
+    private var hasMoreActivities: Bool {
+        if let limit = limit {
+            return activityService.activities.count > limit
+        }
+        return false
+    }
+    
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             if activityService.isLoading {
@@ -69,10 +91,37 @@ struct TransactionListContent: View {
                 .padding(.vertical, 40)
             } else {
                 // Activity Rows (flat list, no section headers)
-                ForEach(activityService.activities) { activity in
-                    ActivityRowView(activity: activity)
+                ForEach(displayedActivities) { activity in
+                    ActivityRowView(
+                        activity: activity,
+                        selectedActivity: $selectedActivity,
+                        showDetail: $showDetail
+                    )
                 }
                 .padding(.top, 4)
+                
+                // "See more" row if there are more activities
+                if hasMoreActivities, let onSeeMore = onSeeMore {
+                    Divider()
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                    
+                    Button(action: onSeeMore) {
+                        HStack {
+                            Text("See more")
+                                .font(.custom("Inter-SemiBold", size: 16))
+                                .foregroundColor(Color(hex: "FF5113"))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color(hex: "FF5113"))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 16)
+                    }
+                }
             }
         }
         .onAppear {
@@ -80,6 +129,7 @@ struct TransactionListContent: View {
                 await activityService.fetchActivities()
             }
         }
+        .transactionDetailDrawer(isPresented: $showDetail, activity: selectedActivity)
     }
     
     // Group activities by date (e.g., "Today", "Yesterday", "16 January 2026")
@@ -105,7 +155,8 @@ struct TransactionListContent: View {
 struct ActivityRowView: View {
     @ObservedObject private var themeService = ThemeService.shared
     let activity: ActivityItem
-    @State private var showDetail = false
+    @Binding var selectedActivity: ActivityItem?
+    @Binding var showDetail: Bool
     @State private var isPressed = false
     
     var body: some View {
@@ -118,15 +169,16 @@ struct ActivityRowView: View {
                 Text(activity.titleLeft)
                     .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(themeService.textPrimaryColor)
+                    .lineLimit(1)
                 
                 if !activity.subtitleLeft.isEmpty {
                     Text(activity.subtitleLeft)
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.gray)
+                        .lineLimit(1)
                 }
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
             
             // Amount and subtitle
             VStack(alignment: .trailing, spacing: 2) {
@@ -140,13 +192,14 @@ struct ActivityRowView: View {
                         .foregroundColor(.gray)
                 }
             }
+            .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(isPressed ? Color(hex: "F7F7F7") : Color.clear)
+                .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7")) : Color.clear)
         )
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
             isPressed = pressing
@@ -154,10 +207,8 @@ struct ActivityRowView: View {
         .onTapGesture {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
+            selectedActivity = activity
             showDetail = true
-        }
-        .sheet(isPresented: $showDetail) {
-            TransactionDetailView(activity: activity)
         }
     }
     
@@ -211,7 +262,10 @@ struct TransactionAvatarView: View {
     @StateObject private var iconFetcher = AppIconFetcher()
     
     private var isInitials: Bool {
-        identifier.trimmingCharacters(in: .whitespacesAndNewlines).count <= 2
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Must be 1-2 characters AND not contain emojis (emojis have unicode scalars > 255)
+        let isLikelyEmoji = trimmed.unicodeScalars.contains { $0.value > 255 }
+        return trimmed.count <= 2 && !isLikelyEmoji
     }
     
     private var isSFSymbol: Bool {
@@ -229,9 +283,10 @@ struct TransactionAvatarView: View {
     // People have rounded avatars, businesses have square
     private var isPerson: Bool {
         let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Person if: starts with "Avatar", is initials (1-2 chars), or is a person's name (contains space and no dots)
+        // Person if: starts with "Avatar", is initials (1-2 chars, not emoji), or is a person's name (contains space and no dots)
+        let isLikelyEmoji = trimmed.unicodeScalars.contains { $0.value > 255 }
         return trimmed.hasPrefix("Avatar") || 
-               trimmed.count <= 2 || 
+               (trimmed.count <= 2 && !isLikelyEmoji) || 
                (trimmed.contains(" ") && !trimmed.contains(".") && !trimmed.hasPrefix("http"))
     }
     

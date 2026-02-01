@@ -79,7 +79,7 @@ struct WithdrawView: View {
                                 .fill(Color(hex: "F7F7F7"))
                         )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
@@ -115,7 +115,7 @@ struct WithdrawView: View {
                         // TODO: Show source selector if needed
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -130,7 +130,7 @@ struct WithdrawView: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -144,10 +144,10 @@ struct WithdrawView: View {
                         isPresented = false
                     }
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: showConfirmation)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
         .accountSelectorOverlay(
             isPresented: $showAccountPicker,
             selectedAccount: $selectedAccount
@@ -176,11 +176,11 @@ struct WithdrawConfirmView: View {
     }
     
     /// Calculate fee for this withdrawal
+    /// Fee applies when payment instrument currency differs from display currency
     private var withdrawalFee: FeeResult {
         feeService.calculateFee(
             for: .withdrawal,
-            sourceCurrency: slingCurrency,
-            destinationCurrency: destinationCurrency
+            paymentInstrumentCurrency: destinationCurrency
         )
     }
     
@@ -240,7 +240,7 @@ struct WithdrawConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -286,11 +286,6 @@ struct WithdrawConfirmView: View {
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Use free transfer if applicable
-                    if withdrawalFee.isWaived && feeService.freeTransfersRemaining > 0 {
-                        feeService.useFreeTransfer()
-                    }
-                    
                     // Perform withdrawal (deduct total including fee)
                     portfolioService.deductCash(totalDeducted)
                     
@@ -307,7 +302,7 @@ struct WithdrawConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }

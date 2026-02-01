@@ -2,7 +2,10 @@ import SwiftUI
 
 struct SavingsView: View {
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @AppStorage("hasStartedSaving") private var hasStartedSaving = false
+    @State private var showBalanceSheet = false
     
     var body: some View {
         if hasStartedSaving {
@@ -17,9 +20,14 @@ struct SavingsView: View {
     private var savingsMainView: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Balance header
+                // Balance header - tappable to show currency sheet
                 savingsBalanceHeader
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
+                    .onTapGesture {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        showBalanceSheet = true
+                    }
                 
                 // Deposit + Withdraw buttons
                 HStack(spacing: 8) {
@@ -31,7 +39,7 @@ struct SavingsView: View {
                         // TODO: Withdraw action
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 
                 // Earnings rows
@@ -39,16 +47,16 @@ struct SavingsView: View {
                     earningsRow(
                         title: "Earned this month",
                         subtitle: "From 1 Jul until today",
-                        value: "+£0.00"
+                        value: "+\(displayCurrencyService.currencySymbol)0.00"
                     )
                     
                     earningsRow(
                         title: "Total earned",
                         subtitle: "Started in Feb 2026",
-                        value: "+£0.00"
+                        value: "+\(displayCurrencyService.currencySymbol)0.00"
                     )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 24)
                 
                 // How it works row
@@ -78,7 +86,7 @@ struct SavingsView: View {
                 }
                 .background(Color.white)
                 .cornerRadius(16)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 
                 // Empty state content
@@ -88,6 +96,13 @@ struct SavingsView: View {
             .padding(.top, 16)
             .padding(.bottom, 120)
         }
+        .overlay {
+            if showBalanceSheet {
+                SavingsBalanceSheet(isPresented: $showBalanceSheet)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showBalanceSheet)
     }
     
     // MARK: - Savings Balance Header
@@ -106,7 +121,7 @@ struct SavingsView: View {
             }
             
             // Balance
-            Text("$0")
+            Text("\(displayCurrencyService.currencySymbol)0")
                 .font(.custom("Inter-Bold", size: 42))
                 .foregroundColor(themeService.textPrimaryColor)
         }
@@ -171,7 +186,7 @@ struct SavingsView: View {
             RoundedRectangle(cornerRadius: 24)
                 .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
         )
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 16)
     }
     
     // MARK: - Intro View (onboarding)

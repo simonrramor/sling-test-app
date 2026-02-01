@@ -29,7 +29,7 @@ struct FeesSettingsView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 ScrollView {
@@ -38,27 +38,27 @@ struct FeesSettingsView: View {
                         Text("Sling fees")
                             .font(.custom("Inter-Bold", size: 32))
                             .foregroundColor(Color(hex: "080808"))
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.bottom, 8)
                         
                         // Subtitle - local currency info
                         Text("Your local currency is \(localCurrencyName) (\(feeService.localCurrency))")
                             .font(.custom("Inter-Regular", size: 16))
                             .foregroundColor(Color(hex: "7B7B7B"))
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.bottom, 16)
                         
                         // Divider before header
                         Divider()
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                         
                         // Currency header row
                         CurrencyHeaderRow(localCurrency: feeService.localCurrency)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                         
                         // Divider after header
                         Divider()
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                         
                         // Fee rows
                         VStack(spacing: 0) {
@@ -71,7 +71,7 @@ struct FeesSettingsView: View {
                             )
                             
                             Divider()
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                             
                             // Send to your accounts
                             FeeGridRow(
@@ -82,7 +82,7 @@ struct FeesSettingsView: View {
                             )
                             
                             Divider()
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                             
                             // Add money to Sling
                             FeeGridRow(
@@ -93,7 +93,7 @@ struct FeesSettingsView: View {
                             )
                             
                             Divider()
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                             
                             // Receive money
                             FeeGridRow(
@@ -104,7 +104,7 @@ struct FeesSettingsView: View {
                             )
                             
                             Divider()
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                             
                             // Account details deposit
                             FeeGridRow(
@@ -115,7 +115,7 @@ struct FeesSettingsView: View {
                             )
                             
                             Divider()
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                             
                             // Sling Card payments
                             FeeGridRow(
@@ -313,7 +313,7 @@ struct FeeGridRow: View {
                     .frame(minWidth: FeeColumnLayout.columnWidth)
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 16)
         .padding(.vertical, 16)
     }
 }

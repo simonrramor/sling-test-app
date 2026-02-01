@@ -197,7 +197,7 @@ struct ReceiveSalarySheet: View {
             .padding(16)
             .background(Color(hex: "F7F7F7"))
             .cornerRadius(16)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             Spacer()
             
@@ -220,7 +220,7 @@ struct ReceiveSalarySheet: View {
                     .background(Color(hex: "080808"))
                     .cornerRadius(16)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
         .background(Color.white)

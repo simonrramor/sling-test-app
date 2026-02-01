@@ -158,20 +158,17 @@ struct SellStockView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
                 
                 // Amount input display with swap animation
-                AmountSwapView(
-                    dollarDisplay: dollarDisplay,
-                    sharesDisplay: sharesDisplay,
-                    isSharesMode: isSharesMode,
+                AnimatedCurrencySwapView(
+                    primaryDisplay: dollarDisplay,
+                    secondaryDisplay: sharesDisplay,
+                    showingPrimaryOnTop: !isSharesMode,
                     onSwap: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        
                         if isSharesMode {
                             let dollars = dollarAmount
                             amountString = dollars > 0 ? String(format: "%.2f", dollars) : ""
@@ -179,14 +176,11 @@ struct SellStockView: View {
                             let shares = sharesAmount
                             amountString = shares > 0 ? String(format: "%.2f", shares) : ""
                         }
-                        
-                        withAnimation(.spring(response: 0.2, dampingFraction: 0.9)) {
-                            isSharesMode.toggle()
-                        }
+                        isSharesMode.toggle()
                     },
                     errorMessage: isOverMax ? "Insufficient balance" : nil
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 
                 Spacer()
                 
@@ -208,7 +202,7 @@ struct SellStockView: View {
                         // TODO: Show options menu
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -223,7 +217,7 @@ struct SellStockView: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }
@@ -237,11 +231,11 @@ struct SellStockView: View {
                     isSellFlowPresented: $isPresented,
                     onComplete: onComplete
                 )
-                .transition(.move(edge: .trailing))
+                .transition(.fluidConfirm)
                 .zIndex(1)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: showConfirmation)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
     }
 }
 
@@ -331,7 +325,7 @@ struct SellConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -426,7 +420,7 @@ struct SellConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

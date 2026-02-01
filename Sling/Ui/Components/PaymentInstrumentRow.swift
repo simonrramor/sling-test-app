@@ -37,7 +37,7 @@ struct PaymentInstrumentRow: View {
                     .font(.system(size: 20))
                     .foregroundColor(themeService.textPrimaryColor)
                     .frame(width: 44, height: 44)
-                    .background(Color(hex: "F7F7F7"))
+                    .background(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7"))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             } else {
                 Image(iconName)
@@ -47,7 +47,7 @@ struct PaymentInstrumentRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                            .stroke(themeService.textPrimaryColor.opacity(0.06), lineWidth: 1)
                     )
             }
             
@@ -91,7 +91,7 @@ struct PaymentInstrumentRow: View {
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(hex: "EDEDED"))
+                                    .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"))
                             )
                     }
                 }
@@ -115,7 +115,7 @@ struct PaymentInstrumentRow: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(hex: "F7F7F7"))
+                .fill(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
         )
     }
 }
@@ -198,7 +198,7 @@ struct TappablePaymentInstrumentRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                            .stroke(themeService.textPrimaryColor.opacity(0.06), lineWidth: 1)
                     )
                 
                 // Text content
@@ -248,11 +248,15 @@ struct TappablePaymentInstrumentRow: View {
 }
 
 struct PaymentInstrumentRowButtonStyle: ButtonStyle {
+    @ObservedObject private var themeService = ThemeService.shared
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(configuration.isPressed ? Color(hex: "EDEDED") : Color(hex: "F7F7F7"))
+                    .fill(configuration.isPressed ? 
+                          (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED")) : 
+                          (themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")))
             )
     }
 }
@@ -278,5 +282,5 @@ struct PaymentInstrumentRowButtonStyle: ButtonStyle {
             onTap: {}
         )
     }
-    .padding(.horizontal, 24)
+    .padding(.horizontal, 16)
 }

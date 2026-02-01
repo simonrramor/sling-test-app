@@ -2,6 +2,24 @@ import Foundation
 import Combine
 import CoreGraphics
 
+// MARK: - KMP Migration Guide
+// ============================================================================
+// This service is being migrated to Kotlin Multiplatform (KMP).
+// The shared business logic is now in: shared/src/commonMain/kotlin/com/sling/shared/services/
+//
+// To complete the migration:
+// 1. Build the shared KMP framework:
+//    ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64  (for simulator)
+//    ./gradlew :shared:linkDebugFrameworkIosArm64          (for device)
+//
+// 2. Run pod install to integrate the framework
+//
+// 3. Replace usages of PortfolioService.shared with SharedPortfolioService.shared
+//    The SharedPortfolioService wrapper provides the same API while using KMP logic.
+//
+// 4. Once verified, this file can be removed in favor of SharedPortfolioService.swift
+// ============================================================================
+
 // #region agent log
 private let debugLogPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
 private var generateChartDataCount = 0
@@ -65,19 +83,11 @@ class PortfolioService: ObservableObject {
     @Published var holdings: [String: Holding] = [:] // iconName -> Holding
     @Published var cashBalance: Double = 0.0 // Sling wallet balance in USD
     @Published var history: [PortfolioEvent] = [] // Portfolio event history
-    @Published var displayCurrency: String = "GBP" {
-        didSet {
-            UserDefaults.standard.set(displayCurrency, forKey: "displayCurrency")
-        }
-    }
     
     private let ondoService = OndoService.shared
     private let persistence = PersistenceService.shared
     
     private init() {
-        // Load display currency preference (default to GBP)
-        self.displayCurrency = UserDefaults.standard.string(forKey: "displayCurrency") ?? "GBP"
-        
         // Try to load from iCloud first
         if let persisted = persistence.loadPortfolio() {
             // Restore holdings

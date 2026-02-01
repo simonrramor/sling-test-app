@@ -179,7 +179,7 @@ struct AddMoneyView: View {
                                 .fill(Color(hex: "F7F7F7"))
                         )
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
@@ -230,7 +230,7 @@ struct AddMoneyView: View {
                         showAccountSelector = true
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
                 // Number pad
@@ -245,7 +245,7 @@ struct AddMoneyView: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -370,3 +370,6 @@ struct AddMoneyView: View {
 #Preview {
     AddMoneyView(isPresented: .constant(true))
 }
+
+
+

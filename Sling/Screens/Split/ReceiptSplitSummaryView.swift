@@ -69,7 +69,7 @@ struct ReceiptSplitSummaryView: View {
                     Color.clear
                         .frame(width: 24, height: 24)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -78,7 +78,7 @@ struct ReceiptSplitSummaryView: View {
                 Text("Here's what each person owes")
                     .font(.custom("Inter-Regular", size: 14))
                     .foregroundColor(themeService.textSecondaryColor)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 24)
                     .opacity(isButtonLoading ? 0 : 1)
                     .animation(.easeOut(duration: 0.3), value: isButtonLoading)
@@ -95,7 +95,7 @@ struct ReceiptSplitSummaryView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                 }
                 .scrollIndicators(.hidden)
                 .opacity(isButtonLoading ? 0 : 1)
@@ -137,7 +137,7 @@ struct ReceiptSplitSummaryView: View {
                         
                         onDismissAll()
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                     .background(Color.white)

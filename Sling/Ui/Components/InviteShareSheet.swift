@@ -12,7 +12,7 @@ struct InviteShareSheet: View {
         VStack(spacing: 24) {
             // Handle
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
+                .fill(themeService.textPrimaryColor.opacity(0.2))
                 .frame(width: 32, height: 6)
                 .padding(.top, 8)
             
@@ -36,7 +36,7 @@ struct InviteShareSheet: View {
                     .font(.custom("Inter-Regular", size: 16))
                     .foregroundColor(themeService.textSecondaryColor)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
             }
             
             // Referral link box
@@ -59,9 +59,9 @@ struct InviteShareSheet: View {
                 }
             }
             .padding(16)
-            .background(Color(hex: "F7F7F7"))
+            .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
             .cornerRadius(12)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             // Share buttons
             VStack(spacing: 12) {
@@ -74,10 +74,10 @@ struct InviteShareSheet: View {
                         Text("Share Link")
                             .font(.custom("Inter-Bold", size: 16))
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(themeService.currentTheme == .dark ? .black : .white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color(hex: "080808"))
+                    .background(themeService.textPrimaryColor)
                     .cornerRadius(16)
                 }
                 
@@ -93,15 +93,15 @@ struct InviteShareSheet: View {
                     .foregroundColor(themeService.textPrimaryColor)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color(hex: "EDEDED"))
+                    .background(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"))
                     .cornerRadius(16)
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             Spacer()
         }
-        .background(Color.white)
+        .background(themeService.backgroundColor)
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
     }

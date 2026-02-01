@@ -111,10 +111,39 @@ extension View {
     }
 }
 
+// MARK: - App Delegate for Analytics
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Configure analytics - after deploying sling-analytics/ to Vercel, set your URL:
+        // AnalyticsService.shared.endpointURL = URL(string: "https://YOUR-APP.vercel.app/api/events")
+        AnalyticsService.shared.debugLogging = true
+        AnalyticsService.shared.startNewSession()
+        AnalyticsService.shared.track("app_launch")
+        return true
+    }
+    
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        AnalyticsService.shared.track("app_background")
+        AnalyticsService.shared.flush()
+    }
+    
+    func applicationWillEnterForeground(_ application: UIApplication) {
+        AnalyticsService.shared.startNewSession()
+    }
+    
+    func applicationWillTerminate(_ application: UIApplication) {
+        AnalyticsService.shared.track("app_terminate")
+        AnalyticsService.shared.flush()
+    }
+}
+
 // MARK: - App
 
 @main
 struct sling_test_app_2App: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     @State private var showScreenshotMode = false
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     

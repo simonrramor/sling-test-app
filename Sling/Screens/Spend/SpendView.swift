@@ -11,6 +11,8 @@ struct SpendCategory: Identifiable {
 }
 
 struct SpendView: View {
+    @Binding var showSubscriptionsOverlay: Bool
+    
     @State private var isCardLocked = false
     @State private var showCardDetails = false
     @AppStorage("hasCard") private var hasCard = false
@@ -22,7 +24,6 @@ struct SpendView: View {
     @State private var shadowOffsetX: Double = 0
     @State private var shadowOffsetY: Double = 10
     @State private var showShadowControls = false
-    @State private var showSubscriptions = false
     
     let categories = [
         SpendCategory(name: "Groceries", amount: "$1,032", iconName: "cart.fill", iconColor: Color(hex: "78D381")),
@@ -66,11 +67,6 @@ struct SpendView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.white)
-        }
-        .sheet(isPresented: $showSubscriptions) {
-            SubscriptionsSheet()
-                .presentationDetents([.height(420)])
-                .presentationDragIndicator(.visible)
         }
     }
     
@@ -195,7 +191,7 @@ struct SpendView: View {
             
             // Subscriptions card - tappable
             Button(action: {
-                showSubscriptions = true
+                showSubscriptionsOverlay = true
             }) {
                 HStack(spacing: 16) {
                     // Overlapping subscription avatars
@@ -508,13 +504,92 @@ struct Subscription: Identifiable {
 
 // MARK: - Subscriptions Sheet
 
+// MARK: - Custom Subscriptions Card Overlay
+
+struct SubscriptionsCardOverlay: View {
+    @Binding var isPresented: Bool
+    @State private var dragOffset: CGFloat = 0
+    @State private var showCard = false
+    
+    // Device corner radius (44 for modern iPhones)
+    private let deviceCornerRadius: CGFloat = 44
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Dimmed background - fades in
+            Color.black.opacity(showCard ? 0.4 : 0)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    dismissCard()
+                }
+                .animation(.easeOut(duration: 0.25), value: showCard)
+            
+            // Card that hugs content - slides up
+            if showCard {
+                VStack(spacing: 0) {
+                    // Drag indicator
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(Color(hex: "D9D9D9"))
+                        .frame(width: 36, height: 5)
+                        .padding(.top, 8)
+                        .padding(.bottom, 24)
+                    
+                    // Calendar content
+                    SubscriptionCalendarView()
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
+                }
+                .background(Color.white)
+                .cornerRadius(deviceCornerRadius - 8) // Slightly smaller than device to match inset
+                .compositingGroup() // Render as single unit so all content animates together
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .offset(y: dragOffset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            if value.translation.height > 0 {
+                                dragOffset = value.translation.height
+                            }
+                        }
+                        .onEnded { value in
+                            if value.translation.height > 100 {
+                                dismissCard()
+                            } else {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                )
+                .transition(.move(edge: .bottom))
+            }
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                showCard = true
+            }
+        }
+    }
+    
+    private func dismissCard() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            showCard = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            isPresented = false
+        }
+    }
+}
+
 struct SubscriptionsSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             // Calendar
             SubscriptionCalendarView()
                 .padding(.horizontal, 24)
-                .padding(.top, 16)
+                .padding(.top, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
@@ -526,6 +601,8 @@ struct SubscriptionsSheet: View {
 
 struct SubscriptionCalendarView: View {
     @ObservedObject private var themeService = ThemeService.shared
+    @State private var selectedSubscription: Subscription? = nil
+    @State private var showSubscriptionDetail = false
     
     private let calendar = Calendar.current
     private let today = Date()
@@ -580,8 +657,39 @@ struct SubscriptionCalendarView: View {
     
     private let weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     
+    // Calculate total subscription cost
+    private var totalSubsCost: String {
+        // Sample monthly costs for each subscription
+        let monthlyCosts: [String: Double] = [
+            "Spotify": 10.99,
+            "Netflix": 15.99,
+            "Apple Music": 10.99,
+            "Hulu": 17.99,
+            "Disney+": 13.99,
+            "Apple TV": 9.99
+        ]
+        let total = subscriptions.reduce(0.0) { sum, sub in
+            sum + (monthlyCosts[sub.name] ?? 0)
+        }
+        return String(format: "$%.2f", total)
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
+            // Total spent on subs header
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Total spent on subs")
+                    .font(.custom("Inter-Medium", size: 14))
+                    .foregroundColor(themeService.textSecondaryColor)
+                
+                Text(totalSubsCost)
+                    .font(.custom("Inter-Bold", size: 56))
+                    .foregroundColor(themeService.textPrimaryColor)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 16)
+            .padding(.bottom, 4)
+            
             // Weekday headers
             HStack(spacing: 0) {
                 ForEach(weekdays, id: \.self) { day in
@@ -592,11 +700,14 @@ struct SubscriptionCalendarView: View {
                 }
             }
             
-            // Calendar grid
+            // Calendar grid (use VStack/HStack instead of LazyVGrid for animation)
             let cellWidth: CGFloat = 44
             let cellHeight: CGFloat = 56
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(cellWidth), spacing: 4), count: 7), spacing: 4) {
-                ForEach(Array(daysInMonth.enumerated()), id: \.offset) { index, date in
+            let rows = daysInMonth.chunked(into: 7)
+            VStack(spacing: 4) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, row in
+                    HStack(spacing: 4) {
+                        ForEach(Array(row.enumerated()), id: \.offset) { colIndex, date in
                     if let date = date {
                         let dayNumber = calendar.component(.day, from: date)
                         let isToday = calendar.isDateInToday(date)
@@ -641,16 +752,143 @@ struct SubscriptionCalendarView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(isToday ? Color(hex: "080808") : Color(hex: "F5F5F5"))
                         )
+                        .onTapGesture {
+                            if let sub = sub {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                selectedSubscription = sub
+                                showSubscriptionDetail = true
+                            }
+                        }
                     } else {
                         Color.clear
                             .frame(width: cellWidth, height: cellHeight)
                     }
+                        }
+                    }
                 }
+            }
+        }
+        .sheet(isPresented: $showSubscriptionDetail) {
+            if let sub = selectedSubscription {
+                SubscriptionDetailSheet(subscription: sub)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
             }
         }
     }
 }
 
+// MARK: - Subscription Detail Sheet
+
+struct SubscriptionDetailSheet: View {
+    let subscription: Subscription
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    // Sample monthly costs
+    private let monthlyCosts: [String: Double] = [
+        "Spotify": 10.99,
+        "Netflix": 15.99,
+        "Apple Music": 10.99,
+        "Hulu": 17.99,
+        "Disney+": 13.99,
+        "Apple TV": 9.99
+    ]
+    
+    private var cost: Double {
+        monthlyCosts[subscription.name] ?? 0
+    }
+    
+    private var paymentDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMMM yyyy"
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month], from: Date())
+        components.day = subscription.dayOfMonth
+        if let date = calendar.date(from: components) {
+            return formatter.string(from: date)
+        }
+        return "\(subscription.dayOfMonth) January 2026"
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header with subscription icon and name
+            VStack(spacing: 16) {
+                if let imageName = subscription.imageName {
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                        )
+                } else {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(hex: subscription.fallbackColor))
+                        .frame(width: 64, height: 64)
+                }
+                
+                Text(subscription.name)
+                    .font(.custom("Inter-Bold", size: 24))
+                    .foregroundColor(themeService.textPrimaryColor)
+            }
+            .padding(.top, 24)
+            .padding(.bottom, 32)
+            
+            // Transaction details
+            VStack(spacing: 0) {
+                SubscriptionDetailRow(label: "Amount", value: String(format: "-$%.2f", cost))
+                SubscriptionDetailRow(label: "Date", value: paymentDate)
+                SubscriptionDetailRow(label: "Category", value: "Subscriptions")
+                SubscriptionDetailRow(label: "Payment method", value: "Sling Card ••••9543")
+                SubscriptionDetailRow(label: "Status", value: "Completed", valueColor: Color(hex: "57CE43"))
+            }
+            .background(Color(hex: "F5F5F5"))
+            .cornerRadius(16)
+            .padding(.horizontal, 24)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white)
+    }
+}
+
+struct SubscriptionDetailRow: View {
+    let label: String
+    let value: String
+    var valueColor: Color = Color(hex: "080808")
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.custom("Inter-Regular", size: 16))
+                .foregroundColor(Color(hex: "7B7B7B"))
+            
+            Spacer()
+            
+            Text(value)
+                .font(.custom("Inter-Medium", size: 16))
+                .foregroundColor(valueColor)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+}
+
+// MARK: - Array Chunking Extension
+
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
+        }
+    }
+}
+
 #Preview {
-    SpendView()
+    SpendView(showSubscriptionsOverlay: .constant(false))
 }

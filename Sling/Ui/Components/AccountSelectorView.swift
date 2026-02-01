@@ -105,44 +105,29 @@ struct AccountSelectorView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
     
-    // Calculate content height based on number of accounts
-    private var contentHeight: CGFloat {
-        let handleHeight: CGFloat = 30 // 8 top + 6 height + 16 bottom
-        let titleHeight: CGFloat = 52 // title + padding
-        let rowHeight: CGFloat = 68 // each account row
-        let dividerHeight: CGFloat = 17 // divider before "Add new"
-        let bottomSafeArea: CGFloat = 34 // home indicator area
-        
-        let accountCount = CGFloat(PaymentAccount.allAccounts.count)
-        return handleHeight + titleHeight + (accountCount * rowHeight) + dividerHeight + bottomSafeArea
-    }
+    @State private var sheetOffset: CGFloat = 500
+    @State private var backgroundOpacity: Double = 0
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Dimmed background
-            Color.black.opacity(0.4)
+            // Dimmed background - fades in/out
+            Color.black.opacity(backgroundOpacity)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
+                    dismissDrawer()
                 }
             
-            // Drawer content
+            // Drawer content with device-matching corner radius
             VStack(spacing: 0) {
                 // Drawer handle
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.black.opacity(0.2))
-                    .frame(width: 32, height: 6)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
+                DrawerHandle()
                 
                 // Title
                 Text("Select account")
                     .font(.custom("Inter-Bold", size: 20))
                     .foregroundColor(themeService.textPrimaryColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                     .accessibilityAddTraits(.isHeader)
                 
@@ -154,7 +139,7 @@ struct AccountSelectorView: View {
                             Rectangle()
                                 .fill(Color.black.opacity(0.06))
                                 .frame(height: 1)
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                                 .padding(.vertical, 8)
                         }
                         
@@ -163,9 +148,9 @@ struct AccountSelectorView: View {
                             isSelected: account.id == selectedAccount.id,
                             onTap: {
                                 if !account.isAddNew {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    dismissDrawer()
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                                         selectedAccount = account
-                                        isPresented = false
                                     }
                                 }
                             }
@@ -173,15 +158,32 @@ struct AccountSelectorView: View {
                     }
                 }
                 .padding(.horizontal, 8)
+                .padding(.bottom, 24)
             }
-            .padding(.bottom, 34) // Safe area for home indicator
             .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 32)
-                    .fill(Color.white)
-                    .ignoresSafeArea(edges: .bottom)
-            )
-            .transition(.move(edge: .bottom))
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 47))
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+            .offset(y: sheetOffset)
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                sheetOffset = 0
+                backgroundOpacity = 0.4
+            }
+        }
+    }
+    
+    private func dismissDrawer() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            sheetOffset = 500
+            backgroundOpacity = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            isPresented = false
         }
     }
 }
@@ -199,10 +201,10 @@ extension View {
                     selectedAccount: selectedAccount,
                     isPresented: isPresented
                 )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .transition(.opacity)
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPresented.wrappedValue)
+        .animation(.easeInOut(duration: 0.25), value: isPresented.wrappedValue)
     }
 }
 

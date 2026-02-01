@@ -51,7 +51,7 @@ struct SignUpBirthdayView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                         .padding(.bottom, 24)
                         
@@ -85,7 +85,7 @@ struct SignUpBirthdayView: View {
                             )
                             .frame(maxWidth: .infinity)
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -101,7 +101,7 @@ struct SignUpBirthdayView: View {
                         }
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             
@@ -231,7 +231,7 @@ struct MonthPickerSheet: View {
                 .font(.custom("Inter-Medium", size: 16))
                 .foregroundColor(Color(hex: "FF5113"))
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.vertical, 16)
             
             Divider()
@@ -257,7 +257,7 @@ struct MonthPickerSheet: View {
                                         .foregroundColor(Color(hex: "FF5113"))
                                 }
                             }
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 16)
                         }
                         

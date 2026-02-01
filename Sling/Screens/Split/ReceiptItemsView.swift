@@ -67,14 +67,14 @@ struct ReceiptItemsView: View {
                     Color.clear
                         .frame(width: 24, height: 24)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 // Instructions
                 Text("Tap each item to assign it to people")
                     .font(.custom("Inter-Regular", size: 14))
                     .foregroundColor(themeService.textSecondaryColor)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                 
                 // Items list
@@ -103,7 +103,7 @@ struct ReceiptItemsView: View {
                                     .font(.custom("Inter-Medium", size: 16))
                                     .foregroundColor(themeService.textSecondaryColor)
                             }
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 12)
                         }
                         
@@ -111,7 +111,7 @@ struct ReceiptItemsView: View {
                         Rectangle()
                             .fill(Color(hex: "EEEEEE"))
                             .frame(height: 1)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                         
                         // Total row
@@ -126,7 +126,7 @@ struct ReceiptItemsView: View {
                                 .font(.custom("Inter-Bold", size: 18))
                                 .foregroundColor(themeService.textPrimaryColor)
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         
                         // Progress indicator
@@ -135,7 +135,7 @@ struct ReceiptItemsView: View {
                                 .font(.custom("Inter-Medium", size: 14))
                                 .foregroundColor(themeService.textSecondaryColor)
                         }
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                         .padding(.bottom, 24)
                     }
@@ -171,7 +171,7 @@ struct ReceiptItemsView: View {
                     }
                     .buttonStyle(PressedButtonStyle())
                     .disabled(!hasAssignments)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                     .background(Color.white)
@@ -269,7 +269,7 @@ struct ReceiptItemRow: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(themeService.textTertiaryColor)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.vertical, 16)
             .background(
                 item.isAssigned ? Color(hex: "F8FFF8") : Color.clear
@@ -324,7 +324,7 @@ struct ItemContactPickerView: View {
                             .font(.custom("Inter-Bold", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                     
                     // Contact list
@@ -367,7 +367,7 @@ struct ItemContactPickerView: View {
                             )
                     }
                     .buttonStyle(PressedButtonStyle())
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                 }
@@ -428,7 +428,7 @@ struct ContactSelectRow: View {
                     }
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .contentShape(Rectangle())
         }

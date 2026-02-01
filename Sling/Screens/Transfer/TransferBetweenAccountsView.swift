@@ -95,7 +95,7 @@ struct TransferBetweenAccountsView: View {
                             .cornerRadius(16)
                         }
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     
                     // Swap button
                     Button(action: {
@@ -144,7 +144,7 @@ struct TransferBetweenAccountsView: View {
                             .cornerRadius(16)
                         }
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                 }
             }
             
@@ -166,7 +166,7 @@ struct TransferBetweenAccountsView: View {
                         .cornerRadius(16)
                 }
                 .disabled(amountValue <= 0)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
             }
             .padding(.bottom, 24)
             }
@@ -246,7 +246,7 @@ struct NumpadView: View {
                 }
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 16)
     }
     
     private func handleTap(_ button: String) {

@@ -125,7 +125,7 @@ struct StockDetailView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 ScrollView(.vertical, showsIndicators: false) {
@@ -170,7 +170,7 @@ struct StockDetailView: View {
                                     SlidingNumberText(
                                         text: displayPrice,
                                         font: .custom("Inter-Bold", size: 24),
-                                        color: Color(hex: "080808")
+                                        color: themeService.textPrimaryColor
                                     )
                                     
                                     HStack(spacing: 4) {
@@ -189,7 +189,7 @@ struct StockDetailView: View {
                         .padding(16)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.white)
+                                .fill(themeService.cardBackgroundColor)
                         )
                         .padding(.horizontal, 8)
                         .animation(.easeInOut(duration: 0.1), value: dragProgress)
@@ -211,20 +211,20 @@ struct StockDetailView: View {
                                 currentPrice: stockData?.currentPrice ?? 0,
                                 portfolioService: portfolioService
                             )
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 24)
                         }
                         
                         // About section
                         if !stock.description.isEmpty {
                             AboutSection(description: stock.description)
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 16)
                                 .padding(.vertical, 16)
                         }
                         
                         // Info section (at bottom)
                         InfoSection(stock: stock)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 16)
                         
                         Spacer(minLength: 100)
@@ -243,10 +243,10 @@ struct StockDetailView: View {
                     }) {
                         Text("Sell")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(ownsStock ? Color(hex: "080808") : Color(hex: "BFBFBF"))
+                            .foregroundColor(ownsStock ? themeService.textPrimaryColor : themeService.textTertiaryColor)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(ownsStock ? Color(hex: "EDEDED") : Color(hex: "F7F7F7"))
+                            .background(ownsStock ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED")) : (themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")))
                             .cornerRadius(20)
                     }
                     .disabled(!ownsStock)
@@ -258,14 +258,14 @@ struct StockDetailView: View {
                     }) {
                         Text("Buy")
                             .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(.white)
+                            .foregroundColor(themeService.currentTheme == .dark ? .black : .white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(Color(hex: "080808"))
+                            .background(themeService.textPrimaryColor)
                             .cornerRadius(20)
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
                 .background(
                     LinearGradient(
@@ -429,7 +429,7 @@ struct InvestmentDetailRow: View {
         if let isPositive = isPositive {
             return isPositive ? Color(hex: "57CE43") : Color(hex: "E30000")
         }
-        return Color(hex: "080808")
+        return themeService.textPrimaryColor
     }
     
     var body: some View {
@@ -750,7 +750,7 @@ struct StockChartView: View {
                     } label: {
                         Text(period)
                             .font(.custom(selectedPeriod == period ? "Inter-Medium" : "Inter-Regular", size: 14))
-                            .foregroundColor(selectedPeriod == period ? Color(hex: "080808") : Color(hex: "7B7B7B"))
+                            .foregroundColor(selectedPeriod == period ? themeService.textPrimaryColor : themeService.textSecondaryColor)
                             .frame(height: 20) // Line height 20
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)

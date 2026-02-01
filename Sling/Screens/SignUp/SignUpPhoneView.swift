@@ -42,7 +42,7 @@ struct SignUpPhoneView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                         .padding(.top, 8)
                         .padding(.bottom, 24)
                         
@@ -54,7 +54,7 @@ struct SignUpPhoneView: View {
                             isFocused: $isPhoneFocused,
                             onCountryTap: { showCountryPicker = true }
                         )
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 16)
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
@@ -67,7 +67,7 @@ struct SignUpPhoneView: View {
                         showVerificationView = true
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

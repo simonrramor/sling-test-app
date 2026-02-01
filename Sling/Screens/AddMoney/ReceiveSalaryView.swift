@@ -17,7 +17,7 @@ struct ReceiveSalaryView: View {
     
     var body: some View {
         ZStack {
-            themeService.backgroundColor
+            Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -48,7 +48,7 @@ struct ReceiveSalaryView: View {
                     Color.clear
                         .frame(width: 32, height: 32)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 24)
                 
@@ -59,7 +59,7 @@ struct ReceiveSalaryView: View {
                             .font(.custom("Inter-Regular", size: 14))
                             .foregroundColor(themeService.textSecondaryColor)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, 16)
                             .padding(.bottom, 8)
                         
                         // Account Details Card
@@ -89,7 +89,7 @@ struct ReceiveSalaryView: View {
                             onTap: { showProofOfOwnership = true }
                         )
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                 }
             }
         }
@@ -231,7 +231,7 @@ struct AccountDetailsSheet: View {
             }
         }
         .padding(24)
-        .background(themeService.backgroundColor)
+        .background(Color.white)
     }
     
     private func shareAccountDetails() {
@@ -363,7 +363,7 @@ struct LetterToEmployerSheet: View {
             }
         }
         .padding(24)
-        .background(themeService.backgroundColor)
+        .background(Color.white)
     }
     
     private func shareLetter() {
@@ -475,7 +475,7 @@ struct ProofOfOwnershipSheet: View {
             }
         }
         .padding(24)
-        .background(themeService.backgroundColor)
+        .background(Color.white)
     }
     
     private func shareCertificate() {

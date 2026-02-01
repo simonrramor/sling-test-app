@@ -81,27 +81,12 @@ class FeeService: ObservableObject {
     /// Base fee amount in stablecoin
     let baseFee: Double = 0.50
     
-    // MARK: - Fee Waiver State
-    
-    /// Number of free transfers remaining for new user promotion
-    @AppStorage("freeTransfersRemaining") var freeTransfersRemaining: Int = 3
-    
-    /// Whether user is an early adopter (grandfathered with no fees)
-    @AppStorage("isEarlyAdopter") var isEarlyAdopter: Bool = false
-    
-    /// Date until which early adopter status is valid
-    @AppStorage("earlyAdopterExpiryTimestamp") private var earlyAdopterExpiryTimestamp: Double = 0
-    
-    var earlyAdopterExpiry: Date? {
-        get { earlyAdopterExpiryTimestamp > 0 ? Date(timeIntervalSince1970: earlyAdopterExpiryTimestamp) : nil }
-        set { earlyAdopterExpiryTimestamp = newValue?.timeIntervalSince1970 ?? 0 }
-    }
     
     // MARK: - Initialization
     
     private init() {
-        // Sync display currency with portfolio service
-        displayCurrency = PortfolioService.shared.displayCurrency
+        // Sync display currency with display currency service
+        displayCurrency = DisplayCurrencyService.shared.displayCurrency
     }
     
     // MARK: - Fee Calculation
@@ -109,115 +94,79 @@ class FeeService: ObservableObject {
     /// Calculate fee for a transaction
     /// - Parameters:
     ///   - type: Type of transaction (deposit, withdrawal, p2p)
-    ///   - sourceCurrency: Currency being sent from
-    ///   - destinationCurrency: Currency being sent to
+    ///   - paymentInstrumentCurrency: Currency of the payment instrument (bank account, card, etc.)
     /// - Returns: FeeResult with fee details
     func calculateFee(
         for type: FeeTransactionType,
-        sourceCurrency: String,
-        destinationCurrency: String
+        paymentInstrumentCurrency: String
     ) -> FeeResult {
         // P2P is always free
         if type == .p2pSend || type == .p2pRequest {
             return .free
         }
         
-        // Determine if this is a foreign currency transaction
-        let isForeignTransaction: Bool
-        switch type {
-        case .deposit:
-            // Foreign deposit = source currency is not local currency
-            isForeignTransaction = isForeignCurrency(sourceCurrency)
-        case .withdrawal:
-            // Foreign withdrawal = destination currency is not local currency
-            isForeignTransaction = isForeignCurrency(destinationCurrency)
-        case .p2pSend, .p2pRequest:
-            isForeignTransaction = false
-        }
+        // Get current display currency
+        let currentDisplayCurrency = DisplayCurrencyService.shared.displayCurrency
         
-        // No fee for local currency transactions
-        if !isForeignTransaction {
+        // Fee applies when payment instrument currency differs from display currency
+        let needsFee = paymentInstrumentCurrency.uppercased() != currentDisplayCurrency.uppercased()
+        
+        if !needsFee {
             return .free
         }
         
-        // Check for fee waivers
-        if let waiverResult = checkWaivers() {
-            return waiverResult
-        }
-        
-        // Calculate fee in display currency
-        let displayAmount = convertToDisplayCurrency(baseFee)
+        // Calculate fee in the payment instrument's currency (convert $0.50 to that currency)
+        let feeInPaymentCurrency = convertFeeToPaymentCurrency(paymentInstrumentCurrency)
         
         return FeeResult(
-            amount: baseFee,
-            stablecoin: accountStablecoin,
-            displayAmount: displayAmount,
-            displayCurrency: displayCurrency,
+            amount: feeInPaymentCurrency,
+            stablecoin: paymentInstrumentCurrency,
+            displayAmount: feeInPaymentCurrency,
+            displayCurrency: paymentInstrumentCurrency,
             isWaived: false,
             waiverReason: nil
         )
     }
     
-    /// Check if a currency is foreign (not the user's local currency)
-    func isForeignCurrency(_ currency: String) -> Bool {
-        // Normalize currency codes
+    /// Legacy method for compatibility
+    func calculateFee(
+        for type: FeeTransactionType,
+        sourceCurrency: String,
+        destinationCurrency: String
+    ) -> FeeResult {
+        // Use the source currency as the payment instrument currency
+        return calculateFee(for: type, paymentInstrumentCurrency: sourceCurrency)
+    }
+    
+    /// Convert the base $0.50 USD fee to the payment instrument's currency
+    private func convertFeeToPaymentCurrency(_ currency: String) -> Double {
         let normalizedCurrency = currency.uppercased()
-        let normalizedLocal = localCurrency.uppercased()
         
-        // Also consider stablecoin equivalents
-        let stablecoinBase = accountStablecoin == "EURC" ? "EUR" : "USD"
-        
-        return normalizedCurrency != normalizedLocal && normalizedCurrency != stablecoinBase
-    }
-    
-    // MARK: - Fee Waivers
-    
-    /// Check if any fee waivers apply
-    private func checkWaivers() -> FeeResult? {
-        // Check early adopter status
-        if isEarlyAdopter {
-            if let expiry = earlyAdopterExpiry, Date() < expiry {
-                return FeeResult(
-                    amount: baseFee,
-                    stablecoin: accountStablecoin,
-                    displayAmount: convertToDisplayCurrency(baseFee),
-                    displayCurrency: displayCurrency,
-                    isWaived: true,
-                    waiverReason: "Early adopter - fees waived"
-                )
-            } else if earlyAdopterExpiry == nil {
-                // No expiry set = permanent early adopter
-                return FeeResult(
-                    amount: baseFee,
-                    stablecoin: accountStablecoin,
-                    displayAmount: convertToDisplayCurrency(baseFee),
-                    displayCurrency: displayCurrency,
-                    isWaived: true,
-                    waiverReason: "Early adopter - fees waived"
-                )
-            }
+        // If already USD, return base fee
+        if normalizedCurrency == "USD" {
+            return baseFee
         }
         
-        // Check free transfers remaining
-        if freeTransfersRemaining > 0 {
-            return FeeResult(
-                amount: baseFee,
-                stablecoin: accountStablecoin,
-                displayAmount: convertToDisplayCurrency(baseFee),
-                displayCurrency: displayCurrency,
-                isWaived: true,
-                waiverReason: "\(freeTransfersRemaining) free transfer\(freeTransfersRemaining == 1 ? "" : "s") remaining"
-            )
+        // Use cached exchange rate for synchronous conversion
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: normalizedCurrency) {
+            return baseFee * rate
         }
         
-        return nil
-    }
-    
-    /// Use a free transfer (decrements counter)
-    func useFreeTransfer() {
-        if freeTransfersRemaining > 0 {
-            freeTransfersRemaining -= 1
+        // Fallback: use approximate rates if cache not available
+        let fallbackRates: [String: Double] = [
+            "GBP": 0.79,
+            "EUR": 0.92,
+            "JPY": 149.0,
+            "CHF": 0.88,
+            "CAD": 1.36,
+            "AUD": 1.53
+        ]
+        
+        if let rate = fallbackRates[normalizedCurrency] {
+            return baseFee * rate
         }
+        
+        return baseFee
     }
     
     // MARK: - Currency Conversion
@@ -255,16 +204,5 @@ class FeeService: ObservableObject {
     func configure(localCurrency: String, accountStablecoin: String) {
         self.localCurrency = localCurrency
         self.accountStablecoin = accountStablecoin
-    }
-    
-    /// Set early adopter status with optional expiry
-    func setEarlyAdopterStatus(_ isEarlyAdopter: Bool, expiryDate: Date? = nil) {
-        self.isEarlyAdopter = isEarlyAdopter
-        self.earlyAdopterExpiry = expiryDate
-    }
-    
-    /// Reset free transfers (for testing or promotions)
-    func resetFreeTransfers(count: Int = 3) {
-        freeTransfersRemaining = count
     }
 }

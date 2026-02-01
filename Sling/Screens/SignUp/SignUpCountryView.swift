@@ -41,13 +41,13 @@ struct SignUpCountryView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
                 
                 // Search field
                 SearchField(text: $searchText, placeholder: "Search country")
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                 
                 // Country list
@@ -102,7 +102,7 @@ struct SignUpCountryView: View {
                         showNameView = true
                     }
                 )
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
                 .background(
                     LinearGradient(
