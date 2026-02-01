@@ -26,8 +26,8 @@ enum AppTheme: String, CaseIterable {
     
     var nextTheme: AppTheme {
         switch self {
-        case .grey: return .white
-        case .white: return .dark
+        case .grey: return .dark
+        case .white: return .dark  // Skip white, go to dark
         case .dark: return .grey
         }
     }
@@ -45,8 +45,13 @@ class ThemeService: ObservableObject {
     }
     
     private init() {
-        let saved = UserDefaults.standard.string(forKey: "appTheme") ?? AppTheme.white.rawValue
-        self.currentTheme = AppTheme(rawValue: saved) ?? .white
+        let saved = UserDefaults.standard.string(forKey: "appTheme") ?? AppTheme.grey.rawValue
+        var theme = AppTheme(rawValue: saved) ?? .grey
+        // Migrate users on white theme to grey
+        if theme == .white {
+            theme = .grey
+        }
+        self.currentTheme = theme
     }
     
     func toggleTheme() {

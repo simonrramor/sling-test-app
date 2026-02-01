@@ -11,6 +11,20 @@ struct TransactionDetailDrawer: View {
     @State private var showRequestView = false
     @State private var sheetOffset: CGFloat = 500
     @State private var backgroundOpacity: Double = 0
+    @State private var dragOffset: CGFloat = 0
+    
+    // Get actual device corner radius
+    private var deviceCornerRadius: CGFloat {
+        UIScreen.displayCornerRadius
+    }
+    
+    // Calculate stretch scale when pulling up (negative dragOffset)
+    private var stretchScale: CGFloat {
+        guard dragOffset < 0 else { return 1.0 }
+        // Convert negative offset to a scale factor (max ~8% stretch)
+        let stretchAmount = abs(dragOffset) / 150.0 * 0.08
+        return 1.0 + min(stretchAmount, 0.08)
+    }
     
     private var isOutgoing: Bool {
         activity.titleRight.hasPrefix("-")
@@ -27,42 +41,174 @@ struct TransactionDetailDrawer: View {
             return .cardPayment
         }
         
-        // Check for transfers/deposits/withdrawals
-        if subtitle.contains("transfer") || subtitle.contains("deposit") || subtitle.contains("withdrawal") {
-            return .transfer
+        // Check for add money / deposits
+        if subtitle.contains("top up") || subtitle.contains("added") || 
+           title.contains("top up") || title.contains("added money") ||
+           (subtitle.isEmpty && !isOutgoing && (avatar.hasPrefix("Account") || avatar.contains("monzo") || avatar.contains("wise") || avatar.contains("bank"))) {
+            return .addMoney
+        }
+        
+        // Check for withdrawals
+        if subtitle.contains("withdrawal") || subtitle.contains("withdrew") || 
+           title.contains("withdrawal") || title.contains("atm") {
+            return .withdrawal
+        }
+        
+        // Check for transfers between accounts
+        if subtitle.contains("transfer") || subtitle.contains("moved") {
+            return .transferBetweenAccounts
         }
         
         // Check for savings transactions
         if subtitle.contains("saving") || subtitle.contains("interest") || title.contains("saving") {
-            return .transfer
+            return .transferBetweenAccounts
         }
         
         // Check for investment/stock transactions
         if avatar.hasPrefix("Stock") || 
            subtitle.contains("stock") || subtitle.contains("invest") || 
-           subtitle.contains("buy") || subtitle.contains("sell") ||
            subtitle.contains("dividend") {
-            return .transfer
+            // Check if buy or sell based on amount direction
+            if isOutgoing {
+                return .stockBuy
+            } else {
+                return .stockSell
+            }
         }
         
         // P2P: person avatars or initials (but not emojis)
         // Emojis typically have unicode scalars > 255, letters/numbers don't
         let isLikelyEmoji = avatar.unicodeScalars.contains { $0.value > 255 }
-        if !isLikelyEmoji && avatar.count <= 2 { return .p2p }
-        if avatar.hasPrefix("Avatar") { return .p2p }
+        let isPersonAvatar = (!isLikelyEmoji && avatar.count <= 2) || avatar.hasPrefix("Avatar")
+        
+        if isPersonAvatar {
+            // Check if received or sent
+            if subtitle.contains("received") || !isOutgoing {
+                return .p2pReceived
+            } else {
+                return .p2pSent
+            }
+        }
         
         // Card payment: merchant with domain or company name
         if isOutgoing {
             return .cardPayment
         }
         
-        return .transfer
+        return .other
     }
     
     enum TransactionType {
         case cardPayment
-        case p2p
-        case transfer
+        case p2pSent
+        case p2pReceived
+        case addMoney
+        case withdrawal
+        case transferBetweenAccounts
+        case stockBuy
+        case stockSell
+        case other
+    }
+    
+    // Contextual header text based on transaction type
+    private var headerDescription: (prefix: String, amount: String, suffix: String) {
+        // Extract amount without sign
+        let amountText = activity.titleRight.replacingOccurrences(of: "+", with: "").replacingOccurrences(of: "-", with: "")
+        let name = activity.titleLeft
+        
+        switch transactionType {
+        case .p2pSent:
+            return ("You sent", amountText, "to \(name)")
+        case .p2pReceived:
+            return ("You received", amountText, "from \(name)")
+        case .cardPayment:
+            return ("You spent", amountText, "at \(name)")
+        case .addMoney:
+            return ("You added", amountText, "from \(name)")
+        case .withdrawal:
+            return ("You withdrew", amountText, "to \(name)")
+        case .transferBetweenAccounts:
+            // Try to parse "from X to Y" from subtitle or title
+            if activity.subtitleLeft.lowercased().contains("to") {
+                return ("You moved", amountText, activity.subtitleLeft)
+            }
+            return ("You moved", amountText, "from \(name)")
+        case .stockBuy:
+            // Extract ticker from subtitleRight (e.g., "+0.50 AMZN") or use stock name
+            let ticker = extractTicker(from: activity.subtitleRight) ?? extractTicker(from: activity.subtitleLeft) ?? stockTickerFromName(name)
+            return ("You bought", amountText, "of \(ticker)")
+        case .stockSell:
+            // Extract ticker from subtitleLeft (e.g., "Sold 0.50 AMZN") or subtitleRight
+            let ticker = extractTicker(from: activity.subtitleLeft) ?? extractTicker(from: activity.subtitleRight) ?? stockTickerFromName(name)
+            return ("You sold", amountText, "of \(ticker)")
+        case .other:
+            if isOutgoing {
+                return ("You paid", amountText, "to \(name)")
+            } else {
+                return ("You received", amountText, "from \(name)")
+            }
+        }
+    }
+    
+    // Extract ticker symbol from subtitle like "+0.50 AMZN", "Sold 0.50 AMZN", or "0.50 AMZNx"
+    private func extractTicker(from text: String) -> String? {
+        guard !text.isEmpty else { return nil }
+        
+        let components = text.components(separatedBy: " ")
+        // Ticker is usually the last component and mostly uppercase letters
+        if let lastComponent = components.last {
+            // Remove trailing "x" if present (added by fixStockTicker helper)
+            var ticker = lastComponent
+            if ticker.hasSuffix("x") && ticker.count > 2 {
+                ticker = String(ticker.dropLast())
+            }
+            
+            // Check if it looks like a ticker (2-5 uppercase letters)
+            if ticker.count >= 2 && ticker.count <= 5 && ticker == ticker.uppercased() && ticker.allSatisfy({ $0.isLetter }) {
+                return ticker
+            }
+        }
+        return nil
+    }
+    
+    // Map stock name to ticker symbol
+    private func stockTickerFromName(_ name: String) -> String {
+        let nameToTicker: [String: String] = [
+            "Apple": "AAPL",
+            "Apple Inc": "AAPL",
+            "Amazon": "AMZN",
+            "Amazon.com": "AMZN",
+            "Google": "GOOGL",
+            "Alphabet": "GOOGL",
+            "Microsoft": "MSFT",
+            "Tesla": "TSLA",
+            "Meta": "META",
+            "Meta Platforms": "META",
+            "Facebook": "META",
+            "Netflix": "NFLX",
+            "Nvidia": "NVDA",
+            "Bank of America": "BAC",
+            "McDonald's": "MCD",
+            "Visa": "V",
+            "Coinbase": "COIN",
+            "Circle": "CRCL"
+        ]
+        
+        // Try exact match first
+        if let ticker = nameToTicker[name] {
+            return ticker
+        }
+        
+        // Try case-insensitive match
+        let lowercasedName = name.lowercased()
+        for (stockName, ticker) in nameToTicker {
+            if stockName.lowercased() == lowercasedName {
+                return ticker
+            }
+        }
+        
+        // Fallback to name
+        return name
     }
     
     var body: some View {
@@ -77,12 +223,22 @@ struct TransactionDetailDrawer: View {
             // Drawer content - hugs content height
             VStack(spacing: 0) {
                 // Drawer handle
-                DrawerHandle()
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color.black.opacity(0.15))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
                 
                 // Content with padding
                 VStack(spacing: 16) {
-                    // Transaction header
-                    TransactionHeaderNew(activity: activity)
+                    // Contextual header with avatar and description
+                    TransactionContextHeader(
+                        avatar: activity.avatar,
+                        prefix: headerDescription.prefix,
+                        amount: headerDescription.amount,
+                        suffix: headerDescription.suffix,
+                        isPositive: !isOutgoing
+                    )
                     
                     // Action rows based on transaction type
                     actionRows
@@ -103,8 +259,52 @@ struct TransactionDetailDrawer: View {
             }
             .frame(maxWidth: .infinity)
             .background(Color(hex: "F2F2F2"))
-            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-            .offset(y: sheetOffset)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 40,
+                    bottomLeadingRadius: deviceCornerRadius,
+                    bottomTrailingRadius: deviceCornerRadius,
+                    topTrailingRadius: 40,
+                    style: .continuous
+                )
+            )
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
+            .scaleEffect(
+                x: 1.0,
+                y: stretchScale,
+                anchor: .bottom
+            )
+            .offset(y: sheetOffset + (dragOffset > 0 ? dragOffset : 0))
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        let translation = value.translation.height
+                        
+                        if translation > 0 {
+                            // Dragging down - allow freely for dismiss
+                            dragOffset = translation
+                            // Reduce background opacity as user drags
+                            let progress = min(translation / 300, 1.0)
+                            backgroundOpacity = 0.4 * (1 - progress)
+                        } else {
+                            // Dragging up - apply rubber band stretch effect
+                            dragOffset = rubberBandClamp(translation, limit: 150)
+                        }
+                    }
+                    .onEnded { value in
+                        // If dragged more than 100 points or velocity is high, dismiss
+                        if value.translation.height > 100 || value.predictedEndTranslation.height > 200 {
+                            dismissDrawer()
+                        } else {
+                            // Snap back with spring animation
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                dragOffset = 0
+                                backgroundOpacity = 0.4
+                            }
+                        }
+                    }
+            )
         }
         .ignoresSafeArea()
         .onAppear {
@@ -160,7 +360,7 @@ struct TransactionDetailDrawer: View {
                 }
             )
             
-        case .p2p:
+        case .p2pSent:
             // Two buttons side by side
             HStack(spacing: 8) {
                 Button(action: {
@@ -194,16 +394,79 @@ struct TransactionDetailDrawer: View {
                 .buttonStyle(PlainButtonStyle())
             }
             
-        case .transfer:
+        case .p2pReceived:
+            // Two buttons side by side
+            HStack(spacing: 8) {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showSendView = true
+                }) {
+                    Text("Send")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color(hex: "080808"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    showRequestView = true
+                }) {
+                    Text("Request")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color(hex: "080808"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
+        case .addMoney, .withdrawal, .transferBetweenAccounts, .stockBuy, .stockSell, .other:
             EmptyView()
         }
     }
     
     // MARK: - Info Cards
     
+    // Check if this is a subscription transaction
+    private var isSubscription: Bool {
+        let merchant = activity.titleLeft.lowercased()
+        let subtitle = activity.subtitleLeft.lowercased()
+        
+        let subscriptionKeywords = ["spotify", "netflix", "disney", "hulu", "apple music", "apple tv", 
+                                     "youtube", "amazon prime", "hbo", "paramount", "peacock",
+                                     "adobe", "microsoft 365", "dropbox", "icloud", "google one",
+                                     "gym", "fitness", "membership", "subscription", "monthly",
+                                     "audible", "kindle", "notion", "slack", "zoom", "canva"]
+        
+        for keyword in subscriptionKeywords {
+            if merchant.contains(keyword) || subtitle.contains(keyword) {
+                return true
+            }
+        }
+        return false
+    }
+    
+    // Generate a random next payment date (1-28 days from now)
+    private var nextPaymentDate: String {
+        let calendar = Calendar.current
+        let daysToAdd = Int.random(in: 7...28)
+        let nextDate = calendar.date(byAdding: .day, value: daysToAdd, to: Date()) ?? Date()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter.string(from: nextDate)
+    }
+    
     private var infoCards: some View {
         VStack(spacing: 8) {
-            // First card: Status, Location, Category
+            // First card: Status, Date, Category, and Next Payment (for subscriptions)
             InfoCardSection {
                 InfoCardRow(label: "Status", value: "Completed")
                 InfoCardRow(label: "Date", value: activity.formattedDateLong)
@@ -213,6 +476,9 @@ struct TransactionDetailDrawer: View {
                     valueColor: Color(hex: "FF5113"),
                     icon: categoryInfo.icon
                 )
+                if isSubscription {
+                    InfoCardRow(label: "Next payment", value: nextPaymentDate)
+                }
             }
             
             // Second card: Fees, Total
@@ -225,8 +491,23 @@ struct TransactionDetailDrawer: View {
     
     private var categoryInfo: (name: String, icon: String) {
         // P2P transactions should be categorized as Transfers
-        if transactionType == .p2p {
+        if transactionType == .p2pSent || transactionType == .p2pReceived {
             return ("Transfers", "arrow.up.right")
+        }
+        
+        // Withdrawals
+        if transactionType == .withdrawal {
+            return ("Withdrawal", "arrow.down.circle")
+        }
+        
+        // Add money
+        if transactionType == .addMoney {
+            return ("Deposit", "arrow.up.circle")
+        }
+        
+        // Transfer between accounts
+        if transactionType == .transferBetweenAccounts {
+            return ("Transfer", "arrow.left.arrow.right")
         }
         
         let merchant = activity.titleLeft.lowercased()
@@ -280,6 +561,14 @@ struct TransactionDetailDrawer: View {
             isPresented = false
         }
     }
+    
+    /// iOS-style rubber band effect for pulling past limits
+    private func rubberBandClamp(_ offset: CGFloat, limit: CGFloat, coefficient: CGFloat = 0.55) -> CGFloat {
+        let absOffset = abs(offset)
+        let sign: CGFloat = offset < 0 ? -1 : 1
+        let clamped = (1.0 - (1.0 / ((absOffset * coefficient / limit) + 1.0))) * limit
+        return clamped * sign
+    }
 }
 
 // MARK: - View Modifier for Transaction Detail
@@ -320,7 +609,54 @@ struct SplitBillFromTransactionView: View {
     }
 }
 
-// MARK: - New Transaction Header
+// MARK: - Transaction Context Header
+
+struct TransactionContextHeader: View {
+    let avatar: String
+    let prefix: String
+    let amount: String
+    let suffix: String
+    var isPositive: Bool = false
+    
+    private var styledText: AttributedString {
+        var result = AttributedString()
+        
+        // Prefix
+        var prefixPart = AttributedString(prefix + " ")
+        prefixPart.foregroundColor = Color(hex: "080808")
+        result.append(prefixPart)
+        
+        // Amount (colored)
+        var amountPart = AttributedString(amount)
+        amountPart.foregroundColor = isPositive ? Color(hex: "57CE43") : Color(hex: "080808")
+        result.append(amountPart)
+        
+        // Suffix
+        var suffixPart = AttributedString(" " + suffix)
+        suffixPart.foregroundColor = Color(hex: "080808")
+        result.append(suffixPart)
+        
+        return result
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Avatar
+            TransactionAvatarLarge(identifier: avatar)
+            
+            // Contextual description - H2 style from Figma with colored amount
+            Text(styledText)
+                .font(.custom("Inter-Bold", size: 32))
+                .tracking(-0.64) // -2% letter spacing
+                .lineSpacing(0)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 16)
+    }
+}
+
+// MARK: - New Transaction Header (Legacy - kept for reference)
 
 struct TransactionHeaderNew: View {
     let activity: ActivityItem
@@ -600,7 +936,7 @@ struct TransactionDetailView: View {
     }
 }
 
-#Preview {
+#Preview("Card Payment") {
     ZStack {
         Color.gray.ignoresSafeArea()
         
@@ -608,7 +944,97 @@ struct TransactionDetailView: View {
             activity: ActivityItem(
                 avatar: "boots.com",
                 titleLeft: "Boots",
-                subtitleLeft: "SA *BOOTS FARMA London GBR",
+                subtitleLeft: "Card payment",
+                titleRight: "-£100.00",
+                subtitleRight: "",
+                date: Date()
+            ),
+            isPresented: .constant(true)
+        )
+    }
+}
+
+#Preview("P2P Sent") {
+    ZStack {
+        Color.gray.ignoresSafeArea()
+        
+        TransactionDetailDrawer(
+            activity: ActivityItem(
+                avatar: "Avatar1",
+                titleLeft: "Agustin Alvarez",
+                subtitleLeft: "",
+                titleRight: "-£100.00",
+                subtitleRight: "",
+                date: Date()
+            ),
+            isPresented: .constant(true)
+        )
+    }
+}
+
+#Preview("P2P Received") {
+    ZStack {
+        Color.gray.ignoresSafeArea()
+        
+        TransactionDetailDrawer(
+            activity: ActivityItem(
+                avatar: "Avatar2",
+                titleLeft: "Agustin Alvarez",
+                subtitleLeft: "Received",
+                titleRight: "+£100.00",
+                subtitleRight: "",
+                date: Date()
+            ),
+            isPresented: .constant(true)
+        )
+    }
+}
+
+#Preview("Add Money") {
+    ZStack {
+        Color.gray.ignoresSafeArea()
+        
+        TransactionDetailDrawer(
+            activity: ActivityItem(
+                avatar: "AccountMonzo",
+                titleLeft: "Monzo Bank Limited",
+                subtitleLeft: "",
+                titleRight: "+£100.00",
+                subtitleRight: "",
+                date: Date()
+            ),
+            isPresented: .constant(true)
+        )
+    }
+}
+
+#Preview("Withdrawal") {
+    ZStack {
+        Color.gray.ignoresSafeArea()
+        
+        TransactionDetailDrawer(
+            activity: ActivityItem(
+                avatar: "AccountMonzo",
+                titleLeft: "Monzo Bank Limited",
+                subtitleLeft: "Withdrawal",
+                titleRight: "-£100.00",
+                subtitleRight: "",
+                date: Date()
+            ),
+            isPresented: .constant(true)
+        )
+    }
+}
+
+#Preview("Transfer Between Accounts") {
+    ZStack {
+        Color.gray.ignoresSafeArea()
+        
+        TransactionDetailDrawer(
+            activity: ActivityItem(
+                avatar: "AccountWise",
+                titleLeft: "Monzo Bank Limited",
+                subtitleLeft: "from Monzo Bank Limited to Wise",
                 titleRight: "-£100.00",
                 subtitleRight: "",
                 date: Date()

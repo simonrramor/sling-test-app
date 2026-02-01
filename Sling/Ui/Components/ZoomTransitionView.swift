@@ -32,7 +32,7 @@ enum ZoomMenuOption: String, CaseIterable, Identifiable {
         case .send: return Color(hex: "5FB0DB")
         case .request: return Color(hex: "5DB468")
         case .transfer: return Color(hex: "DB61C0")
-        case .receiveSalary: return .white
+        case .receiveSalary: return Color(hex: "080808")
         }
     }
 }

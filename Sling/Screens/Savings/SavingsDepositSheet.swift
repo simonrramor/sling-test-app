@@ -94,7 +94,7 @@ struct SavingsDepositSheet: View {
     
     var body: some View {
         ZStack {
-            themeService.backgroundColor
+            Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -182,10 +182,11 @@ struct SavingsDepositSheet: View {
                 Spacer()
                 
                 // Payment source row
-                SavingsSourceRow(
+                PaymentInstrumentRow(
                     iconName: "SlingBalanceLogo",
                     title: "Sling balance",
-                    balanceText: formattedAvailableBalance
+                    subtitleParts: [formattedAvailableBalance],
+                    showMenu: true
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -309,7 +310,7 @@ struct SavingsDepositConfirmView: View {
     
     var body: some View {
         ZStack {
-            themeService.backgroundColor
+            Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -368,136 +369,23 @@ struct SavingsDepositConfirmView: View {
                 Spacer()
                 
                 // Details section
-                VStack(spacing: 4) {
-                    // From row
-                    HStack {
-                        Text("From")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 8) {
-                            Image("SlingBalanceLogo")
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 20, height: 20)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                            
-                            Text("Sling Balance")
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textPrimaryColor)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
+                VStack(spacing: 0) {
+                    DetailRow(label: "From", value: "Sling Balance")
+                    DetailRow(label: "To", value: "Savings")
                     
-                    // To row
-                    HStack {
-                        Text("To")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 8) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color(hex: "4CAF50"))
-                                    .frame(width: 20, height: 20)
-                                
-                                Image(systemName: "dollarsign.arrow.circlepath")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-                            
-                            Text("Savings")
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textPrimaryColor)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    
-                    // Divider
                     Rectangle()
-                        .fill(Color(hex: "EDEDED"))
+                        .fill(Color.black.opacity(0.06))
                         .frame(height: 1)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     
-                    // Amount row
-                    HStack {
-                        Text("Amount")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text(formattedAmount)
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    
-                    // USDY price row
-                    HStack {
-                        Text("USDY price")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text(savingsService.formatPrice(savingsService.currentUsdyPrice))
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    
-                    // You receive row
-                    HStack {
-                        Text("You receive")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(Color(hex: "4CAF50"))
-                                .frame(width: 6, height: 6)
-                            
-                            Text("\(savingsService.formatTokens(usdyToReceive)) USDY")
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textPrimaryColor)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    
-                    // APY row
-                    HStack {
-                        Text("Current APY")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text("3.75%")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(Color(hex: "57CE43"))
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
+                    DetailRow(label: "Amount", value: formattedAmount)
+                    DetailRow(label: "USDY price", value: savingsService.formatPrice(savingsService.currentUsdyPrice))
+                    DetailRow(label: "You receive", value: "\(savingsService.formatTokens(usdyToReceive)) USDY")
+                    DetailRow(label: "Current APY", value: "3.75%", isHighlighted: true)
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeService.cardBackgroundColor)
-                )
+                .padding(.vertical, 16)
                 .padding(.horizontal, 16)
-                .padding(.bottom, 40)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
@@ -531,68 +419,6 @@ struct SavingsDepositConfirmView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
-    }
-}
-
-// MARK: - Savings Source Row
-
-struct SavingsSourceRow: View {
-    @ObservedObject private var themeService = ThemeService.shared
-    let iconName: String
-    var iconSystemName: String? = nil
-    var iconColor: Color? = nil
-    let title: String
-    let balanceText: String
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon
-            if let systemName = iconSystemName {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(iconColor ?? Color(hex: "4CAF50"))
-                        .frame(width: 44, height: 44)
-                    
-                    Image(systemName: systemName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-            } else {
-                Image(iconName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                    )
-            }
-            
-            // Title
-            Text(title)
-                .font(.custom("Inter-Bold", size: 16))
-                .foregroundColor(themeService.textPrimaryColor)
-            
-            Spacer()
-            
-            // Balance text
-            Text(balanceText)
-                .font(.custom("Inter-Regular", size: 14))
-                .foregroundColor(themeService.textSecondaryColor)
-            
-            // Menu icon
-            Image(systemName: "ellipsis")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(themeService.textSecondaryColor)
-                .rotationEffect(.degrees(90))
-                .frame(width: 24, height: 24)
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(hex: "F7F7F7"))
-        )
     }
 }
 

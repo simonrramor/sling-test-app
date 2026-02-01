@@ -41,10 +41,14 @@ struct InvestView: View {
     @ObservedObject private var ondoService = OndoService.shared
     @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @State private var selectedPeriod = "1D"
     @State private var isDragging = false
     @State private var dragProgress: CGFloat = 1.0
     @State private var selectedStock: Stock? = nil
+    @State private var exchangeRate: Double = 1.0
+    
+    private let exchangeRateService = ExchangeRateService.shared
     
     // Stock definitions - available Ondo tokenized stocks to buy/sell
     let stockDefinitions: [(name: String, iconName: String, description: String)] = [
@@ -172,12 +176,28 @@ struct InvestView: View {
         return isPositiveChange ? Color.appPositiveGreen : Color.appNegativeRed
     }
     
+    var currencySymbol: String {
+        ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+    }
+    
+    var displayPortfolioChangeConverted: Double {
+        displayCurrencyService.displayCurrency == "USD" ? displayPortfolioChange : displayPortfolioChange * exchangeRate
+    }
+    
+    var displayPortfolioTotalConverted: Double {
+        displayCurrencyService.displayCurrency == "USD" ? displayPortfolioTotal : displayPortfolioTotal * exchangeRate
+    }
+    
     var changeText: String {
-        return String(format: "$%.2f", abs(displayPortfolioChange))
+        return String(format: "%@%.2f", currencySymbol, abs(displayPortfolioChangeConverted))
     }
     
     var portfolioTotalText: String {
-        return String(format: "$%.2f", displayPortfolioTotal)
+        return String(format: "%@%.2f", currencySymbol, displayPortfolioTotalConverted)
+    }
+    
+    var zeroBalanceText: String {
+        return "\(currencySymbol)0.00"
     }
     
     // Disabled periods for demo mode (only 1H and 1D are valid)
@@ -208,7 +228,7 @@ struct InvestView: View {
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                         
-                        Text("$0.00")
+                        Text(zeroBalanceText)
                             .font(.custom("Inter-Bold", size: 48))
                             .tracking(-0.96)
                             .foregroundColor(themeService.textPrimaryColor)
@@ -231,7 +251,7 @@ struct InvestView: View {
                         }
                         
                         SlidingNumberText(
-                            text: displayPortfolioTotal > 0 ? portfolioTotalText : "$0.00",
+                            text: displayPortfolioTotal > 0 ? portfolioTotalText : zeroBalanceText,
                             font: .custom("Inter-Bold", size: 48),
                             color: themeService.textPrimaryColor
                         )
@@ -358,6 +378,10 @@ struct InvestView: View {
             Task {
                 await fetchAllStocksForPeriod()
             }
+            fetchExchangeRate()
+        }
+        .onChange(of: displayCurrencyService.displayCurrency) { _, _ in
+            fetchExchangeRate()
         }
         .onChange(of: selectedPeriod) { _, _ in
             Task {
@@ -368,6 +392,22 @@ struct InvestView: View {
     
     private func fetchAllStocksForPeriod() async {
         await ondoService.fetchAllTokens()
+    }
+    
+    private func fetchExchangeRate() {
+        let currency = displayCurrencyService.displayCurrency
+        guard currency != "USD" else {
+            exchangeRate = 1.0
+            return
+        }
+        
+        Task {
+            if let rate = await exchangeRateService.getRate(from: "USD", to: currency) {
+                await MainActor.run {
+                    exchangeRate = rate
+                }
+            }
+        }
     }
 }
 

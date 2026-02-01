@@ -38,7 +38,8 @@ struct TransferView: View {
         TransferAction(
             title: "Receive your salary",
             subtitle: "Get paid into Sling",
-            iconName: "TransferSalary"
+            iconName: "TransferSalary",
+            iconColor: Color(hex: "080808")
         )
     ]
     
@@ -76,6 +77,7 @@ struct TransferView: View {
                             title: action.title,
                             subtitle: action.subtitle,
                             iconStyle: .plain,
+                            iconColor: action.iconColor,
                             isButton: true,
                             onTap: {
                                 switch action.title {

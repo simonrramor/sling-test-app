@@ -671,26 +671,41 @@ struct HomeSavingsCard: View {
 struct HomePortfolioCard: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
-    private var portfolioValue: Double {
+    @State private var exchangeRate: Double = 1.0
+    
+    private let exchangeRateService = ExchangeRateService.shared
+    
+    private var portfolioValueUSD: Double {
         portfolioService.portfolioValue()
     }
     
-    private var formattedBalance: String {
-        String(format: "$%.2f", portfolioValue)
+    private var portfolioValueDisplay: Double {
+        displayCurrencyService.displayCurrency == "USD" ? portfolioValueUSD : portfolioValueUSD * exchangeRate
     }
     
-    private var totalGainLoss: Double {
+    private var formattedBalance: String {
+        let symbol = ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+        return String(format: "%@%.2f", symbol, portfolioValueDisplay)
+    }
+    
+    private var totalGainLossUSD: Double {
         let costBasis = portfolioService.holdings.values.reduce(0) { $0 + $1.totalCost }
-        return portfolioValue - costBasis
+        return portfolioValueUSD - costBasis
+    }
+    
+    private var totalGainLossDisplay: Double {
+        displayCurrencyService.displayCurrency == "USD" ? totalGainLossUSD : totalGainLossUSD * exchangeRate
     }
     
     private var isPositive: Bool {
-        totalGainLoss >= 0
+        totalGainLossUSD >= 0
     }
     
     private var formattedGainLoss: String {
-        String(format: "$%.2f", abs(totalGainLoss))
+        let symbol = ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+        return String(format: "%@%.2f", symbol, abs(totalGainLossDisplay))
     }
     
     var body: some View {
@@ -707,7 +722,7 @@ struct HomePortfolioCard: View {
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                         
-                        if portfolioValue > 0 {
+                        if portfolioValueUSD > 0 {
                             Image(systemName: isPositive ? "arrow.up" : "arrow.down")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(isPositive ? Color(hex: "57CE43") : Color(hex: "E30000"))
@@ -727,7 +742,7 @@ struct HomePortfolioCard: View {
                 Spacer()
                 
                 // Mini chart (only show if has holdings)
-                if portfolioValue > 0 {
+                if portfolioValueUSD > 0 {
                     MiniPortfolioChart()
                 }
             }
@@ -737,6 +752,28 @@ struct HomePortfolioCard: View {
             .cornerRadius(24)
         }
         .buttonStyle(PressedButtonStyle())
+        .onAppear {
+            fetchExchangeRate()
+        }
+        .onChange(of: displayCurrencyService.displayCurrency) { _, _ in
+            fetchExchangeRate()
+        }
+    }
+    
+    private func fetchExchangeRate() {
+        let currency = displayCurrencyService.displayCurrency
+        guard currency != "USD" else {
+            exchangeRate = 1.0
+            return
+        }
+        
+        Task {
+            if let rate = await exchangeRateService.getRate(from: "USD", to: currency) {
+                await MainActor.run {
+                    exchangeRate = rate
+                }
+            }
+        }
     }
 }
 

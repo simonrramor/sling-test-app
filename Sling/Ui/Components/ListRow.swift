@@ -7,6 +7,7 @@ struct ListRow<TrailingContent: View>: View {
     let title: String
     let subtitle: String
     let iconStyle: IconStyle
+    var iconColor: Color? = nil
     let isButton: Bool
     let onTap: (() -> Void)?
     let trailingContent: () -> TrailingContent
@@ -21,6 +22,7 @@ struct ListRow<TrailingContent: View>: View {
         title: String,
         subtitle: String,
         iconStyle: IconStyle = .rounded,
+        iconColor: Color? = nil,
         isButton: Bool = false,
         onTap: (() -> Void)? = nil,
         @ViewBuilder trailingContent: @escaping () -> TrailingContent
@@ -29,6 +31,7 @@ struct ListRow<TrailingContent: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.iconStyle = iconStyle
+        self.iconColor = iconColor
         self.isButton = isButton
         self.onTap = onTap
         self.trailingContent = trailingContent
@@ -84,11 +87,21 @@ struct ListRow<TrailingContent: View>: View {
                 )
                 .accessibilityHidden(true)
         case .plain:
-            Image(iconName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 44, height: 44)
-                .accessibilityHidden(true)
+            if let color = iconColor {
+                Image(iconName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 44, height: 44)
+                    .foregroundColor(color)
+                    .accessibilityHidden(true)
+            } else {
+                Image(iconName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 44, height: 44)
+                    .accessibilityHidden(true)
+            }
         }
     }
 }
@@ -100,6 +113,7 @@ extension ListRow where TrailingContent == EmptyView {
         title: String,
         subtitle: String,
         iconStyle: IconStyle = .rounded,
+        iconColor: Color? = nil,
         isButton: Bool = false,
         onTap: (() -> Void)? = nil
     ) {
@@ -107,6 +121,7 @@ extension ListRow where TrailingContent == EmptyView {
         self.title = title
         self.subtitle = subtitle
         self.iconStyle = iconStyle
+        self.iconColor = iconColor
         self.isButton = isButton
         self.onTap = onTap
         self.trailingContent = { EmptyView() }

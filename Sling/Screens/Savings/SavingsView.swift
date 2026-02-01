@@ -6,6 +6,8 @@ struct SavingsView: View {
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @AppStorage("hasStartedSaving") private var hasStartedSaving = false
     @State private var showBalanceSheet = false
+    @State private var showDepositSheet = false
+    @State private var showWithdrawSheet = false
     
     var body: some View {
         if hasStartedSaving {
@@ -32,11 +34,15 @@ struct SavingsView: View {
                 // Deposit + Withdraw buttons
                 HStack(spacing: 8) {
                     TertiaryButton(title: "Deposit") {
-                        // TODO: Deposit action
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        showDepositSheet = true
                     }
                     
                     TertiaryButton(title: "Withdraw") {
-                        // TODO: Withdraw action
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        showWithdrawSheet = true
                     }
                 }
                 .padding(.horizontal, 16)
@@ -88,10 +94,6 @@ struct SavingsView: View {
                 .cornerRadius(16)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-                
-                // Empty state content
-                savingsEmptyState
-                    .padding(.top, 24)
             }
             .padding(.top, 16)
             .padding(.bottom, 120)
@@ -103,6 +105,12 @@ struct SavingsView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showBalanceSheet)
+        .fullScreenCover(isPresented: $showDepositSheet) {
+            SavingsDepositSheet(isPresented: $showDepositSheet)
+        }
+        .fullScreenCover(isPresented: $showWithdrawSheet) {
+            SavingsWithdrawSheet(isPresented: $showWithdrawSheet)
+        }
     }
     
     // MARK: - Savings Balance Header
@@ -127,66 +135,6 @@ struct SavingsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 16)
-    }
-    
-    // MARK: - Empty State
-    
-    private var savingsEmptyState: some View {
-        VStack(spacing: 24) {
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "E8F5E9"))
-                    .frame(width: 120, height: 120)
-                
-                Image("NavSavings")
-                    .renderingMode(.template)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 48, height: 48)
-                    .foregroundColor(Color(hex: "4CAF50"))
-            }
-            .padding(.bottom, 8)
-            
-            VStack(spacing: 8) {
-                Text("Start growing your savings")
-                    .font(.custom("Inter-Bold", size: 20))
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .multilineTextAlignment(.center)
-                
-                Text("Set money aside automatically and watch your savings grow over time.")
-                    .font(.custom("Inter-Regular", size: 16))
-                    .foregroundColor(themeService.textSecondaryColor)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-            }
-            
-            Button(action: {
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-                // TODO: Create savings goal action
-            }) {
-                Text("Create savings goal")
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color(hex: "4CAF50"))
-                    .cornerRadius(16)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
-        }
-        .padding(.vertical, 32)
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(themeService.cardBackgroundColor)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
-        )
-        .padding(.horizontal, 16)
     }
     
     // MARK: - Intro View (onboarding)

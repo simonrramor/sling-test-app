@@ -9,6 +9,7 @@ struct BalanceSheet: View {
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
     @State private var selectedCurrency: String = "USD"
+    @State private var previousNonUSDCurrency: String? = nil // Track the last non-USD currency for easy swap back
     @State private var showCurrencyPicker = false
     @State private var displayAmount: Double = 0
     @State private var exchangeRate: Double = 1.0
@@ -108,6 +109,10 @@ struct BalanceSheet: View {
                 isPresented: $showCurrencyPicker,
                 selectedCurrency: $selectedCurrency,
                 onCurrencySelected: { currency in
+                    // Remember the previous non-USD currency before switching
+                    if selectedCurrency != "USD" {
+                        previousNonUSDCurrency = selectedCurrency
+                    }
                     selectedCurrency = currency
                     displayCurrencyService.displayCurrency = currency
                     fetchExchangeRate()
@@ -116,6 +121,10 @@ struct BalanceSheet: View {
         }
         .onAppear {
             selectedCurrency = displayCurrencyService.displayCurrency
+            // Initialize previous currency if current is non-USD
+            if selectedCurrency != "USD" {
+                previousNonUSDCurrency = selectedCurrency
+            }
             fetchExchangeRate()
             withAnimation(.easeInOut(duration: 0.25)) {
                 sheetOffset = 0
@@ -168,14 +177,29 @@ struct BalanceSheet: View {
     
     // MARK: - Currency Tab Bar
     
+    /// The non-USD currency to show in the tab bar (either current selection or previous)
+    private var alternativeCurrency: DisplayCurrencyInfo? {
+        // If currently on a non-USD currency, show that
+        if selectedCurrency != "USD",
+           let current = displayCurrencyService.allCurrencies.first(where: { $0.code == selectedCurrency }) {
+            return current
+        }
+        // Otherwise show the previous non-USD currency if we have one
+        if let prev = previousNonUSDCurrency,
+           let prevCurrency = displayCurrencyService.allCurrencies.first(where: { $0.code == prev }) {
+            return prevCurrency
+        }
+        return nil
+    }
+    
     private var currencyTabBar: some View {
         HStack(spacing: 4) {
             // USD tab (always shown)
             currencyTab(currency: displayCurrencyService.allCurrencies.first { $0.code == "USD" }!)
             
-            // Current display currency tab (if not USD)
-            if let currentCurrency = displayCurrencyService.currentCurrencyInfo, currentCurrency.code != "USD" {
-                currencyTab(currency: currentCurrency)
+            // Alternative currency tab (current non-USD or previous non-USD)
+            if let altCurrency = alternativeCurrency {
+                currencyTab(currency: altCurrency)
             }
             
             // More tab
@@ -193,8 +217,12 @@ struct BalanceSheet: View {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
             withAnimation(.easeInOut(duration: 0.2)) {
+                // Remember the previous non-USD currency before switching
+                if selectedCurrency != "USD" {
+                    previousNonUSDCurrency = selectedCurrency
+                }
                 selectedCurrency = currency.code
-                // Don't update displayCurrencyService here - only "More" picker changes the saved preference
+                displayCurrencyService.displayCurrency = currency.code
                 fetchExchangeRate()
             }
         }) {
