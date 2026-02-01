@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import MapKit
 
 /// Transaction detail drawer with the new card-based design
 struct TransactionDetailDrawer: View {
@@ -9,21 +10,53 @@ struct TransactionDetailDrawer: View {
     @State private var showSplitBill = false
     @State private var showSendView = false
     @State private var showRequestView = false
-    @State private var sheetOffset: CGFloat = 500
     @State private var backgroundOpacity: Double = 0
     @State private var dragOffset: CGFloat = 0
+    @State private var currentDetent: DrawerDetent = .half
+    @State private var showCard = false
+    
+    enum DrawerDetent {
+        case half
+        case full
+    }
     
     // Get actual device corner radius
     private var deviceCornerRadius: CGFloat {
         UIScreen.displayCornerRadius
     }
     
-    // Calculate stretch scale when pulling up (negative dragOffset)
+    // Screen height for calculations
+    private var screenHeight: CGFloat {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return 800 // Fallback
+        }
+        return window.bounds.height
+    }
+    
+    // Height for half detent (50% of screen)
+    private var halfHeight: CGFloat {
+        screenHeight * 0.5
+    }
+    
+    // Height for full detent (full screen minus safe area)
+    private var fullHeight: CGFloat {
+        screenHeight - 60 // Leave some space at top
+    }
+    
+    // Current drawer height based on detent
+    private var drawerHeight: CGFloat {
+        switch currentDetent {
+        case .half: return halfHeight
+        case .full: return fullHeight
+        }
+    }
+    
+    // Calculate stretch scale when pulling up past full (positive dragOffset when at full and pulling up)
     private var stretchScale: CGFloat {
-        guard dragOffset < 0 else { return 1.0 }
-        // Convert negative offset to a scale factor (max ~8% stretch)
-        let stretchAmount = abs(dragOffset) / 150.0 * 0.08
-        return 1.0 + min(stretchAmount, 0.08)
+        guard currentDetent == .full && dragOffset > 0 else { return 1.0 }
+        let stretchAmount = dragOffset / 80.0 * 0.05
+        return 1.0 + min(stretchAmount, 0.05)
     }
     
     private var isOutgoing: Bool {
@@ -220,96 +253,138 @@ struct TransactionDetailDrawer: View {
                     dismissDrawer()
                 }
             
-            // Drawer content - hugs content height
-            VStack(spacing: 0) {
-                // Drawer handle
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.black.opacity(0.15))
-                    .frame(width: 36, height: 5)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-                
-                // Content with padding
-                VStack(spacing: 16) {
-                    // Contextual header with avatar and description
-                    TransactionContextHeader(
-                        avatar: activity.avatar,
-                        prefix: headerDescription.prefix,
-                        amount: headerDescription.amount,
-                        suffix: headerDescription.suffix,
-                        isPositive: !isOutgoing
-                    )
+            // Drawer content with dynamic height
+            if showCard {
+                VStack(spacing: 0) {
+                    // Drawer handle
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.black.opacity(0.15))
+                        .frame(width: 36, height: 5)
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
                     
-                    // Action rows based on transaction type
-                    actionRows
-                    
-                    // Info cards
-                    infoCards
-                    
-                    // Help row
-                    TransactionActionRow(
-                        title: "Need help with this payment?",
-                        onTap: {
-                            // TODO: Open help/support flow
+                    // Scrollable content
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Contextual header with avatar and description
+                            TransactionContextHeader(
+                                avatar: activity.avatar,
+                                prefix: headerDescription.prefix,
+                                amount: headerDescription.amount,
+                                suffix: headerDescription.suffix,
+                                isPositive: !isOutgoing
+                            )
+                            
+                            // Action rows based on transaction type
+                            actionRows
+                            
+                            // Info cards
+                            infoCards
+                            
+                            // Help row
+                            TransactionActionRow(
+                                title: "Need help with this payment?",
+                                onTap: {
+                                    // TODO: Open help/support flow
+                                }
+                            )
                         }
-                    )
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
-            }
-            .frame(maxWidth: .infinity)
-            .background(Color(hex: "F2F2F2"))
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 40,
-                    bottomLeadingRadius: deviceCornerRadius,
-                    bottomTrailingRadius: deviceCornerRadius,
-                    topTrailingRadius: 40,
-                    style: .continuous
-                )
-            )
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
-            .scaleEffect(
-                x: 1.0,
-                y: stretchScale,
-                anchor: .bottom
-            )
-            .offset(y: sheetOffset + (dragOffset > 0 ? dragOffset : 0))
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        let translation = value.translation.height
-                        
-                        if translation > 0 {
-                            // Dragging down - allow freely for dismiss
-                            dragOffset = translation
-                            // Reduce background opacity as user drags
-                            let progress = min(translation / 300, 1.0)
-                            backgroundOpacity = 0.4 * (1 - progress)
-                        } else {
-                            // Dragging up - apply rubber band stretch effect
-                            dragOffset = rubberBandClamp(translation, limit: 150)
-                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 40)
                     }
-                    .onEnded { value in
-                        // If dragged more than 100 points or velocity is high, dismiss
-                        if value.translation.height > 100 || value.predictedEndTranslation.height > 200 {
-                            dismissDrawer()
-                        } else {
-                            // Snap back with spring animation
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                dragOffset = 0
-                                backgroundOpacity = 0.4
+                    .scrollIndicators(.hidden)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: max(200, drawerHeight + dragOffset))
+                .background(Color(hex: "F2F2F2"))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 40,
+                        bottomLeadingRadius: deviceCornerRadius,
+                        bottomTrailingRadius: deviceCornerRadius,
+                        topTrailingRadius: 40,
+                        style: .continuous
+                    )
+                )
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .scaleEffect(
+                    x: 1.0,
+                    y: stretchScale,
+                    anchor: .bottom
+                )
+                .transition(.move(edge: .bottom))
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            let translation = value.translation.height
+                            
+                            if currentDetent == .half {
+                                if translation < 0 {
+                                    // Dragging up from half - expand toward full
+                                    // translation is negative, we want positive dragOffset
+                                    let maxExpand = fullHeight - halfHeight
+                                    dragOffset = min(-translation, maxExpand)
+                                } else {
+                                    // Dragging down from half - shrink to dismiss
+                                    dragOffset = -translation
+                                    let progress = min(translation / 300, 1.0)
+                                    backgroundOpacity = 0.4 * (1 - progress)
+                                }
+                            } else {
+                                // At full detent
+                                if translation > 0 {
+                                    // Dragging down from full - shrink toward half
+                                    dragOffset = -translation
+                                } else {
+                                    // Dragging up past full - rubber band
+                                    dragOffset = rubberBandClamp(-translation, limit: 60)
+                                }
                             }
                         }
-                    }
-            )
+                        .onEnded { value in
+                            let translation = value.translation.height
+                            
+                            if currentDetent == .half {
+                                if translation < -100 {
+                                    // Dragged up significantly - go to full
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                        currentDetent = .full
+                                        dragOffset = 0
+                                    }
+                                } else if translation > 100 {
+                                    // Dragged down significantly - dismiss
+                                    dismissDrawer()
+                                } else {
+                                    // Snap back
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        dragOffset = 0
+                                        backgroundOpacity = 0.4
+                                    }
+                                }
+                            } else {
+                                // At full detent
+                                if translation > 150 {
+                                    // Dragged down a lot - go to half
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                        currentDetent = .half
+                                        dragOffset = 0
+                                    }
+                                } else {
+                                    // Snap back to full
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        dragOffset = 0
+                                    }
+                                }
+                            }
+                        }
+                )
+            }
         }
         .ignoresSafeArea()
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                sheetOffset = 0
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                showCard = true
                 backgroundOpacity = 0.4
             }
         }
@@ -464,8 +539,47 @@ struct TransactionDetailDrawer: View {
         return formatter.string(from: nextDate)
     }
     
+    // Sample locations for card payments
+    private var transactionLocation: String {
+        let locations = [
+            "Godalming, GB",
+            "London, GB",
+            "Manchester, GB",
+            "Bristol, GB",
+            "Edinburgh, GB",
+            "Birmingham, GB",
+            "Liverpool, GB",
+            "Oxford, GB"
+        ]
+        // Use merchant name hash to get consistent location
+        let hash = activity.titleLeft.hashValue
+        return locations[abs(hash) % locations.count]
+    }
+    
+    // Coordinates for map (sample based on location)
+    private var mapCoordinates: (lat: Double, lon: Double) {
+        let location = transactionLocation
+        if location.contains("Godalming") { return (51.1859, -0.6161) }
+        if location.contains("London") { return (51.5074, -0.1278) }
+        if location.contains("Manchester") { return (53.4808, -2.2426) }
+        if location.contains("Bristol") { return (51.4545, -2.5879) }
+        if location.contains("Edinburgh") { return (55.9533, -3.1883) }
+        if location.contains("Birmingham") { return (52.4862, -1.8904) }
+        if location.contains("Liverpool") { return (53.4084, -2.9916) }
+        if location.contains("Oxford") { return (51.7520, -1.2577) }
+        return (51.5074, -0.1278) // Default to London
+    }
+    
     private var infoCards: some View {
         VStack(spacing: 8) {
+            // Map card for card payments (not subscriptions)
+            if transactionType == .cardPayment && !isSubscription {
+                TransactionMapCard(
+                    location: transactionLocation,
+                    coordinates: mapCoordinates
+                )
+            }
+            
             // First card: Status, Date, Category, and Next Payment (for subscriptions)
             InfoCardSection {
                 InfoCardRow(label: "Status", value: "Completed")
@@ -553,11 +667,11 @@ struct TransactionDetailDrawer: View {
     }
     
     private func dismissDrawer() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            sheetOffset = 500
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            showCard = false
             backgroundOpacity = 0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             isPresented = false
         }
     }
@@ -875,6 +989,142 @@ struct InfoCardSection<Content: View>: View {
         .padding(.vertical, 12)
         .background(Color.white)
         .cornerRadius(16)
+    }
+}
+
+// MARK: - Transaction Map Card
+
+struct TransactionMapCard: View {
+    let location: String
+    let coordinates: (lat: Double, lon: Double)
+    
+    @State private var mapSnapshot: UIImage? = nil
+    
+    var body: some View {
+        VStack(spacing: 2) {
+            // Map image
+            GeometryReader { geometry in
+                ZStack {
+                    // Map background
+                    if let snapshot = mapSnapshot {
+                        Image(uiImage: snapshot)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: 177)
+                    } else {
+                        MapPlaceholderView()
+                    }
+                    
+                    // Location pin
+                    Circle()
+                        .fill(Color(hex: "FF5113"))
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .stroke(Color(hex: "FF5113").opacity(0.2), lineWidth: 7)
+                        )
+                }
+                .frame(width: geometry.size.width, height: 177)
+                .clipped()
+            }
+            .frame(height: 177)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white, lineWidth: 6)
+            )
+            
+            // Location row
+            HStack {
+                Image("IconLocationPin")
+                    .renderingMode(.template)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 19, height: 19)
+                    .foregroundColor(Color(hex: "7B7B7B"))
+                
+                Spacer()
+                
+                Text(location)
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(Color(hex: "080808"))
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
+        }
+        .padding(4)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .cornerRadius(24)
+        .onAppear {
+            generateMapSnapshot()
+        }
+    }
+    
+    private func generateMapSnapshot() {
+        let coordinate = CLLocationCoordinate2D(latitude: coordinates.lat, longitude: coordinates.lon)
+        
+        let options = MKMapSnapshotter.Options()
+        options.region = MKCoordinateRegion(
+            center: coordinate,
+            latitudinalMeters: 500,
+            longitudinalMeters: 500
+        )
+        options.size = CGSize(width: 400, height: 200)
+        options.scale = 3.0 // Retina scale
+        options.mapType = .mutedStandard
+        options.pointOfInterestFilter = .excludingAll
+        options.showsBuildings = false
+        
+        let snapshotter = MKMapSnapshotter(options: options)
+        snapshotter.start { snapshot, error in
+            guard let snapshot = snapshot, error == nil else { return }
+            
+            DispatchQueue.main.async {
+                self.mapSnapshot = snapshot.image
+            }
+        }
+    }
+}
+
+// MARK: - Map Placeholder View
+
+struct MapPlaceholderView: View {
+    var body: some View {
+        ZStack {
+            // Gradient background that looks like a map
+            LinearGradient(
+                colors: [
+                    Color(hex: "E8F4E8"),
+                    Color(hex: "F5F5DC"),
+                    Color(hex: "E8F0E8")
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            // Road-like lines
+            VStack(spacing: 30) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Rectangle()
+                        .fill(Color.white.opacity(0.8))
+                        .frame(height: 3)
+                        .rotationEffect(.degrees(Double.random(in: -15...15)))
+                }
+            }
+            .padding(.horizontal, 20)
+            
+            // Some "blocks"
+            HStack(spacing: 20) {
+                ForEach(0..<3, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(hex: "D4D4D4").opacity(0.5))
+                        .frame(width: CGFloat.random(in: 40...80), height: CGFloat.random(in: 30...60))
+                }
+            }
+        }
+        .frame(height: 177)
     }
 }
 
