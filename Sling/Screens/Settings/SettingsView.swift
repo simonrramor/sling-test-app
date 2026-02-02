@@ -225,7 +225,7 @@ struct SettingsView: View {
                         
                         Spacer().frame(height: 40)
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 16)
                 }
             }
         }
@@ -276,20 +276,8 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showFees) {
             FeesSettingsView(isPresented: $showFees)
         }
-        .confirmationDialog("Display Currency", isPresented: $showCurrencyPicker, titleVisibility: .visible) {
-            ForEach(displayCurrencyService.availableCurrencies, id: \.self) { currency in
-                Button(action: {
-                    displayCurrencyService.displayCurrency = currency
-                }) {
-                    HStack {
-                        Text("\(ExchangeRateService.symbol(for: currency)) \(currency)")
-                        if currency == displayCurrencyService.displayCurrency {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-            Button("Cancel", role: .cancel) {}
+        .fullScreenCover(isPresented: $showCurrencyPicker) {
+            CurrencySelectionView(isPresented: $showCurrencyPicker)
         }
     }
     

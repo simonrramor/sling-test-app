@@ -416,8 +416,8 @@ struct SellConfirmView: View {
                         symbol: stock.symbol
                     )
                     
-                    // Navigate home and complete
-                    NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                    // Dismiss sell flow and stay on invest page
+                    isSellFlowPresented = false
                     onComplete()
                 }
                 .padding(.horizontal, 16)

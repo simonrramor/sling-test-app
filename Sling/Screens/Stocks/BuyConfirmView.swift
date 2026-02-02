@@ -182,8 +182,8 @@ struct BuyConfirmView: View {
                             symbol: stock.symbol
                         )
                         
-                        // Navigate home and complete
-                        NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                        // Dismiss buy flow and stay on invest page
+                        isBuyFlowPresented = false
                         onComplete()
                     } else {
                         // Reset loading state if purchase failed

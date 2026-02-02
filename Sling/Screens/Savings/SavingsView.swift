@@ -10,6 +10,8 @@ struct SavingsView: View {
     @State private var showHowItWorks = false
     @State private var showAllTransactions = false
     @State private var exchangeRate: Double = 1.0
+    @State private var selectedActivity: ActivityItem?
+    @State private var showTransactionDetail = false
     
     private let exchangeRateService = ExchangeRateService.shared
     
@@ -26,6 +28,10 @@ struct SavingsView: View {
             SavingsHowItWorksSheet(isPresented: $showHowItWorks)
                 .background(ClearBackgroundView())
         }
+        .transaction { transaction in
+            transaction.disablesAnimations = true
+        }
+        .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedActivity)
     }
     
     // MARK: - Main Savings View (after onboarding)
@@ -50,6 +56,77 @@ struct SavingsView: View {
         return String(format: "%.2f USDY", tokens)
     }
     
+    /// Formatted total earnings in display currency
+    private var formattedTotalEarnings: String {
+        let usdEarnings = savingsService.totalEarnings
+        if displayCurrencyService.displayCurrency == "USD" {
+            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, usdEarnings)
+        } else {
+            let convertedEarnings = usdEarnings * exchangeRate
+            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, convertedEarnings)
+        }
+    }
+    
+    /// Formatted monthly earnings in display currency
+    /// For now, we calculate earnings since the start of current month
+    private var formattedMonthlyEarnings: String {
+        // Get the start of the current month
+        let calendar = Calendar.current
+        let now = Date()
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) else {
+            return formattedTotalEarnings
+        }
+        
+        // Calculate earnings since start of month (approximation based on time elapsed)
+        guard let depositTimestamp = savingsService.depositTimestamp else {
+            return "+\(displayCurrencyService.currencySymbol)0.00"
+        }
+        
+        // If deposit was after start of month, use full earnings
+        if depositTimestamp >= startOfMonth {
+            return formattedTotalEarnings
+        }
+        
+        // Otherwise, calculate proportional earnings for this month
+        let totalSecondsElapsed = now.timeIntervalSince(depositTimestamp)
+        let monthSecondsElapsed = now.timeIntervalSince(startOfMonth)
+        
+        guard totalSecondsElapsed > 0 else {
+            return "+\(displayCurrencyService.currencySymbol)0.00"
+        }
+        
+        let monthlyProportion = monthSecondsElapsed / totalSecondsElapsed
+        let usdMonthlyEarnings = savingsService.totalEarnings * monthlyProportion
+        
+        if displayCurrencyService.displayCurrency == "USD" {
+            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, usdMonthlyEarnings)
+        } else {
+            let convertedEarnings = usdMonthlyEarnings * exchangeRate
+            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, convertedEarnings)
+        }
+    }
+    
+    /// Subtitle for monthly earnings showing date range
+    private var monthlyEarningsSubtitle: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        let calendar = Calendar.current
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: Date())) else {
+            return "This month"
+        }
+        return "From \(formatter.string(from: startOfMonth)) until today"
+    }
+    
+    /// Subtitle for total earnings showing start date
+    private var totalEarningsSubtitle: String {
+        guard let startDate = savingsService.depositTimestamp else {
+            return "No deposits yet"
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM yyyy"
+        return "Started in \(formatter.string(from: startDate))"
+    }
+    
     /// Fetch current exchange rate
     private func fetchExchangeRate() {
         let currency = displayCurrencyService.displayCurrency
@@ -65,6 +142,24 @@ struct SavingsView: View {
                 }
             }
         }
+    }
+    
+    /// Convert a SavingsTransaction to ActivityItem for detail view
+    private func activityItem(from transaction: SavingsTransaction) -> ActivityItem {
+        let title = transaction.isDeposit ? "Savings" : "Savings"
+        let subtitle = transaction.isDeposit ? "Deposit" : "Withdrawal"
+        let prefix = transaction.isDeposit ? "+" : "-"
+        let formattedAmount = String(format: "%@%@%.2f", prefix, displayCurrencyService.currencySymbol, transaction.usdAmount)
+        let formattedUSDY = String(format: "%.2f USDY", transaction.usdyAmount)
+        
+        return ActivityItem(
+            avatar: "IconSavings",
+            titleLeft: title,
+            subtitleLeft: subtitle,
+            titleRight: formattedAmount,
+            subtitleRight: formattedUSDY,
+            date: transaction.date
+        )
     }
     
     private var savingsMainView: some View {
@@ -95,14 +190,14 @@ struct SavingsView: View {
                 VStack(spacing: 8) {
                     earningsRow(
                         title: "Earned this month",
-                        subtitle: "From 1 Jul until today",
-                        value: "+\(displayCurrencyService.currencySymbol)0.00"
+                        subtitle: monthlyEarningsSubtitle,
+                        value: formattedMonthlyEarnings
                     )
                     
                     earningsRow(
                         title: "Total earned",
-                        subtitle: "Started in Feb 2026",
-                        value: "+\(displayCurrencyService.currencySymbol)0.00"
+                        subtitle: totalEarningsSubtitle,
+                        value: formattedTotalEarnings
                     )
                 }
                 .padding(.horizontal, 16)
@@ -125,6 +220,13 @@ struct SavingsView: View {
                         VStack(spacing: 0) {
                             ForEach(displayedTransactions) { transaction in
                                 SavingsTransactionRow(transaction: transaction)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
+                                        selectedActivity = activityItem(from: transaction)
+                                        showTransactionDetail = true
+                                    }
                                 
                                 if transaction.id != displayedTransactions.last?.id {
                                     Divider()
@@ -351,12 +453,12 @@ struct SavingsView: View {
                 Text(title)
                     .font(.custom("Inter-Bold", size: 16))
                     .tracking(-0.32)
-                    .foregroundColor(Color(hex: "080808"))
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Text(subtitle)
                     .font(.custom("Inter-Regular", size: 14))
                     .tracking(-0.28)
-                    .foregroundColor(Color(hex: "7B7B7B"))
+                    .foregroundColor(themeService.textSecondaryColor)
             }
             
             Spacer()
@@ -368,7 +470,7 @@ struct SavingsView: View {
                 .foregroundColor(Color(hex: "57CE43"))
         }
         .padding(16)
-        .background(Color.white)
+        .background(themeService.cardBackgroundColor)
         .cornerRadius(16)
     }
 }
@@ -421,7 +523,7 @@ struct SavingsHowItWorksSheet: View {
                         .fill(Color.black.opacity(0.15))
                         .frame(width: 36, height: 5)
                         .padding(.top, 8)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, 32)
                     
                     // Content
                     VStack(alignment: .leading, spacing: 16) {
@@ -449,6 +551,20 @@ struct SavingsHowItWorksSheet: View {
                                 .foregroundColor(Color(hex: "7B7B7B"))
                         }
                         .fixedSize(horizontal: false, vertical: true)
+                        
+                        // Done button
+                        Button(action: {
+                            dismissSheet()
+                        }) {
+                            Text("Done")
+                                .font(.custom("Inter-SemiBold", size: 16))
+                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(Color(hex: "E5E5E5"))
+                                .cornerRadius(16)
+                        }
+                        .padding(.top, 8)
                     }
                     .padding(.horizontal, 32)
                     .padding(.bottom, 32)
@@ -505,17 +621,25 @@ struct SavingsHowItWorksSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .onAppear {
+            // Fade in background separately
+            withAnimation(.easeOut(duration: 0.25)) {
+                backgroundOpacity = 0.4
+            }
+            // Slide in card with spring
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                 showCard = true
-                backgroundOpacity = 0.4
             }
         }
     }
     
     private func dismissSheet() {
+        // Fade out background
+        withAnimation(.easeOut(duration: 0.25)) {
+            backgroundOpacity = 0
+        }
+        // Slide out card
         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
             showCard = false
-            backgroundOpacity = 0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             isPresented = false
@@ -530,16 +654,8 @@ struct SavingsTransactionRow: View {
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     let transaction: SavingsTransaction
     
-    private var icon: String {
-        transaction.isDeposit ? "arrow.down.circle.fill" : "arrow.up.circle.fill"
-    }
-    
-    private var iconColor: Color {
-        transaction.isDeposit ? Color(hex: "57CE43") : Color(hex: "FF5113")
-    }
-    
     private var title: String {
-        transaction.isDeposit ? "Deposit" : "Withdrawal"
+        transaction.isDeposit ? "Savings deposit" : "Savings withdrawal"
     }
     
     private var formattedAmount: String {
@@ -551,47 +667,71 @@ struct SavingsTransactionRow: View {
         return String(format: "%.2f USDY", transaction.usdyAmount)
     }
     
+    // Badge color based on transaction type
+    private var badgeColor: Color {
+        transaction.isDeposit ? Color(hex: "78D381") : Color(hex: "9874FF")
+    }
+    
+    // Amount color based on transaction type
+    private var amountColor: Color {
+        transaction.isDeposit ? Color(hex: "57CE43") : themeService.textPrimaryColor
+    }
+    
     var body: some View {
         HStack(spacing: 16) {
-            // Icon - matching avatar style
-            ZStack {
-                Circle()
-                    .fill(iconColor)
-                    .frame(width: 44, height: 44)
+            // Avatar with savings icon and badge
+            ZStack(alignment: .bottomTrailing) {
+                // Black square background with savings icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(hex: "000000"))
+                        .frame(width: 44, height: 44)
+                    
+                    Image("NavSavings")
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 24, height: 24)
+                        .foregroundColor(.white)
+                }
                 
-                Image(systemName: transaction.isDeposit ? "arrow.down" : "arrow.up")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
+                // Badge in bottom-right corner
+                ZStack {
+                    Circle()
+                        .fill(badgeColor)
+                        .frame(width: 14, height: 14)
+                    
+                    Image(systemName: transaction.isDeposit ? "plus" : "arrow.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .overlay(
+                    Circle()
+                        .stroke(themeService.cardBackgroundColor, lineWidth: 2)
+                )
+                .offset(x: 4, y: 4)
             }
             
-            // Title and date
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .lineLimit(1)
-                
-                Text(transaction.formattedDate)
-                    .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // Title
+            Text(title)
+                .font(.custom("Inter-Bold", size: 16))
+                .foregroundColor(themeService.textPrimaryColor)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Amount
+            // Amount and USDY on right side
             VStack(alignment: .trailing, spacing: 2) {
                 Text(formattedAmount)
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(transaction.isDeposit ? Color(hex: "57CE43") : themeService.textPrimaryColor)
+                    .foregroundColor(amountColor)
                 
                 Text(formattedUSDY)
                     .font(.custom("Inter-Regular", size: 14))
-                    .foregroundColor(.gray)
+                    .foregroundColor(Color(hex: "7B7B7B"))
             }
             .fixedSize(horizontal: true, vertical: false)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
+        .padding(16)
     }
 }
 

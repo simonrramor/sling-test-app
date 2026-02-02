@@ -144,6 +144,7 @@ struct PressableRow<Content: View>: View {
     
     var body: some View {
         content()
+            .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F5F5F5")) : Color.clear)

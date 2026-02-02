@@ -17,42 +17,40 @@ struct AddMoneyView: View {
     @State private var isOverLimit: Bool = false
     
     private let exchangeService = ExchangeRateService.shared
-    private let slingBaseCurrency = "USD" // Sling balance is always stored in USD
     private let depositLimitGBP: Double = 7000 // Deposit limit in GBP
     
     var amountValue: Double {
         Double(amountString) ?? 0
     }
     
-    /// The source account currency (what the user is paying from)
-    var sourceCurrency: String {
+    /// The linked account currency (what the user is paying from)
+    var linkedAccountCurrency: String {
         selectedAccount.currency.isEmpty ? "GBP" : selectedAccount.currency
     }
     
-    /// The display currency (what the user wants to see their balance in)
+    /// The display currency (what the user wants to see their balance in) - shown as large/primary
     var displayCurrency: String {
         displayCurrencyService.displayCurrency
     }
     
-    /// The secondary currency to show (USD if source matches display, otherwise display currency)
-    var secondaryCurrency: String {
-        if sourceCurrency == displayCurrency {
-            // GBP-GBP: show USD as secondary (since Sling stores in USD)
-            return slingBaseCurrency
-        } else {
-            // USD-GBP: show display currency as secondary
-            return displayCurrency
-        }
+    /// The storage currency (what the Sling balance is stored in)
+    var storageCurrency: String {
+        displayCurrencyService.storageCurrency
     }
     
-    /// Whether we need to show currency conversion (always true unless source is USD and display is USD)
+    /// For backwards compatibility
+    var sourceCurrency: String {
+        linkedAccountCurrency
+    }
+    
+    /// Whether we need to show currency conversion (when display and linked account currencies differ)
     var needsCurrencyConversion: Bool {
-        sourceCurrency != secondaryCurrency
+        displayCurrency != linkedAccountCurrency
     }
     
-    /// Formatted source amount (what user is paying from their account)
-    var formattedSourceAmount: String {
-        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
+    /// Formatted display currency amount (large/primary - what user sees)
+    var formattedDisplayAmount: String {
+        let symbol = ExchangeRateService.symbol(for: displayCurrency)
         if sourceAmount == 0 && amountString.isEmpty {
             return "\(symbol)0"
         }
@@ -64,19 +62,23 @@ struct AddMoneyView: View {
         return "\(symbol)\(formattedNumber)"
     }
     
-    /// Formatted secondary currency amount
-    var formattedSecondaryAmount: String {
-        let symbol = ExchangeRateService.symbol(for: secondaryCurrency)
+    /// Formatted linked account amount (small/secondary - what will be charged to bank)
+    var formattedLinkedAccountAmount: String {
+        let symbol = ExchangeRateService.symbol(for: linkedAccountCurrency)
         if usdAmount == 0 && amountString.isEmpty {
             return "\(symbol)0"
         }
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2  // Always show 2 decimals for USD
+        formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
         let formattedNumber = formatter.string(from: NSNumber(value: usdAmount)) ?? String(format: "%.2f", usdAmount)
         return "\(symbol)\(formattedNumber)"
     }
+    
+    /// Legacy property names for compatibility
+    var formattedSourceAmount: String { formattedDisplayAmount }
+    var formattedSecondaryAmount: String { formattedLinkedAccountAmount }
     
     var selectedAccountIconName: String {
         switch selectedAccount.iconType {
@@ -168,8 +170,8 @@ struct AddMoneyView: View {
                     
                     Spacer()
                     
-                    // Currency tag (shows wallet display currency)
-                    Text(displayCurrencyService.displayCurrency)
+                    // Currency tag (shows wallet storage currency)
+                    Text(displayCurrencyService.storageCurrency)
                         .font(.custom("Inter-Medium", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
                         .padding(.horizontal, 12)
@@ -314,7 +316,7 @@ struct AddMoneyView: View {
     
     private func updateAmounts() {
         guard needsCurrencyConversion else {
-            // No conversion needed (source is USD and display is USD)
+            // No conversion needed (display and linked account are same currency)
             sourceAmount = amountValue
             usdAmount = amountValue
             currentExchangeRate = 1.0
@@ -324,19 +326,19 @@ struct AddMoneyView: View {
         let inputAmount = amountValue
         
         if showingSourceCurrency {
-            // User is entering source currency, convert to secondary currency
+            // User is entering display currency (primary/large), convert to linked account currency (secondary/small)
             sourceAmount = inputAmount
             Task {
-                // Get the rate from source currency to secondary currency
-                if let rate = await exchangeService.getRate(from: sourceCurrency, to: secondaryCurrency) {
+                // Get the rate from display currency to linked account currency
+                if let rate = await exchangeService.getRate(from: displayCurrency, to: linkedAccountCurrency) {
                     await MainActor.run {
                         currentExchangeRate = rate
                     }
                 }
                 if let converted = await exchangeService.convert(
                     amount: inputAmount,
-                    from: sourceCurrency,
-                    to: secondaryCurrency
+                    from: displayCurrency,
+                    to: linkedAccountCurrency
                 ) {
                     await MainActor.run {
                         usdAmount = converted
@@ -344,19 +346,19 @@ struct AddMoneyView: View {
                 }
             }
         } else {
-            // User is entering secondary currency, convert to source currency
+            // User is entering linked account currency, convert to display currency
             usdAmount = inputAmount
             Task {
-                // Get the rate from source currency to secondary currency (for display)
-                if let rate = await exchangeService.getRate(from: sourceCurrency, to: secondaryCurrency) {
+                // Get the rate from display to linked account (for display)
+                if let rate = await exchangeService.getRate(from: displayCurrency, to: linkedAccountCurrency) {
                     await MainActor.run {
                         currentExchangeRate = rate
                     }
                 }
                 if let converted = await exchangeService.convert(
                     amount: inputAmount,
-                    from: secondaryCurrency,
-                    to: sourceCurrency
+                    from: linkedAccountCurrency,
+                    to: displayCurrency
                 ) {
                     await MainActor.run {
                         sourceAmount = converted

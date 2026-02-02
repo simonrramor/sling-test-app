@@ -159,10 +159,31 @@ struct ActivityRowView: View {
     @Binding var showDetail: Bool
     @State private var isPressed = false
     
+    // Check if this is a savings activity (Home feed shows from main balance perspective)
+    private var isSavingsActivity: Bool {
+        activity.avatar == "IconSavings" || activity.avatar.contains("Savings")
+    }
+    
+    // For Home feed: invert savings amounts (deposits leave main balance, withdrawals return to it)
+    private var displayAmount: String {
+        guard isSavingsActivity else { return activity.titleRight }
+        
+        // Invert the sign for savings transactions on Home feed
+        let amount = activity.titleRight
+        if amount.hasPrefix("+") {
+            // Deposit to savings = negative for main balance
+            return "-" + amount.dropFirst()
+        } else if amount.hasPrefix("-") {
+            // Withdrawal from savings = positive for main balance
+            return "+" + amount.dropFirst()
+        }
+        return amount
+    }
+    
     var body: some View {
         HStack(spacing: 16) {
-            // Avatar
-            TransactionAvatarView(identifier: activity.avatar)
+            // Avatar - pass subtitle for context (e.g., to differentiate deposit/withdrawal)
+            TransactionAvatarView(identifier: activity.avatar, subtitleLeft: activity.subtitleLeft)
             
             // Name and Subtitle
             VStack(alignment: .leading, spacing: 2) {
@@ -182,7 +203,7 @@ struct ActivityRowView: View {
             
             // Amount and subtitle
             VStack(alignment: .trailing, spacing: 2) {
-                Text(activity.titleRight)
+                Text(displayAmount)
                     .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(amountColor)
                 
@@ -213,7 +234,7 @@ struct ActivityRowView: View {
     }
     
     private var amountColor: Color {
-        if activity.titleRight.hasPrefix("+") {
+        if displayAmount.hasPrefix("+") {
             return Color(hex: "57CE43")
         } else {
             return themeService.textPrimaryColor
@@ -259,6 +280,7 @@ class AppIconFetcher: ObservableObject {
 struct TransactionAvatarView: View {
     @ObservedObject private var themeService = ThemeService.shared
     let identifier: String
+    var subtitleLeft: String = ""  // Optional subtitle for context (e.g., "Deposit" or "Withdrawal")
     @StateObject private var iconFetcher = AppIconFetcher()
     
     private var isInitials: Bool {
@@ -280,6 +302,27 @@ struct TransactionAvatarView: View {
         return trimmed.hasPrefix("Avatar") || trimmed.hasPrefix("Account") || trimmed.hasPrefix("Stock") || UIImage(named: trimmed) != nil
     }
     
+    // Check if this is a savings activity
+    private var isSavingsActivity: Bool {
+        identifier == "IconSavings" || identifier.contains("Savings")
+    }
+    
+    // Determine if this is a deposit or withdrawal based on subtitle
+    private var isSavingsDeposit: Bool {
+        subtitleLeft.lowercased().contains("deposit")
+    }
+    
+    // For Home feed: badges should reflect main balance perspective (inverted from savings)
+    // Deposit to savings = money leaving main balance = purple arrow down
+    // Withdrawal from savings = money returning = green plus
+    private var badgeColorForHome: Color {
+        isSavingsDeposit ? Color(hex: "9874FF") : Color(hex: "78D381")
+    }
+    
+    private var badgeIconForHome: String {
+        isSavingsDeposit ? "arrow.down" : "plus"
+    }
+    
     // People have rounded avatars, businesses have square
     private var isPerson: Bool {
         let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -295,7 +338,42 @@ struct TransactionAvatarView: View {
     }
     
     var body: some View {
-        if isInitials {
+        if isSavingsActivity {
+            // Savings activity - show black square with plant icon and badge
+            ZStack(alignment: .bottomTrailing) {
+                // Black square background with savings icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(hex: "000000"))
+                        .frame(width: 44, height: 44)
+                    
+                    Image("NavSavings")
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 24, height: 24)
+                        .foregroundColor(.white)
+                }
+                
+                // Badge - reflects main balance perspective (inverted from savings)
+                // Deposit to savings = money leaving = purple arrow down
+                // Withdrawal from savings = money returning = green plus
+                ZStack {
+                    Circle()
+                        .fill(badgeColorForHome)
+                        .frame(width: 14, height: 14)
+                    
+                    Image(systemName: badgeIconForHome)
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .overlay(
+                    Circle()
+                        .stroke(themeService.cardBackgroundColor, lineWidth: 2)
+                )
+                .offset(x: 4, y: 4)
+            }
+        } else if isInitials {
             // Initials (1-2 characters) - always person, so rounded
             ZStack {
                 RoundedRectangle(cornerRadius: cornerRadius)

@@ -11,10 +11,18 @@ struct DisplayCurrencyInfo: Identifiable, Equatable {
     var symbol: String { ExchangeRateService.symbol(for: id) }
 }
 
-/// Service for managing the user's display currency preference
-/// The underlying wallet currency is always USD, but users can choose to display balances in their preferred currency
+/// Service for managing the user's currency preferences
+/// - Storage currency: The currency the balance is stored/denominated in
+/// - Display currency: The currency used to display balances to the user
 class DisplayCurrencyService: ObservableObject {
     static let shared = DisplayCurrencyService()
+    
+    /// The user's storage/base currency (what the balance is stored in)
+    @Published var storageCurrency: String = "USD" {
+        didSet {
+            UserDefaults.standard.set(storageCurrency, forKey: "storageCurrency")
+        }
+    }
     
     /// The user's preferred display currency
     @Published var displayCurrency: String = "GBP" {
@@ -23,13 +31,21 @@ class DisplayCurrencyService: ObservableObject {
         }
     }
     
-    /// Quick-access currencies shown in the tab bar (USD and current display currency)
+    /// Quick-access currencies shown in the tab bar (storage currency and current display currency)
     var quickAccessCurrencies: [DisplayCurrencyInfo] {
-        var currencies = [allCurrencies.first { $0.code == "USD" }!]
-        if displayCurrency != "USD", let current = allCurrencies.first(where: { $0.code == displayCurrency }) {
+        var currencies: [DisplayCurrencyInfo] = []
+        if let storage = allCurrencies.first(where: { $0.code == storageCurrency }) {
+            currencies.append(storage)
+        }
+        if displayCurrency != storageCurrency, let current = allCurrencies.first(where: { $0.code == displayCurrency }) {
             currencies.append(current)
         }
         return currencies
+    }
+    
+    /// Symbol for the storage currency
+    var storageCurrencySymbol: String {
+        ExchangeRateService.symbol(for: storageCurrency)
     }
     
     /// All available currencies for display
@@ -59,6 +75,7 @@ class DisplayCurrencyService: ObservableObject {
     }
     
     private init() {
+        self.storageCurrency = UserDefaults.standard.string(forKey: "storageCurrency") ?? "USD"
         self.displayCurrency = UserDefaults.standard.string(forKey: "displayCurrency") ?? "GBP"
     }
     
@@ -67,9 +84,9 @@ class DisplayCurrencyService: ObservableObject {
         ExchangeRateService.symbol(for: displayCurrency)
     }
     
-    /// Whether the display currency differs from USD (the underlying currency)
+    /// Whether the display currency differs from the storage currency
     var hasCurrencyDifference: Bool {
-        displayCurrency != "USD"
+        displayCurrency != storageCurrency
     }
     
     /// Get currency info by code

@@ -113,15 +113,37 @@ struct SavingsDepositSheet: View {
                     }
                     .accessibilityLabel("Go back")
                     
-                    // Savings icon
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(hex: "4CAF50"))
-                            .frame(width: 40, height: 40)
+                    // Savings icon with deposit badge
+                    ZStack(alignment: .bottomTrailing) {
+                        // Black square background with savings icon
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(hex: "000000"))
+                                .frame(width: 44, height: 44)
+                            
+                            Image("NavSavings")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 24, height: 24)
+                                .foregroundColor(.white)
+                        }
                         
-                        Image(systemName: "dollarsign.arrow.circlepath")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
+                        // Green badge with plus icon
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: "78D381"))
+                                .frame(width: 14, height: 14)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .overlay(
+                            Circle()
+                                .stroke(themeService.currentTheme == .dark ? themeService.cardBackgroundColor : Color.white, lineWidth: 2)
+                        )
+                        .offset(x: 4, y: 4)
                     }
                     
                     // Title
@@ -329,15 +351,37 @@ struct SavingsDepositConfirmView: View {
                     }
                     .accessibilityLabel("Go back")
                     
-                    // Savings icon
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(hex: "4CAF50"))
-                            .frame(width: 40, height: 40)
+                    // Savings icon with deposit badge
+                    ZStack(alignment: .bottomTrailing) {
+                        // Black square background with savings icon
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(hex: "000000"))
+                                .frame(width: 44, height: 44)
+                            
+                            Image("NavSavings")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 24, height: 24)
+                                .foregroundColor(.white)
+                        }
                         
-                        Image(systemName: "dollarsign.arrow.circlepath")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
+                        // Green badge with plus icon
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: "78D381"))
+                                .frame(width: 14, height: 14)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .overlay(
+                            Circle()
+                                .stroke(themeService.currentTheme == .dark ? themeService.cardBackgroundColor : Color.white, lineWidth: 2)
+                        )
+                        .offset(x: 4, y: 4)
                     }
                     
                     // Title

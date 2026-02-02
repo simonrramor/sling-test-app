@@ -159,8 +159,17 @@ struct TransactionDetailDrawer: View {
         case .addMoney:
             return ("You added", amountText, "from \(name)")
         case .withdrawal:
-            return ("You withdrew", amountText, "to \(name)")
+            // Savings withdrawal = taking money out of savings, so "from"
+            let isSavings = activity.avatar.contains("Savings") || name.lowercased().contains("savings")
+            return ("You withdrew", amountText, isSavings ? "from \(name)" : "to \(name)")
         case .transferBetweenAccounts:
+            // Check for savings transactions
+            let isSavings = activity.avatar.contains("Savings") || name.lowercased().contains("savings")
+            if isSavings {
+                // Deposits go TO savings, withdrawals come FROM savings
+                let isDeposit = activity.subtitleLeft.lowercased().contains("deposit")
+                return ("You moved", amountText, isDeposit ? "to \(name)" : "from \(name)")
+            }
             // Try to parse "from X to Y" from subtitle or title
             if activity.subtitleLeft.lowercased().contains("to") {
                 return ("You moved", amountText, activity.subtitleLeft)
@@ -269,6 +278,7 @@ struct TransactionDetailDrawer: View {
                             // Contextual header with avatar and description
                             TransactionContextHeader(
                                 avatar: activity.avatar,
+                                subtitleLeft: activity.subtitleLeft,
                                 prefix: headerDescription.prefix,
                                 amount: headerDescription.amount,
                                 suffix: headerDescription.suffix,
@@ -383,9 +393,13 @@ struct TransactionDetailDrawer: View {
         }
         .ignoresSafeArea()
         .onAppear {
+            // Fade in background separately
+            withAnimation(.easeOut(duration: 0.25)) {
+                backgroundOpacity = 0.4
+            }
+            // Slide in card with spring
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                 showCard = true
-                backgroundOpacity = 0.4
             }
         }
         .fullScreenCover(isPresented: $showSplitBill) {
@@ -667,9 +681,13 @@ struct TransactionDetailDrawer: View {
     }
     
     private func dismissDrawer() {
+        // Fade out background
+        withAnimation(.easeOut(duration: 0.25)) {
+            backgroundOpacity = 0
+        }
+        // Slide out card
         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
             showCard = false
-            backgroundOpacity = 0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             isPresented = false
@@ -727,6 +745,7 @@ struct SplitBillFromTransactionView: View {
 
 struct TransactionContextHeader: View {
     let avatar: String
+    var subtitleLeft: String = ""
     let prefix: String
     let amount: String
     let suffix: String
@@ -756,7 +775,7 @@ struct TransactionContextHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Avatar
-            TransactionAvatarLarge(identifier: avatar)
+            TransactionAvatarLarge(identifier: avatar, subtitleLeft: subtitleLeft)
             
             // Contextual description - H2 style from Figma with colored amount
             Text(styledText)
@@ -786,7 +805,7 @@ struct TransactionHeaderNew: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Large avatar (left-aligned)
-            TransactionAvatarLarge(identifier: activity.avatar)
+            TransactionAvatarLarge(identifier: activity.avatar, subtitleLeft: activity.subtitleLeft)
             
             // Name + subtitle on left, amount on right
             HStack(alignment: .center) {
@@ -823,6 +842,7 @@ struct TransactionHeaderNew: View {
 
 struct TransactionAvatarLarge: View {
     let identifier: String
+    var subtitleLeft: String = ""  // Optional context for savings deposit/withdrawal
     
     private var logoURL: URL? {
         let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -849,6 +869,25 @@ struct TransactionAvatarLarge: View {
         return trimmed.hasPrefix("Avatar") || UIImage(named: trimmed) != nil
     }
     
+    private var isSavingsActivity: Bool {
+        identifier == "IconSavings" || identifier.contains("Savings")
+    }
+    
+    private var isSavingsDeposit: Bool {
+        subtitleLeft.lowercased().contains("deposit")
+    }
+    
+    // For Home/Activity feed: badges reflect main balance perspective (inverted from savings)
+    // Deposit to savings = money leaving main balance = purple arrow down
+    // Withdrawal from savings = money returning = green plus
+    private var badgeColorForHome: Color {
+        isSavingsDeposit ? Color(hex: "9874FF") : Color(hex: "78D381")
+    }
+    
+    private var badgeIconForHome: String {
+        isSavingsDeposit ? "arrow.down" : "plus"
+    }
+    
     private var isPerson: Bool {
         let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.hasPrefix("Avatar") || 
@@ -861,7 +900,42 @@ struct TransactionAvatarLarge: View {
     }
     
     var body: some View {
-        if isLocalAsset {
+        if isSavingsActivity {
+            // Savings activity - show black square with plant icon (larger version)
+            ZStack(alignment: .bottomTrailing) {
+                // Black square background with savings icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color(hex: "000000"))
+                        .frame(width: 56, height: 56)
+                    
+                    Image("NavSavings")
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 32, height: 32)
+                        .foregroundColor(.white)
+                }
+                
+                // Badge - reflects main balance perspective (inverted from savings)
+                // Deposit to savings = money leaving = purple arrow down
+                // Withdrawal from savings = money returning = green plus
+                ZStack {
+                    Circle()
+                        .fill(badgeColorForHome)
+                        .frame(width: 20, height: 20)
+                    
+                    Image(systemName: badgeIconForHome)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .overlay(
+                    Circle()
+                        .stroke(Color(hex: "F2F2F2"), lineWidth: 2.5)
+                )
+                .offset(x: 4, y: 4)
+            }
+        } else if isLocalAsset {
             Image(identifier)
                 .resizable()
                 .aspectRatio(contentMode: .fill)

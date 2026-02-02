@@ -11,14 +11,14 @@ struct BalanceView: View {
     var onAddMoney: (() -> Void)? = nil
     var onBalanceTap: (() -> Void)? = nil
     
-    // USD balance (stored value)
-    var usdBalance: Double {
+    // Storage currency balance (stored value)
+    var storageBalance: Double {
         portfolioService.cashBalance
     }
     
-    // Formatted USD balance for subtitle
-    var formattedUSDBalance: String {
-        ExchangeRateService.format(amount: usdBalance, currency: "USD")
+    // Formatted storage currency balance for subtitle
+    var formattedStorageBalance: String {
+        ExchangeRateService.format(amount: storageBalance, currency: displayCurrencyService.storageCurrency)
     }
     
     // Formatted display currency balance
@@ -26,8 +26,8 @@ struct BalanceView: View {
         if let displayAmount = displayBalance {
             return ExchangeRateService.format(amount: displayAmount, currency: displayCurrencyService.displayCurrency)
         }
-        // Fallback while loading - show USD with display currency symbol
-        return ExchangeRateService.format(amount: usdBalance, currency: displayCurrencyService.displayCurrency)
+        // Fallback while loading - show storage balance with display currency symbol
+        return ExchangeRateService.format(amount: storageBalance, currency: displayCurrencyService.displayCurrency)
     }
     
     var body: some View {
@@ -49,7 +49,7 @@ struct BalanceView: View {
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                         
-                        Text(formattedUSDBalance)
+                        Text(formattedStorageBalance)
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                     }
@@ -97,12 +97,15 @@ struct BalanceView: View {
         .onChange(of: displayCurrencyService.displayCurrency) { _, _ in
             Task { await updateDisplayBalance() }
         }
+        .onChange(of: displayCurrencyService.storageCurrency) { _, _ in
+            Task { await updateDisplayBalance() }
+        }
     }
     
     private func updateDisplayBalance() async {
         let converted = await exchangeRateService.convert(
-            amount: usdBalance,
-            from: "USD",
+            amount: storageBalance,
+            from: displayCurrencyService.storageCurrency,
             to: displayCurrencyService.displayCurrency
         )
         await MainActor.run {
