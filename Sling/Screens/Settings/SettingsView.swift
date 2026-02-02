@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var showPassport = false
     @State private var showParticleTest = false
     @State private var showBlobsTest = false
+    @State private var showMorseBot = false
     @State private var showSwapTest = false
     @State private var showCurrencyPicker = false
     @State private var showFees = false
@@ -195,6 +196,13 @@ struct SettingsView: View {
                             )
                             
                             SettingsRow(
+                                iconAsset: "IconMorseBot",
+                                title: "Morse Bot",
+                                position: .middle,
+                                onTap: { showMorseBot = true }
+                            )
+                            
+                            SettingsRow(
                                 iconSystem: "circle.grid.2x2",
                                 title: "Blobs",
                                 position: .bottom,
@@ -269,6 +277,9 @@ struct SettingsView: View {
         }
         .fullScreenCover(isPresented: $showBlobsTest) {
             BlobsTestView()
+        }
+        .fullScreenCover(isPresented: $showMorseBot) {
+            MorseBotView(isPresented: $showMorseBot)
         }
         .fullScreenCover(isPresented: $showSwapTest) {
             SwapAnimationTestView()

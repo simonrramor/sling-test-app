@@ -61,7 +61,7 @@ struct AnimatedCurrencySwapView: View {
                                 endPoint: .bottom
                             )
                         )
-                        .scaleEffect(primaryScale, anchor: .center)
+                        .scaleEffect(primaryScale,  anchor: .center)
                         .frame(width: geometry.size.width, height: 80, alignment: .center)
                         .offset(y:   showingPrimaryOnTop ? -5 : 45)
                     

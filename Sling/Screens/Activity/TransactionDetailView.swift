@@ -299,7 +299,7 @@ struct TransactionDetailDrawer: View {
                                 }
                             )
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 24)
                         .padding(.bottom, 40)
                     }
                     .scrollIndicators(.hidden)

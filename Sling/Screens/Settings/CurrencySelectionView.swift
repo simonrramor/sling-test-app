@@ -553,8 +553,8 @@ struct AnimatedCurrencyText: View {
         .onAppear {
             initializeChars()
         }
-        .onChange(of: text) { newText in
-            animateToNewText(newText)
+        .onChange(of: text) { oldValue, newValue in
+            animateToNewText(newValue)
         }
     }
     
