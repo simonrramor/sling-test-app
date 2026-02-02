@@ -36,10 +36,10 @@ struct SavingsDepositSheet: View {
         displayCurrency != "USD"
     }
     
-    // USDY amount (what user will receive) - based on USD amount
+    // USDY amount (what user will receive) - based on USD amount at $1.00 base price
     private var usdyAmount: Double {
         guard usdAmount > 0 else { return 0 }
-        return usdAmount / savingsService.currentUsdyPrice
+        return usdAmount / savingsService.baseUsdyPrice
     }
     
     private var availableBalance: Double {
@@ -380,7 +380,7 @@ struct SavingsDepositConfirmView: View {
                         .padding(.vertical, 8)
                     
                     DetailRow(label: "Amount", value: formattedAmount)
-                    DetailRow(label: "USDY price", value: savingsService.formatPrice(savingsService.currentUsdyPrice))
+                    DetailRow(label: "USDY price", value: savingsService.formatPrice(savingsService.baseUsdyPrice))
                     DetailRow(label: "You receive", value: "\(savingsService.formatTokens(usdyToReceive)) USDY")
                     DetailRow(label: "Current APY", value: "3.75%", isHighlighted: true)
                 }
@@ -410,8 +410,8 @@ struct SavingsDepositConfirmView: View {
                         subtitleRight: ""
                     )
                     
-                    // Navigate home and complete
-                    NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                    // Navigate back to savings and complete
+                    NotificationCenter.default.post(name: .navigateToSavings, object: nil)
                     onComplete()
                 }
                 .padding(.horizontal, 16)

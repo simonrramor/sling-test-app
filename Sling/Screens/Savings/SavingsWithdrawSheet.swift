@@ -336,8 +336,8 @@ struct SavingsWithdrawConfirmView: View {
                         subtitleRight: ""
                     )
                     
-                    // Navigate home and complete
-                    NotificationCenter.default.post(name: .navigateToHome, object: nil)
+                    // Navigate back to savings and complete
+                    NotificationCenter.default.post(name: .navigateToSavings, object: nil)
                     onComplete()
                 }
                 .padding(.horizontal, 16)

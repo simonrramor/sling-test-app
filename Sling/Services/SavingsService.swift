@@ -17,6 +17,32 @@ enum YieldDisplayMode: String, CaseIterable {
     }
 }
 
+// MARK: - Savings Transaction
+
+struct SavingsTransaction: Identifiable, Codable {
+    let id: UUID
+    let type: TransactionType
+    let usdAmount: Double
+    let usdyAmount: Double
+    let date: Date
+    
+    enum TransactionType: String, Codable {
+        case deposit
+        case withdrawal
+    }
+    
+    var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    var isDeposit: Bool {
+        type == .deposit
+    }
+}
+
 // MARK: - Savings Service
 
 class SavingsService: ObservableObject {
@@ -56,6 +82,13 @@ class SavingsService: ObservableObject {
         }
     }
     
+    /// Transaction history
+    @Published var transactions: [SavingsTransaction] = [] {
+        didSet {
+            saveTransactions()
+        }
+    }
+    
     // MARK: - Constants
     
     /// Annual Percentage Yield (3.75%)
@@ -74,6 +107,7 @@ class SavingsService: ObservableObject {
         // Load persisted state
         self.usdyBalance = UserDefaults.standard.double(forKey: "usdyBalance")
         self.totalDeposited = UserDefaults.standard.double(forKey: "totalUsdcDeposited")
+        self.transactions = loadTransactions()
         
         if let timestamp = UserDefaults.standard.object(forKey: "usdyDepositTimestamp") as? Date {
             self.depositTimestamp = timestamp
@@ -83,6 +117,48 @@ class SavingsService: ObservableObject {
            let mode = YieldDisplayMode(rawValue: modeString) {
             self.displayMode = mode
         }
+        
+        // Migration: Fix USDY balance if it was deposited with inflated pricing
+        // USDY should be roughly 1:1 with USD at base price
+        let hasMigrated = UserDefaults.standard.bool(forKey: "usdyBalanceMigrated_v2")
+        if !hasMigrated && totalDeposited > 0 && usdyBalance > 0 {
+            // Recalculate USDY at base price (1:1 with USD)
+            usdyBalance = totalDeposited / baseUsdyPrice
+            // Reset timestamp to now so yield starts fresh
+            depositTimestamp = Date()
+            UserDefaults.standard.set(true, forKey: "usdyBalanceMigrated_v2")
+        }
+        
+        // Migration: Create historical transaction for existing balances
+        let hasTransactionMigration = UserDefaults.standard.bool(forKey: "savingsTransactionsMigrated_v1")
+        if !hasTransactionMigration && totalDeposited > 0 && transactions.isEmpty {
+            // Create a historical deposit transaction
+            let historicalTransaction = SavingsTransaction(
+                id: UUID(),
+                type: .deposit,
+                usdAmount: totalDeposited,
+                usdyAmount: usdyBalance,
+                date: depositTimestamp ?? Date()
+            )
+            transactions = [historicalTransaction]
+            UserDefaults.standard.set(true, forKey: "savingsTransactionsMigrated_v1")
+        }
+    }
+    
+    // MARK: - Transaction Persistence
+    
+    private func saveTransactions() {
+        if let data = try? JSONEncoder().encode(transactions) {
+            UserDefaults.standard.set(data, forKey: "savingsTransactions")
+        }
+    }
+    
+    private func loadTransactions() -> [SavingsTransaction] {
+        guard let data = UserDefaults.standard.data(forKey: "savingsTransactions"),
+              let transactions = try? JSONDecoder().decode([SavingsTransaction].self, from: data) else {
+            return []
+        }
+        return transactions
     }
     
     // MARK: - Computed Properties
@@ -158,11 +234,22 @@ class SavingsService: ObservableObject {
             depositTimestamp = Date()
         }
         
-        // Swap USDC for USDY at current price
-        // New deposits always get USDY at current price
-        let usdyReceived = usdcAmount / currentUsdyPrice
+        // Swap USDC for USDY at base price ($1.00)
+        // This gives users 1:1 USDY for their USD deposit
+        // The time multiplier only affects yield display, not deposit pricing
+        let usdyReceived = usdcAmount / baseUsdyPrice
         usdyBalance += usdyReceived
         totalDeposited += usdcAmount
+        
+        // Record transaction
+        let transaction = SavingsTransaction(
+            id: UUID(),
+            type: .deposit,
+            usdAmount: usdcAmount,
+            usdyAmount: usdyReceived,
+            date: Date()
+        )
+        transactions.insert(transaction, at: 0)
         
         // Deduct from portfolio cash balance
         PortfolioService.shared.deductCash(usdcAmount)
@@ -179,6 +266,16 @@ class SavingsService: ObservableObject {
         // Adjust total deposited proportionally
         let withdrawRatio = usdyAmount / (usdyBalance + usdyAmount)
         totalDeposited -= totalDeposited * withdrawRatio
+        
+        // Record transaction
+        let transaction = SavingsTransaction(
+            id: UUID(),
+            type: .withdrawal,
+            usdAmount: usdcReceived,
+            usdyAmount: usdyAmount,
+            date: Date()
+        )
+        transactions.insert(transaction, at: 0)
         
         // Add to portfolio cash balance
         PortfolioService.shared.addCash(usdcReceived)

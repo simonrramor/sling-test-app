@@ -2,34 +2,77 @@ import SwiftUI
 
 struct SavingsView: View {
     @ObservedObject private var themeService = ThemeService.shared
-    @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var savingsService = SavingsService.shared
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @AppStorage("hasStartedSaving") private var hasStartedSaving = false
-    @State private var showBalanceSheet = false
     @State private var showDepositSheet = false
     @State private var showWithdrawSheet = false
+    @State private var showHowItWorks = false
+    @State private var showAllTransactions = false
+    @State private var exchangeRate: Double = 1.0
+    
+    private let exchangeRateService = ExchangeRateService.shared
     
     var body: some View {
-        if hasStartedSaving {
-            savingsMainView
-        } else {
-            savingsIntroView
+        // Always show main view if user has savings, otherwise respect hasStartedSaving
+        Group {
+            if hasStartedSaving || savingsService.usdyBalance > 0 {
+                savingsMainView
+            } else {
+                savingsIntroView
+            }
+        }
+        .fullScreenCover(isPresented: $showHowItWorks) {
+            SavingsHowItWorksSheet(isPresented: $showHowItWorks)
+                .background(ClearBackgroundView())
         }
     }
     
     // MARK: - Main Savings View (after onboarding)
     
+    /// Formatted savings balance in display currency
+    private var formattedSavingsBalance: String {
+        let usdValue = savingsService.totalValueUSD
+        if displayCurrencyService.displayCurrency == "USD" {
+            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, usdValue)
+        } else {
+            let convertedValue = usdValue * exchangeRate
+            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, convertedValue)
+        }
+    }
+    
+    /// Formatted USDY token amount
+    private var formattedUSDYAmount: String {
+        let tokens = savingsService.usdyBalance
+        if tokens == 0 {
+            return "0 USDY"
+        }
+        return String(format: "%.2f USDY", tokens)
+    }
+    
+    /// Fetch current exchange rate
+    private func fetchExchangeRate() {
+        let currency = displayCurrencyService.displayCurrency
+        guard currency != "USD" else {
+            exchangeRate = 1.0
+            return
+        }
+        
+        Task {
+            if let rate = await exchangeRateService.getRate(from: "USD", to: currency) {
+                await MainActor.run {
+                    exchangeRate = rate
+                }
+            }
+        }
+    }
+    
     private var savingsMainView: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Balance header - tappable to show currency sheet
+                // Balance header
                 savingsBalanceHeader
                     .padding(.horizontal, 16)
-                    .onTapGesture {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        showBalanceSheet = true
-                    }
                 
                 // Deposit + Withdraw buttons
                 HStack(spacing: 8) {
@@ -65,15 +108,74 @@ struct SavingsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 24)
                 
+                // Transaction history
+                if !savingsService.transactions.isEmpty {
+                    let displayedTransactions = showAllTransactions 
+                        ? savingsService.transactions 
+                        : Array(savingsService.transactions.prefix(3))
+                    let hasMore = savingsService.transactions.count > 3
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Activity")
+                            .font(.custom("Inter-Bold", size: 18))
+                            .tracking(-0.36)
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .padding(.horizontal, 16)
+                        
+                        VStack(spacing: 0) {
+                            ForEach(displayedTransactions) { transaction in
+                                SavingsTransactionRow(transaction: transaction)
+                                
+                                if transaction.id != displayedTransactions.last?.id {
+                                    Divider()
+                                        .padding(.horizontal, 16)
+                                }
+                            }
+                            
+                            // "See more" button
+                            if hasMore && !showAllTransactions {
+                                Divider()
+                                    .padding(.horizontal, 16)
+                                
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        showAllTransactions = true
+                                    }
+                                }) {
+                                    HStack {
+                                        Text("See more")
+                                            .font(.custom("Inter-SemiBold", size: 16))
+                                            .foregroundColor(Color(hex: "FF5113"))
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(Color(hex: "FF5113"))
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 16)
+                                }
+                            }
+                        }
+                        .background(themeService.cardBackgroundColor)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 24)
+                }
+                
                 // How it works row
                 PressableRow(onTap: {
-                    // TODO: Show how it works
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    showHowItWorks = true
                 }) {
                     HStack(spacing: 16) {
                         // Icon in rounded square background
                         ZStack {
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(hex: "F7F7F7"))
+                                .fill(themeService.currentTheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "F7F7F7"))
                                 .frame(width: 44, height: 44)
                             
                             Image(systemName: "questionmark.circle.fill")
@@ -84,13 +186,13 @@ struct SavingsView: View {
                         Text("How it works")
                             .font(.custom("Inter-Bold", size: 16))
                             .tracking(-0.32)
-                            .foregroundColor(Color(hex: "080808"))
+                            .foregroundColor(themeService.textPrimaryColor)
                         
                         Spacer()
                     }
                     .padding(16)
                 }
-                .background(Color.white)
+                .background(themeService.cardBackgroundColor)
                 .cornerRadius(16)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -98,18 +200,17 @@ struct SavingsView: View {
             .padding(.top, 16)
             .padding(.bottom, 120)
         }
-        .overlay {
-            if showBalanceSheet {
-                SavingsBalanceSheet(isPresented: $showBalanceSheet)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-        }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showBalanceSheet)
         .fullScreenCover(isPresented: $showDepositSheet) {
             SavingsDepositSheet(isPresented: $showDepositSheet)
         }
         .fullScreenCover(isPresented: $showWithdrawSheet) {
             SavingsWithdrawSheet(isPresented: $showWithdrawSheet)
+        }
+        .onAppear {
+            fetchExchangeRate()
+        }
+        .onChange(of: displayCurrencyService.displayCurrency) {
+            fetchExchangeRate()
         }
     }
     
@@ -117,25 +218,36 @@ struct SavingsView: View {
     
     private var savingsBalanceHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Label with APY
+            // Label with USDY amount
             HStack(spacing: 8) {
-                Text("Your savings")
+                Text("Savings")
                     .font(.custom("Inter-Medium", size: 16))
                     .foregroundColor(themeService.textSecondaryColor)
                 
-                Text("3.75% APY")
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "57CE43"))
+                if savingsService.usdyBalance > 0 {
+                    Text("·")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(themeService.textSecondaryColor)
+                    
+                    Text(formattedUSDYAmount)
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(themeService.textSecondaryColor)
+                } else {
+                    Text("3.75% APY")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(Color(hex: "57CE43"))
+                }
             }
             
-            // Balance
-            Text("\(displayCurrencyService.currencySymbol)0")
+            // Balance in display currency
+            Text(formattedSavingsBalance)
                 .font(.custom("Inter-Bold", size: 42))
                 .foregroundColor(themeService.textPrimaryColor)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 16)
     }
+    
     
     // MARK: - Intro View (onboarding)
     
@@ -258,6 +370,228 @@ struct SavingsView: View {
         .padding(16)
         .background(Color.white)
         .cornerRadius(16)
+    }
+}
+
+// MARK: - How It Works Sheet
+
+struct SavingsHowItWorksSheet: View {
+    @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    @State private var backgroundOpacity: Double = 0
+    @State private var dragOffset: CGFloat = 0
+    @State private var showCard = false
+    
+    // Device corner radius for matching physical device corners
+    private var deviceCornerRadius: CGFloat {
+        UIScreen.displayCornerRadius
+    }
+    
+    // Rubber band clamping for elastic effect
+    private func rubberBandClamp(_ x: CGFloat, limit: CGFloat) -> CGFloat {
+        let c: CGFloat = 0.55
+        let absX = abs(x)
+        let sign = x >= 0 ? 1.0 : -1.0
+        return sign * (1 - (1 / ((absX * c / limit) + 1))) * limit
+    }
+    
+    // Calculate stretch scale when pulling up
+    private var stretchScale: CGFloat {
+        guard dragOffset > 0 else { return 1.0 }
+        let stretchAmount = dragOffset / 80.0 * 0.05
+        return 1.0 + min(stretchAmount, 0.05)
+    }
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Dimmed background - fills entire screen
+            Color.black.opacity(backgroundOpacity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    dismissSheet()
+                }
+            
+            // Sheet content - anchored to bottom
+            if showCard {
+                VStack(spacing: 0) {
+                    // Drawer handle
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.black.opacity(0.15))
+                        .frame(width: 36, height: 5)
+                        .padding(.top, 8)
+                        .padding(.bottom, 8)
+                    
+                    // Content
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Header
+                        Text("How Sling Savings works")
+                            .font(.custom("Inter-Bold", size: 24))
+                            .tracking(-0.48)
+                            .foregroundColor(Color(hex: "080808"))
+                        
+                        // Body copy
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("When you deposit money into Sling Savings, your funds are converted to USDY - a yield-bearing stablecoin backed by US Treasuries.")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .tracking(-0.32)
+                                .foregroundColor(Color(hex: "7B7B7B"))
+                            
+                            Text("Your savings earn 3.75% APY, with yield accumulating daily. You can withdraw your funds at any time back to your Sling balance.")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .tracking(-0.32)
+                                .foregroundColor(Color(hex: "7B7B7B"))
+                            
+                            Text("USDY is issued by Ondo Finance and is fully backed by short-term US Treasury securities, making it one of the safest ways to earn yield on your dollars.")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .tracking(-0.32)
+                                .foregroundColor(Color(hex: "7B7B7B"))
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 32)
+                }
+                .frame(maxWidth: .infinity)
+                .background(Color(hex: "F2F2F2"))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 40,
+                        bottomLeadingRadius: deviceCornerRadius,
+                        bottomTrailingRadius: deviceCornerRadius,
+                        topTrailingRadius: 40,
+                        style: .continuous
+                    )
+                )
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .scaleEffect(x: 1.0, y: stretchScale, anchor: .bottom)
+                .offset(y: min(0, -dragOffset))
+                .transition(.move(edge: .bottom))
+                .gesture(
+                    DragGesture(minimumDistance: 5)
+                        .onChanged { value in
+                            let translation = value.translation.height
+                            
+                            if translation > 0 {
+                                // Dragging down - allow to dismiss
+                                dragOffset = -translation
+                                let progress = min(translation / 300, 1.0)
+                                backgroundOpacity = 0.4 * (1 - progress)
+                            } else {
+                                // Dragging up - rubber band
+                                dragOffset = rubberBandClamp(-translation, limit: 60)
+                            }
+                        }
+                        .onEnded { value in
+                            let translation = value.translation.height
+                            let velocity = value.predictedEndTranslation.height
+                            
+                            if translation > 100 || velocity > 500 {
+                                // Dismiss
+                                dismissSheet()
+                            } else {
+                                // Snap back
+                                withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.86, blendDuration: 0.25)) {
+                                    dragOffset = 0
+                                    backgroundOpacity = 0.4
+                                }
+                            }
+                        }
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                showCard = true
+                backgroundOpacity = 0.4
+            }
+        }
+    }
+    
+    private func dismissSheet() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            showCard = false
+            backgroundOpacity = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            isPresented = false
+        }
+    }
+}
+
+// MARK: - Savings Transaction Row
+
+struct SavingsTransactionRow: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
+    let transaction: SavingsTransaction
+    
+    private var icon: String {
+        transaction.isDeposit ? "arrow.down.circle.fill" : "arrow.up.circle.fill"
+    }
+    
+    private var iconColor: Color {
+        transaction.isDeposit ? Color(hex: "57CE43") : Color(hex: "FF5113")
+    }
+    
+    private var title: String {
+        transaction.isDeposit ? "Deposit" : "Withdrawal"
+    }
+    
+    private var formattedAmount: String {
+        let prefix = transaction.isDeposit ? "+" : "-"
+        return String(format: "%@%@%.2f", prefix, displayCurrencyService.currencySymbol, transaction.usdAmount)
+    }
+    
+    private var formattedUSDY: String {
+        return String(format: "%.2f USDY", transaction.usdyAmount)
+    }
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Icon - matching avatar style
+            ZStack {
+                Circle()
+                    .fill(iconColor)
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: transaction.isDeposit ? "arrow.down" : "arrow.up")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            
+            // Title and date
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(themeService.textPrimaryColor)
+                    .lineLimit(1)
+                
+                Text(transaction.formattedDate)
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(.gray)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Amount
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(formattedAmount)
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(transaction.isDeposit ? Color(hex: "57CE43") : themeService.textPrimaryColor)
+                
+                Text(formattedUSDY)
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(.gray)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
     }
 }
 

@@ -624,9 +624,35 @@ struct SkeletonTransactionRow: View {
 struct HomeSavingsCard: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var savingsService = SavingsService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
+    @State private var exchangeRate: Double = 1.0
+    
+    private let exchangeRateService = ExchangeRateService.shared
     
     private var formattedBalance: String {
-        String(format: "$%.2f", savingsService.totalValueUSD)
+        let usdValue = savingsService.totalValueUSD
+        if displayCurrencyService.displayCurrency == "USD" {
+            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, usdValue)
+        } else {
+            let convertedValue = usdValue * exchangeRate
+            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, convertedValue)
+        }
+    }
+    
+    private func fetchExchangeRate() {
+        let currency = displayCurrencyService.displayCurrency
+        guard currency != "USD" else {
+            exchangeRate = 1.0
+            return
+        }
+        
+        Task {
+            if let rate = await exchangeRateService.getRate(from: "USD", to: currency) {
+                await MainActor.run {
+                    exchangeRate = rate
+                }
+            }
+        }
     }
     
     var body: some View {
@@ -663,6 +689,12 @@ struct HomeSavingsCard: View {
             .cornerRadius(24)
         }
         .buttonStyle(PressedButtonStyle())
+        .onAppear {
+            fetchExchangeRate()
+        }
+        .onChange(of: displayCurrencyService.displayCurrency) {
+            fetchExchangeRate()
+        }
     }
 }
 

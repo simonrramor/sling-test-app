@@ -63,7 +63,7 @@ struct AnimatedCurrencySwapView: View {
                         )
                         .scaleEffect(primaryScale, anchor: .center)
                         .frame(width: geometry.size.width, height: 80, alignment: .center)
-                        .offset(y: showingPrimaryOnTop ? -5 : 45)
+                        .offset(y:   showingPrimaryOnTop ? -5 : 45)
                     
                     // Secondary amount or error message
                     if let error = errorMessage {

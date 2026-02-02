@@ -282,12 +282,13 @@ struct FeedbackIntroSheet: View {
         .padding(.bottom, 24)
         .background(
             UnevenRoundedRectangle(
-                topLeadingRadius: 32,
+                topLeadingRadius: 40,
                 bottomLeadingRadius: UIScreen.displayCornerRadius,
                 bottomTrailingRadius: UIScreen.displayCornerRadius,
-                topTrailingRadius: 32
+                topTrailingRadius: 40,
+                style: .continuous
             )
-            .fill(Color.white)
+            .fill(Color(hex: "F2F2F2"))
         )
         .padding(.horizontal, 8)
         .padding(.bottom, 8)

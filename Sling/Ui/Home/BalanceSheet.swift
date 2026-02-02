@@ -19,6 +19,11 @@ struct BalanceSheet: View {
     
     private let exchangeRateService = ExchangeRateService.shared
     
+    // Device corner radius for matching physical device corners
+    private var deviceCornerRadius: CGFloat {
+        UIScreen.displayCornerRadius
+    }
+    
     // The underlying balance in USD (USDP)
     private var usdBalance: Double {
         portfolioService.cashBalance
@@ -96,11 +101,18 @@ struct BalanceSheet: View {
                 .padding(.bottom, 24)
             }
             .frame(maxWidth: .infinity)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 47))
+            .background(Color(hex: "F2F2F2"))
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 40,
+                    bottomLeadingRadius: deviceCornerRadius,
+                    bottomTrailingRadius: deviceCornerRadius,
+                    topTrailingRadius: 40,
+                    style: .continuous
+                )
+            )
             .padding(.horizontal, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
             .offset(y: sheetOffset)
         }
         .ignoresSafeArea()
