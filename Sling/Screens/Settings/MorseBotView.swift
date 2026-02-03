@@ -290,17 +290,16 @@ struct MorseBotView: View {
             HStack(spacing: 16) {
                 // Eyes only version (no mouth)
                 VStack(spacing: 4) {
-                    ZStack {
-                        MorseBotEyesOnlyView(
-                            rigState: rigState,
-                            leftEyeBlink: leftEyeBlink,
-                            rightEyeBlink: rightEyeBlink,
-                            idleEyeOffsetX: idleEyeOffsetX,
-                            idleEyeOffsetY: idleEyeOffsetY,
-                            swirlAngle: swirlAngle
-                        )
-                        .frame(width: 140, height: 140)
-                    }
+                    MorseBotEyesOnlyView(
+                        rigState: rigState,
+                        leftEyeBlink: leftEyeBlink,
+                        rightEyeBlink: rightEyeBlink,
+                        idleEyeOffsetX: idleEyeOffsetX,
+                        idleEyeOffsetY: idleEyeOffsetY,
+                        swirlAngle: swirlAngle
+                    )
+                    .frame(width: 130, height: 130)
+                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                     .scaleEffect(x: squashStretch, y: 2.0 - squashStretch)
                     .scaleEffect(breathingScale)
                     .onTapGesture {
@@ -323,12 +322,13 @@ struct MorseBotView: View {
                             idleEyeOffsetY: idleEyeOffsetY,
                             swirlAngle: swirlAngle
                         )
-                        .frame(width: 140, height: 140)
+                        .scaleEffect(0.65) // Scale down from 200x200 to ~130x130
+                        .frame(width: 130, height: 130)
                         
                         // Vintage TV overlay
                         VintageTVOverlay()
-                            .frame(width: 140, height: 140)
-                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                            .frame(width: 130, height: 130)
+                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                             .allowsHitTesting(false)
                     }
                     .scaleEffect(x: squashStretch, y: 2.0 - squashStretch)
@@ -1526,43 +1526,49 @@ struct MorseBotEyesOnlyView: View {
     }
     
     var body: some View {
-        ZStack {
-            // Background - black rounded rectangle
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Color.black)
+        GeometryReader { geo in
+            let size = min(geo.size.width, geo.size.height)
+            let eyeSize: CGFloat = size * 0.18
+            let spacing: CGFloat = size * 0.15
+            let centerY: CGFloat = size * 0.5
+            let centerX: CGFloat = size * 0.5
             
-            // Eyes only (no mouth) - centered vertically
-            Group {
-                // Left eye
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(hex: "FCFCFC"))
-                    .frame(
-                        width: 24 * rigState.leftEyeScale,
-                        height: computeEyeHeight(base: 24 * rigState.eyeHeight * rigState.leftEyeScale, blink: leftEyeBlink)
-                    )
-                    .rotationEffect(.degrees(rigState.eyebrows * -15))
-                    .position(
-                        x: 50 + idleEyeOffsetX * 10 + rigState.pupilX * 6,
-                        y: 70 + idleEyeOffsetY * 8 + rigState.pupilY * 5 - rigState.eyebrows * 6
-                    )
+            ZStack {
+                // Background - black rounded rectangle
+                RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
+                    .fill(Color.black)
                 
-                // Right eye
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(hex: "FF5500"))
-                    .frame(
-                        width: 24 * rigState.rightEyeScale,
-                        height: computeEyeHeight(base: 24 * rigState.eyeHeight * rigState.rightEyeScale, blink: rightEyeBlink)
-                    )
-                    .rotationEffect(.degrees(rigState.eyebrows * 15))
-                    .position(
-                        x: 90 + idleEyeOffsetX * 10 + rigState.pupilX * 6,
-                        y: 70 + idleEyeOffsetY * 8 + rigState.pupilY * 5 - rigState.eyebrows * 6
-                    )
+                // Eyes only (no mouth) - centered
+                Group {
+                    // Left eye
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(hex: "FCFCFC"))
+                        .frame(
+                            width: eyeSize * rigState.leftEyeScale,
+                            height: computeEyeHeight(base: eyeSize * rigState.eyeHeight * rigState.leftEyeScale, blink: leftEyeBlink)
+                        )
+                        .rotationEffect(.degrees(rigState.eyebrows * -15))
+                        .position(
+                            x: centerX - spacing + idleEyeOffsetX * 8 + rigState.pupilX * 6,
+                            y: centerY + idleEyeOffsetY * 6 + rigState.pupilY * 4 - rigState.eyebrows * 5
+                        )
+                    
+                    // Right eye
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color(hex: "FF5500"))
+                        .frame(
+                            width: eyeSize * rigState.rightEyeScale,
+                            height: computeEyeHeight(base: eyeSize * rigState.eyeHeight * rigState.rightEyeScale, blink: rightEyeBlink)
+                        )
+                        .rotationEffect(.degrees(rigState.eyebrows * 15))
+                        .position(
+                            x: centerX + spacing + idleEyeOffsetX * 8 + rigState.pupilX * 6,
+                            y: centerY + idleEyeOffsetY * 6 + rigState.pupilY * 4 - rigState.eyebrows * 5
+                        )
+                }
+                .rotationEffect(.radians(swirlAngle))
             }
-            .rotationEffect(.radians(swirlAngle))
         }
-        .frame(width: 140, height: 140)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .animation(.spring(response: 0.2, dampingFraction: 0.8), value: rigState.headX)
         .animation(.spring(response: 0.2, dampingFraction: 0.8), value: rigState.headY)
         .animation(.spring(response: 0.15, dampingFraction: 0.9), value: rigState.blink)
