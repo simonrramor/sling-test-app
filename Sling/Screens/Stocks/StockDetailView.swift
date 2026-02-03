@@ -22,6 +22,8 @@ struct StockDetailView: View {
     @State private var chartData: [CGFloat] = []
     @State private var showBuyScreen = false
     @State private var showSellScreen = false
+    @State private var showRecurringBuyScreen = false
+    @ObservedObject private var recurringService = RecurringPurchaseService.shared
     
     // Check if user owns this stock
     var ownsStock: Bool {
@@ -232,37 +234,59 @@ struct StockDetailView: View {
                 }
                 
                 // Bottom buttons
-                HStack(spacing: 8) {
-                    // Sell button - active only when user owns shares
-                    Button(action: {
-                        if ownsStock {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        // Sell button - active only when user owns shares
+                        Button(action: {
+                            if ownsStock {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                showSellScreen = true
+                            }
+                        }) {
+                            Text("Sell")
+                                .font(.custom("Inter-Bold", size: 16))
+                                .foregroundColor(ownsStock ? themeService.textPrimaryColor : themeService.textTertiaryColor)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(ownsStock ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED")) : (themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")))
+                                .cornerRadius(20)
+                        }
+                        .disabled(!ownsStock)
+                        
+                        Button(action: {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
-                            showSellScreen = true
+                            showBuyScreen = true
+                        }) {
+                            Text("Buy")
+                                .font(.custom("Inter-Bold", size: 16))
+                                .foregroundColor(themeService.currentTheme == .dark ? .black : .white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(themeService.textPrimaryColor)
+                                .cornerRadius(20)
                         }
-                    }) {
-                        Text("Sell")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(ownsStock ? themeService.textPrimaryColor : themeService.textTertiaryColor)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(ownsStock ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED")) : (themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")))
-                            .cornerRadius(20)
                     }
-                    .disabled(!ownsStock)
                     
+                    // Recurring buy button
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
-                        showBuyScreen = true
+                        showRecurringBuyScreen = true
                     }) {
-                        Text("Buy")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.currentTheme == .dark ? .black : .white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(themeService.textPrimaryColor)
-                            .cornerRadius(20)
+                        HStack(spacing: 8) {
+                            Image(systemName: "repeat")
+                                .font(.system(size: 16, weight: .medium))
+                            
+                            Text(recurringService.hasRecurringPurchase(for: stock.iconName) ? "Manage Recurring Buy" : "Setup Recurring Buy")
+                                .font(.custom("Inter-Medium", size: 16))
+                        }
+                        .foregroundColor(Color(hex: DesignSystem.Colors.primary))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Color(hex: "FFF5F0"))
+                        .cornerRadius(16)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -303,8 +327,18 @@ struct StockDetailView: View {
                     .zIndex(1)
             }
         }
+        .overlay {
+            if showRecurringBuyScreen {
+                SetupRecurringBuyView(stock: stock, isPresented: $showRecurringBuyScreen, onComplete: {
+                    // No need to dismiss the detail view
+                })
+                    .transition(.move(edge: .trailing))
+                    .zIndex(1)
+            }
+        }
         .animation(.easeInOut(duration: 0.3), value: showBuyScreen)
         .animation(.easeInOut(duration: 0.3), value: showSellScreen)
+        .animation(.easeInOut(duration: 0.3), value: showRecurringBuyScreen)
         } // Close GeometryReader
     }
 

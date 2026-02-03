@@ -47,6 +47,8 @@ struct InvestView: View {
     @State private var dragProgress: CGFloat = 1.0
     @State private var selectedStock: Stock? = nil
     @State private var exchangeRate: Double = 1.0
+    @State private var showManageRecurringBuys = false
+    @ObservedObject private var recurringService = RecurringPurchaseService.shared
     
     private let exchangeRateService = ExchangeRateService.shared
     
@@ -223,33 +225,61 @@ struct InvestView: View {
             VStack(spacing: 0) {
                 // Portfolio Header
                 VStack(alignment: .leading, spacing: 4) {
-                    if isPortfolioEmpty {
-                        Text("Portfolio")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
+                    HStack {
+                        if isPortfolioEmpty {
+                            Text("Portfolio")
+                                .font(.custom("Inter-Medium", size: 16))
+                                .foregroundColor(themeService.textSecondaryColor)
+                        } else {
+                            HStack(spacing: 6) {
+                                Text("Portfolio")
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                
+                                Image(systemName: isNoChange ? "arrow.right" : "arrow.up")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(changeColor)
+                                    .rotationEffect(.degrees(isNoChange ? 0 : (isPositiveChange ? 0 : 180)))
+                                
+                                SlidingNumberText(
+                                    text: changeText,
+                                    font: .custom("Inter-Medium", size: 16),
+                                    color: changeColor
+                                )
+                            }
+                        }
                         
+                        Spacer()
+                        
+                        // Recurring purchases button
+                        if !recurringService.activePurchases.isEmpty || !recurringService.pausedPurchases.isEmpty {
+                            Button(action: {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                showManageRecurringBuys = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "repeat")
+                                        .font(.system(size: 12, weight: .medium))
+                                    
+                                    Text("\(recurringService.activePurchases.count)")
+                                        .font(.custom("Inter-Medium", size: 12))
+                                }
+                                .foregroundColor(Color(hex: DesignSystem.Colors.primary))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color(hex: "FFF5F0"))
+                                .cornerRadius(8)
+                            }
+                        }
+                    }
+                    
+                    if isPortfolioEmpty {
                         Text(zeroBalanceText)
                             .font(.custom("Inter-Bold", size: 48))
                             .tracking(-0.96)
                             .foregroundColor(themeService.textPrimaryColor)
                     } else {
-                        HStack(spacing: 6) {
-                            Text("Portfolio")
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textSecondaryColor)
-                            
-                            Image(systemName: isNoChange ? "arrow.right" : "arrow.up")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(changeColor)
-                                .rotationEffect(.degrees(isNoChange ? 0 : (isPositiveChange ? 0 : 180)))
-                            
-                            SlidingNumberText(
-                                text: changeText,
-                                font: .custom("Inter-Medium", size: 16),
-                                color: changeColor
-                            )
-                        }
-                        
                         SlidingNumberText(
                             text: displayPortfolioTotal > 0 ? portfolioTotalText : zeroBalanceText,
                             font: .custom("Inter-Bold", size: 48),
@@ -478,6 +508,9 @@ struct StartInvestingCard: View {
         )
         .fullScreenCover(isPresented: $showStockList) {
             BrowseStocksView(isPresented: $showStockList)
+        }
+        .fullScreenCover(isPresented: $showManageRecurringBuys) {
+            ManageRecurringBuysView(isPresented: $showManageRecurringBuys)
         }
     }
 }

@@ -478,6 +478,72 @@ class PortfolioService: ObservableObject {
         saveToCloud()
     }
     
+    /// Buy stock shares and update portfolio
+    /// - Parameters:
+    ///   - iconName: Stock icon name (e.g., "StockApple")
+    ///   - symbol: Stock symbol (e.g., "AAPL")
+    ///   - shares: Number of shares to buy
+    ///   - pricePerShare: Price per share
+    /// - Returns: True if purchase was successful
+    @discardableResult
+    func buyStock(iconName: String, symbol: String, shares: Double, pricePerShare: Double) -> Bool {
+        let totalCost = shares * pricePerShare
+        
+        // Check if user has sufficient funds
+        guard cashBalance >= totalCost else {
+            debugLog("PortfolioService.buyStock", "Insufficient funds", 
+                     ["required": totalCost, "available": cashBalance])
+            return false
+        }
+        
+        // Deduct cash
+        cashBalance -= totalCost
+        
+        // Add or update holding
+        if let existingHolding = holdings[iconName] {
+            // Calculate new average cost
+            let existingValue = existingHolding.shares * existingHolding.averageCost
+            let newValue = shares * pricePerShare
+            let totalShares = existingHolding.shares + shares
+            let newAverageCost = (existingValue + newValue) / totalShares
+            
+            holdings[iconName] = Holding(
+                symbol: symbol,
+                iconName: iconName,
+                shares: totalShares,
+                averageCost: newAverageCost
+            )
+        } else {
+            // Create new holding
+            holdings[iconName] = Holding(
+                symbol: symbol,
+                iconName: iconName,
+                shares: shares,
+                averageCost: pricePerShare
+            )
+        }
+        
+        // Record the event
+        let event = PortfolioEvent(
+            timestamp: Date(),
+            type: .buy,
+            portfolioValueAfter: portfolioValue(),
+            iconName: iconName,
+            shares: shares,
+            pricePerShare: pricePerShare
+        )
+        
+        history.append(event)
+        
+        // Save changes
+        saveToCloud()
+        
+        debugLog("PortfolioService.buyStock", "Purchase successful", 
+                 ["stock": symbol, "shares": shares, "price": pricePerShare])
+        
+        return true
+    }
+    
     /// Reset portfolio to initial state (for demo purposes)
     func reset() {
         holdings = [:]
