@@ -57,25 +57,22 @@ struct SavingsDepositSheet: View {
     /// Available balance formatted in display currency
     private var formattedAvailableBalance: String {
         if displayCurrency == "USD" {
-            return String(format: "$%.2f", availableBalance)
+            return availableBalance.asUSD
         }
         // exchangeRate is displayCurrency to USD, so divide to convert USD to displayCurrency
         let convertedBalance = exchangeRate > 0 ? availableBalance / exchangeRate : availableBalance
-        return String(format: "%@%.2f", displayCurrencySymbol, convertedBalance)
+        return convertedBalance.asCurrency(displayCurrencySymbol)
     }
     
     // Formatted display currency amount (e.g., £100)
     private var formattedDisplayCurrency: String {
-        let value = showingDisplayCurrencyOnTop ? amountValue : displayCurrencyAmount
-        if amountString.isEmpty || value == 0 {
+        if amountString.isEmpty {
             return "\(displayCurrencySymbol)0"
         }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
-        return "\(displayCurrencySymbol)\(formattedNumber)"
+        
+        // Show exactly what the user typed, with currency symbol
+        // This preserves decimal behavior - only shows decimals after user presses "."
+        return "\(displayCurrencySymbol)\(amountString)"
     }
     
     // Formatted USD amount
@@ -90,6 +87,19 @@ struct SavingsDepositSheet: View {
         formatter.maximumFractionDigits = 2
         let formattedNumber = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
         return "$\(formattedNumber)"
+    }
+    
+    // Formatted USDY amount (what user will receive)
+    private var formattedUSDY: String {
+        if amountString.isEmpty || usdyAmount == 0 {
+            return "0 USDY"
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        let formattedNumber = formatter.string(from: NSNumber(value: usdyAmount)) ?? String(format: "%.2f", usdyAmount)
+        return "\(formattedNumber) USDY"
     }
     
     var body: some View {
@@ -157,53 +167,41 @@ struct SavingsDepositSheet: View {
                     }
                     
                     Spacer()
+                    
+                    // USDY indicator
+                    Text("USDY")
+                        .font(.custom("Inter-SemiBold", size: 14))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 64)
                 
                 Spacer()
                 
-                // Amount display with currency swap
-                if hasCurrencyDifference {
-                    AnimatedCurrencySwapView(
-                        primaryDisplay: formattedDisplayCurrency,
-                        secondaryDisplay: formattedUSD,
-                        showingPrimaryOnTop: showingDisplayCurrencyOnTop,
-                        onSwap: {
-                            // Convert current amount to the other currency before swapping
-                            if showingDisplayCurrencyOnTop {
-                                // Switching to USD input
-                                amountString = usdAmount > 0 ? formatForInput(usdAmount) : ""
-                            } else {
-                                // Switching to display currency input
-                                amountString = displayCurrencyAmount > 0 ? formatForInput(displayCurrencyAmount) : ""
-                            }
-                            showingDisplayCurrencyOnTop.toggle()
-                        },
-                        errorMessage: isOverBalance ? "Insufficient balance" : nil
-                    )
-                } else {
-                    // No currency difference - just show USD
-                    VStack(spacing: 4) {
-                        Text(formattedUSD)
-                            .font(.custom("Inter-Bold", size: 56))
-                            .foregroundColor(themeService.textPrimaryColor)
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(1)
-                        
-                        if isOverBalance {
-                            Text("Insufficient balance")
-                                .font(.custom("Inter-Medium", size: 14))
-                                .foregroundColor(Color(hex: "E30000"))
-                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        }
+                // Amount display - show display currency as primary, USDY as secondary
+                VStack(spacing: 8) {
+                    Text(formattedDisplayCurrency)
+                        .font(.custom("Inter-Bold", size: 56))
+                        .foregroundColor(themeService.textPrimaryColor)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                    
+                    if isOverBalance {
+                        Text("Insufficient balance")
+                            .font(.custom("Inter-Medium", size: 14))
+                            .foregroundColor(Color(hex: "E30000"))
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    } else {
+                        Text(formattedUSDY)
+                            .font(.custom("Inter-Medium", size: 18))
+                            .foregroundColor(Color(hex: "7B7B7B"))
                     }
-                    .animation(.easeInOut(duration: 0.2), value: isOverBalance)
                 }
+                .animation(.easeInOut(duration: 0.2), value: isOverBalance)
                 
                 Spacer()
                 
-                // Payment source row
+                // Payment source row (From)
                 PaymentInstrumentRow(
                     iconName: "SlingBalanceLogo",
                     title: "Sling balance",
@@ -327,7 +325,7 @@ struct SavingsDepositConfirmView: View {
     @State private var isButtonLoading = false
     
     private var formattedAmount: String {
-        String(format: "$%.2f", amount)
+        amount.asUSD
     }
     
     var body: some View {
@@ -395,6 +393,11 @@ struct SavingsDepositConfirmView: View {
                     }
                     
                     Spacer()
+                    
+                    // USDY indicator
+                    Text("USDY")
+                        .font(.custom("Inter-SemiBold", size: 14))
+                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 64)

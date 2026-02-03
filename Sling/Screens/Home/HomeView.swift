@@ -42,13 +42,10 @@ struct HomeView: View {
                     onSetup: { showSetup = true }
                 )
                 
-                // Savings & Portfolio Summary Cards
-                VStack(spacing: 16) {
-                    HomeSavingsCard()
-                    HomePortfolioCard()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+                // Savings Summary Card
+                HomeSavingsCard()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
                 
                 // Activity Section
                 VStack(spacing: 0) {
@@ -79,7 +76,10 @@ struct HomeView: View {
                         // Transaction list - show only 3 on home
                         TransactionListContent(
                             limit: 3,
-                            onSeeMore: { showAllActivity = true }
+                            onSeeMore: { showAllActivity = true },
+                            onTransactionSelected: { activity in
+                                NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
+                            }
                         )
                     }
                 }
@@ -313,7 +313,7 @@ struct HomeAccountDetailsSheet: View {
                 HomeAccountDetailRow(label: "Bank", value: "Community Federal Savings Bank")
             }
             .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F5F5F5"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .padding(.horizontal, 16)
             
             Spacer().frame(height: 16)
@@ -326,7 +326,7 @@ struct HomeAccountDetailsSheet: View {
                 HomeAccountDetailRow(label: "Bank", value: "Commerzbank AG")
             }
             .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F5F5F5"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .padding(.horizontal, 16)
             
             Spacer()
@@ -487,9 +487,9 @@ struct PendingRequestsCard: View {
             }
             .padding(16)
             .background(Color(hex: "FFF8F5"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .stroke(Color(hex: "FF5113").opacity(0.2), lineWidth: 1)
             )
         }

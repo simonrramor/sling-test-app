@@ -24,6 +24,10 @@ struct SettingsView: View {
     @State private var showSwapTest = false
     @State private var showCurrencyPicker = false
     @State private var showFees = false
+    @State private var showInvestments = false
+    @State private var showQRScanner = false
+    @State private var showHelpChat = false
+    @State private var showTransfer = false
     
     var body: some View {
         ZStack {
@@ -112,8 +116,22 @@ struct SettingsView: View {
                             SettingsRow(
                                 iconAsset: "IconMoney",
                                 title: "Fees",
-                                position: .bottom,
+                                position: .middle,
                                 onTap: { showFees = true }
+                            )
+                            
+                            SettingsRow(
+                                iconAsset: "NavInvest",
+                                title: "Investments",
+                                position: .middle,
+                                onTap: { showInvestments = true }
+                            )
+                            
+                            SettingsRow(
+                                iconSystem: "arrow.left.arrow.right",
+                                title: "Transfer between accounts",
+                                position: .bottom,
+                                onTap: { showTransfer = true }
                             )
                         }
                         
@@ -138,18 +156,38 @@ struct SettingsView: View {
                                     themeService.toggleTheme() 
                                 }
                             )
+                        }
+                        
+                        // Tools section
+                        VStack(spacing: 0) {
+                            SettingsRow(
+                                iconSystem: "qrcode",
+                                title: "QR Scanner",
+                                position: .top,
+                                onTap: { showQRScanner = true }
+                            )
                             
+                            SettingsRow(
+                                iconSystem: "questionmark.circle",
+                                title: "Help & Support",
+                                position: .bottom,
+                                onTap: { showHelpChat = true }
+                            )
+                        }
+                        
+                        // Profile section
+                        VStack(spacing: 0) {
                             SettingsRow(
                                 iconAsset: "IconUser",
                                 title: "Your Profile",
-                                position: .standalone,
+                                position: .top,
                                 onTap: { showProfile = true }
                             )
                             
                             SettingsRow(
                                 iconAsset: "IconEye",
                                 title: "Privacy",
-                                position: .standalone,
+                                position: .bottom,
                                 onTap: { showPrivacy = true }
                             )
                         }
@@ -236,7 +274,7 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(themeService.cardBackgroundColor)
-                            .cornerRadius(16)
+                            .cornerRadius(24)
                         }
                         
                         Spacer().frame(height: 40)
@@ -310,6 +348,18 @@ struct SettingsView: View {
         }
         .fullScreenCover(isPresented: $showCurrencyPicker) {
             CurrencySelectionView(isPresented: $showCurrencyPicker)
+        }
+        .fullScreenCover(isPresented: $showInvestments) {
+            InvestView(isPresented: $showInvestments)
+        }
+        .fullScreenCover(isPresented: $showQRScanner) {
+            QRScannerView(isPresented: $showQRScanner)
+        }
+        .fullScreenCover(isPresented: $showHelpChat) {
+            ChatView()
+        }
+        .fullScreenCover(isPresented: $showTransfer) {
+            TransferBetweenAccountsView(isPresented: $showTransfer)
         }
     }
     
@@ -773,7 +823,7 @@ struct PrivacySheet: View {
                 .padding(16)
             }
             .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .padding(.horizontal, 16)
             
             Spacer()
@@ -920,7 +970,7 @@ struct PassportCardView: View {
     var body: some View {
         ZStack {
             // Passport background
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(passportColor)
                 .frame(width: 280, height: 400)
                 .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)

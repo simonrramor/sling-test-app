@@ -296,7 +296,7 @@ struct NumberKeyView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(isPressed ? Color(hex: "EDEDED") : Color.clear)
             )
             .contentShape(Rectangle())

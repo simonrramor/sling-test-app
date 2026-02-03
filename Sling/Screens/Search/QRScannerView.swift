@@ -2,6 +2,7 @@ import SwiftUI
 import AVFoundation
 
 struct QRScannerView: View {
+    @Binding var isPresented: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: ScannerTab = .scan
     @State private var cachedQRCode: UIImage?
@@ -9,6 +10,11 @@ struct QRScannerView: View {
     enum ScannerTab {
         case scan
         case myCode
+    }
+    
+    private func close() {
+        isPresented = false
+        dismiss()
     }
     
     var body: some View {
@@ -30,7 +36,7 @@ struct QRScannerView: View {
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
-                        dismiss()
+                        close()
                     }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
@@ -235,7 +241,7 @@ struct CornerShape: Shape {
     
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let cornerRadius: CGFloat = 16
+        let cornerRadius: CGFloat = 24
         
         switch corner {
         case .topLeft:
@@ -374,5 +380,5 @@ class CameraUIView: UIView {
 }
 
 #Preview {
-    QRScannerView()
+    QRScannerView(isPresented: .constant(true))
 }

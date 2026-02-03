@@ -38,6 +38,7 @@ struct Stock: Identifiable {
 }
 
 struct InvestView: View {
+    @Binding var isPresented: Bool
     @ObservedObject private var ondoService = OndoService.shared
     @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var themeService = ThemeService.shared
@@ -221,6 +222,25 @@ struct InvestView: View {
             debugLog("InvestView.swift:body", "H1: View body computed", ["count": investViewBodyCount, "holdingsCount": portfolioService.holdings.count])
         }()
         // #endregion
+        VStack(spacing: 0) {
+            // Header with close button
+            HStack {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    isPresented = false
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(themeService.textPrimaryColor)
+                        .frame(width: 44, height: 44)
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            
         ScrollView {
             VStack(spacing: 0) {
                 // Portfolio Header
@@ -334,7 +354,7 @@ struct InvestView: View {
                             ) {
                                 // Value and Change
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    Text(String(format: "$%.2f", portfolioService.holdingValue(for: stock.iconName)))
+                                    Text(portfolioService.holdingValue(for: stock.iconName).asUSD)
                                         .font(.custom("Inter-Bold", size: 16))
                                         .foregroundColor(themeService.textPrimaryColor)
                                     
@@ -404,6 +424,9 @@ struct InvestView: View {
         .fullScreenCover(item: $selectedStock) { stock in
             StockDetailView(stock: stock)
         }
+        .fullScreenCover(isPresented: $showManageRecurringBuys) {
+            ManageRecurringBuysView(isPresented: $showManageRecurringBuys)
+        }
         .onAppear {
             Task {
                 await fetchAllStocksForPeriod()
@@ -418,6 +441,8 @@ struct InvestView: View {
                 await fetchAllStocksForPeriod()
             }
         }
+        } // Close outer VStack
+        .background(themeService.backgroundColor)
     }
     
     private func fetchAllStocksForPeriod() async {
@@ -509,12 +534,9 @@ struct StartInvestingCard: View {
         .fullScreenCover(isPresented: $showStockList) {
             BrowseStocksView(isPresented: $showStockList)
         }
-        .fullScreenCover(isPresented: $showManageRecurringBuys) {
-            ManageRecurringBuysView(isPresented: $showManageRecurringBuys)
-        }
     }
 }
 
 #Preview {
-    InvestView()
+    InvestView(isPresented: .constant(true))
 }

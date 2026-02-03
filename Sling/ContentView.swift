@@ -8,6 +8,7 @@ extension Notification.Name {
     static let navigateToCard = Notification.Name("navigateToCard")
     static let navigateToSavings = Notification.Name("navigateToSavings")
     static let showBalanceSheet = Notification.Name("showBalanceSheet")
+    static let showTransactionDetail = Notification.Name("showTransactionDetail")
 }
 
 
@@ -25,6 +26,9 @@ struct ContentView: View {
     @State private var showTransferBetweenAccounts = false
     @State private var showReceiveSalary = false
     
+    // Global transaction detail state
+    @State private var selectedTransaction: ActivityItem?
+    @State private var showTransactionDetail = false
     
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var feedbackManager = FeedbackModeManager.shared
@@ -71,12 +75,6 @@ struct ContentView: View {
                     onProfileTap: {
                         showSettings = true
                     },
-                    onChatTap: {
-                        showChat = true
-                    },
-                    onQRCodeTap: {
-                        showQRScanner = true
-                    },
                     onSearchTap: {
                         showSearch = true
                     },
@@ -96,7 +94,8 @@ struct ContentView: View {
                         SpendView(showSubscriptionsOverlay: $showSubscriptionsOverlay)
                             .transition(tabTransition)
                     case .invest:
-                        InvestView()
+                        // Investments removed from nav - redirect to home
+                        HomeView()
                             .transition(tabTransition)
                     case .savings:
                         SavingsView()
@@ -180,12 +179,6 @@ struct ContentView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         showRequestMoney = true
                     }
-                },
-                onTransfer: {
-                    showFABMenu = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        showTransferBetweenAccounts = true
-                    }
                 }
             )
             .background(ClearBackgroundView())
@@ -209,7 +202,7 @@ struct ContentView: View {
             ChatView()
         }
         .fullScreenCover(isPresented: $showQRScanner) {
-            QRScannerView()
+            QRScannerView(isPresented: $showQRScanner)
         }
         .fullScreenCover(isPresented: $showSearch) {
             SearchView()
@@ -239,6 +232,13 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showBalanceSheet)) { _ in
             showBalanceSheet = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .showTransactionDetail)) { notification in
+            if let activity = notification.object as? ActivityItem {
+                selectedTransaction = activity
+                showTransactionDetail = true
+            }
+        }
+        .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedTransaction)
         .onFlip {
             // Only activate if not already in feedback mode and no popups are showing
             if !feedbackManager.isActive && !feedbackManager.showFeedbackPopup {
@@ -294,7 +294,6 @@ struct FABMenuSheet: View {
     @Environment(\.dismiss) private var dismiss
     var onSend: () -> Void
     var onRequest: () -> Void
-    var onTransfer: () -> Void
     
     var body: some View {
         ZStack {
@@ -329,18 +328,8 @@ struct FABMenuSheet: View {
                         iconBgColor: Color(hex: "E9FAEB"),
                         title: "Request",
                         subtitle: "Ask someone to pay you back",
-                        action: onRequest
-                    )
-                    
-                    // Transfer row
-                    FABMenuRow(
-                        iconName: "arrow.left.arrow.right",
-                        iconColor: Color(hex: "FFC774"),
-                        iconBgColor: Color(hex: "FFF5E5"),
-                        title: "Transfer",
-                        subtitle: "Move money between accounts",
                         isLast: true,
-                        action: onTransfer
+                        action: onRequest
                     )
                 }
                 .background(Color.white)
@@ -402,7 +391,7 @@ struct FABMenuRow: View {
             }
             .padding(16)
             .background(Color.white)
-            .cornerRadius(isFirst ? 24 : (isLast ? 24 : 16), corners: isFirst ? [.topLeft, .topRight] : (isLast ? [.bottomLeft, .bottomRight] : []))
+            .cornerRadius(isFirst ? 24 : (isLast ? 24 : 24), corners: isFirst ? [.topLeft, .topRight] : (isLast ? [.bottomLeft, .bottomRight] : []))
         }
         .buttonStyle(PlainButtonStyle())
     }

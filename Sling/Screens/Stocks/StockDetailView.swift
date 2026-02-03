@@ -75,7 +75,7 @@ struct StockDetailView: View {
         
         if isDragging {
             let price = data.priceAt(progress: Double(dragProgress))
-            return String(format: "$%.2f", price)
+            return price.asUSD
         } else {
             return data.formattedPrice
         }
@@ -190,7 +190,7 @@ struct StockDetailView: View {
                         }
                         .padding(16)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
+                            RoundedRectangle(cornerRadius: 24)
                                 .fill(themeService.cardBackgroundColor)
                         )
                         .padding(.horizontal, 8)
@@ -286,7 +286,7 @@ struct StockDetailView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(Color(hex: "FFF5F0"))
-                        .cornerRadius(16)
+                        .cornerRadius(24)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -393,7 +393,7 @@ struct YourInvestmentSection: View {
                     Text("Value")
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
-                    Text(String(format: "$%.2f", holdingValue))
+                    Text(holdingValue.asUSD)
                         .font(.custom("Inter-Bold", size: 24))
                         .foregroundColor(themeService.textPrimaryColor)
                 }
@@ -417,27 +417,21 @@ struct YourInvestmentSection: View {
                 // Today's returns (simulated as small daily change)
                 InvestmentDetailRow(
                     label: "Today's returns",
-                    value: String(format: "%@$%.2f (%.2f%%)",
-                                  profitLoss.isPositive ? "+" : "",
-                                  profitLoss.amount * 0.05,
-                                  profitLoss.percent * 0.05),
+                    value: "\(profitLoss.isPositive ? "+" : "")\((profitLoss.amount * 0.05).asUSD) (\(String(format: "%.2f%%", profitLoss.percent * 0.05)))",
                     isPositive: profitLoss.isPositive
                 )
                 
                 // Total return (total profit/loss)
                 InvestmentDetailRow(
                     label: "Total return",
-                    value: String(format: "%@$%.2f (%.2f%%)",
-                                  profitLoss.isPositive ? "+" : "",
-                                  profitLoss.amount,
-                                  profitLoss.percent),
+                    value: "\(profitLoss.isPositive ? "+" : "")\(profitLoss.amount.asUSD) (\(String(format: "%.2f%%", profitLoss.percent)))",
                     isPositive: profitLoss.isPositive
                 )
                 
                 // Average purchase price
                 InvestmentDetailRow(
                     label: "Average purchase price",
-                    value: String(format: "$%.2f", portfolioService.holdings[stock.iconName]?.averageCost ?? 0),
+                    value: (portfolioService.holdings[stock.iconName]?.averageCost ?? 0).asUSD,
                     isPositive: nil
                 )
                 

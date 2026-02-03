@@ -187,11 +187,11 @@ struct ScanReceiptCard: View {
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(Color(hex: "FFF8F5"))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .stroke(Color(hex: "FF5113").opacity(0.2), lineWidth: 1)
             )
         }
@@ -338,7 +338,7 @@ struct SplitUserSelectionView: View {
             .padding(.horizontal, 16)
             .frame(height: 56)
             .background(Color(hex: "F5F5F5"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
             
@@ -485,7 +485,7 @@ struct SelectableRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(configuration.isPressed ? Color(hex: "F7F7F7") : Color.clear)
             )
     }

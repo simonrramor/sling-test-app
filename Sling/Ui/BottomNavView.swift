@@ -9,7 +9,7 @@ enum Tab: String, CaseIterable {
     
     // Tabs that appear in the left pill (no transfer - it's a sheet now)
     static var pillTabs: [Tab] {
-        [.home, .card, .invest, .savings]
+        [.home, .card, .savings]
     }
 }
 
@@ -42,6 +42,7 @@ struct BottomNavView: View {
                     .fill(themeService.currentTheme == .dark ? Color.black : Color.white)
                     .shadow(color: Color.black.opacity(0.08), radius: DesignSystem.CornerRadius.small, x: 0, y: 4)
             )
+            .contentShape(Capsule())
             
             Spacer()
         }

@@ -253,7 +253,7 @@ struct PersonSplitCard: View {
             }
         }
         .background(Color(hex: "F8F8F8"))
-        .cornerRadius(16)
+        .cornerRadius(24)
     }
 }
 

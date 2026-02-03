@@ -161,7 +161,7 @@ struct SearchField: View {
         .padding(.horizontal, 16)
         .frame(height: 52)
         .background(Color(hex: "F7F7F7"))
-        .cornerRadius(16)
+        .cornerRadius(24)
     }
 }
 
@@ -199,7 +199,7 @@ struct CountryRow: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(isPressed ? Color(hex: "F5F5F5") : (isSelected ? Color(hex: "FF5113").opacity(0.05) : Color.clear))
         )
         .contentShape(Rectangle())

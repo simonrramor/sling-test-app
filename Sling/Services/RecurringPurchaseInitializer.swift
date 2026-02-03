@@ -80,7 +80,7 @@ class RecurringPurchaseInitializer {
         let recurringService = RecurringPurchaseService.shared
         let ondoService = OndoService.shared
         
-        for date in dates {
+        for _ in dates {
             // Get a simulated price for the date
             let basePrice = ondoService.tokenData[purchase.stockIconName]?.currentPrice ?? 150.0
             let priceVariation = Double.random(in: 0.9...1.1) // ±10% variation

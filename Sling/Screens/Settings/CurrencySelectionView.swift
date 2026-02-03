@@ -87,7 +87,7 @@ struct CurrencySelectionView: View {
                     }
                 }
                 .background(themeService.cardBackgroundColor)
-                .cornerRadius(16)
+                .cornerRadius(24)
                 .padding(.horizontal, 16)
                 
                 // Advanced options header
@@ -146,7 +146,7 @@ struct CurrencySelectionView: View {
                         }
                     }
                     .background(themeService.cardBackgroundColor)
-                    .cornerRadius(16)
+                    .cornerRadius(24)
                     .padding(.horizontal, 16)
                     .transition(.asymmetric(
                         insertion: .opacity
@@ -282,7 +282,7 @@ struct DisplayCurrencyStepView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
                 .background(themeService.cardBackgroundColor)
-                .cornerRadius(16)
+                .cornerRadius(24)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 24)
@@ -320,7 +320,7 @@ struct DisplayCurrencyStepView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 14)
                         .background(themeService.cardBackgroundColor)
-                        .cornerRadius(16)
+                        .cornerRadius(24)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
                         
@@ -353,7 +353,7 @@ struct DisplayCurrencyStepView: View {
                             }
                         }
                         .background(themeService.cardBackgroundColor)
-                        .cornerRadius(16)
+                        .cornerRadius(24)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
                     }
@@ -372,7 +372,7 @@ struct DisplayCurrencyStepView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Color(hex: "080808"))
-                        .cornerRadius(16)
+                        .cornerRadius(24)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
@@ -445,7 +445,7 @@ struct DisplayCurrencyCheckboxRow: View {
         .padding(.vertical, 16)
         .contentShape(Rectangle())
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(isPressed ? Color(hex: "F5F5F5") : Color.clear)
         )
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
@@ -516,7 +516,7 @@ struct CurrencyRow: View {
         .padding(.vertical, 16)
         .contentShape(Rectangle())
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F5F5F5")) : Color.clear)
         )
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in

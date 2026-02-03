@@ -96,9 +96,9 @@ struct FeeInfoCard: View {
         }
         .padding(16)
         .background(themeService.cardBackgroundColor)
-        .cornerRadius(16)
+        .cornerRadius(24)
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .stroke(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"), lineWidth: 1)
         )
     }

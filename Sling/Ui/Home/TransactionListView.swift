@@ -48,9 +48,16 @@ struct TransactionListContent: View {
     var limit: Int? = nil
     /// Callback when "See more" is tapped
     var onSeeMore: (() -> Void)? = nil
+    /// Callback when a transaction is selected (for external drawer handling)
+    var onTransactionSelected: ((ActivityItem) -> Void)? = nil
     
     @State private var selectedActivity: ActivityItem?
     @State private var showDetail = false
+    
+    /// Whether to handle drawer internally (legacy behavior) or externally
+    private var handlesDrawerInternally: Bool {
+        onTransactionSelected == nil
+    }
     
     private var displayedActivities: [ActivityItem] {
         if let limit = limit {
@@ -92,11 +99,20 @@ struct TransactionListContent: View {
             } else {
                 // Activity Rows (flat list, no section headers)
                 ForEach(displayedActivities) { activity in
-                    ActivityRowView(
-                        activity: activity,
-                        selectedActivity: $selectedActivity,
-                        showDetail: $showDetail
-                    )
+                    if let onTransactionSelected = onTransactionSelected {
+                        // External handling - just call the callback
+                        ActivityRowView(
+                            activity: activity,
+                            onTap: { onTransactionSelected(activity) }
+                        )
+                    } else {
+                        // Internal handling - use bindings
+                        ActivityRowView(
+                            activity: activity,
+                            selectedActivity: $selectedActivity,
+                            showDetail: $showDetail
+                        )
+                    }
                 }
                 .padding(.top, 4)
                 
@@ -129,7 +145,11 @@ struct TransactionListContent: View {
                 await activityService.fetchActivities()
             }
         }
-        .transactionDetailDrawer(isPresented: $showDetail, activity: selectedActivity)
+        .modifier(ConditionalDrawerModifier(
+            isPresented: $showDetail,
+            activity: selectedActivity,
+            enabled: handlesDrawerInternally
+        ))
     }
     
     // Group activities by date (e.g., "Today", "Yesterday", "16 January 2026")
@@ -150,14 +170,52 @@ struct TransactionListContent: View {
     }
 }
 
+// MARK: - Conditional Drawer Modifier
+
+struct ConditionalDrawerModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    let activity: ActivityItem?
+    let enabled: Bool
+    
+    func body(content: Content) -> some View {
+        if enabled {
+            content.transactionDetailDrawer(isPresented: $isPresented, activity: activity)
+        } else {
+            content
+        }
+    }
+}
+
 // MARK: - Activity Row View
 
 struct ActivityRowView: View {
     @ObservedObject private var themeService = ThemeService.shared
     let activity: ActivityItem
-    @Binding var selectedActivity: ActivityItem?
-    @Binding var showDetail: Bool
+    
+    // Option 1: Binding-based (internal drawer handling)
+    var selectedActivity: Binding<ActivityItem?>?
+    var showDetail: Binding<Bool>?
+    
+    // Option 2: Callback-based (external drawer handling)
+    var onTap: (() -> Void)?
+    
     @State private var isPressed = false
+    
+    // Convenience init for binding-based usage
+    init(activity: ActivityItem, selectedActivity: Binding<ActivityItem?>, showDetail: Binding<Bool>) {
+        self.activity = activity
+        self.selectedActivity = selectedActivity
+        self.showDetail = showDetail
+        self.onTap = nil
+    }
+    
+    // Convenience init for callback-based usage
+    init(activity: ActivityItem, onTap: @escaping () -> Void) {
+        self.activity = activity
+        self.selectedActivity = nil
+        self.showDetail = nil
+        self.onTap = onTap
+    }
     
     // Check if this is a savings activity (Home feed shows from main balance perspective)
     private var isSavingsActivity: Bool {
@@ -219,7 +277,7 @@ struct ActivityRowView: View {
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7")) : Color.clear)
         )
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
@@ -228,8 +286,15 @@ struct ActivityRowView: View {
         .onTapGesture {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
-            selectedActivity = activity
-            showDetail = true
+            
+            if let onTap = onTap {
+                // External handling via callback
+                onTap()
+            } else {
+                // Internal handling via bindings
+                selectedActivity?.wrappedValue = activity
+                showDetail?.wrappedValue = true
+            }
         }
     }
     

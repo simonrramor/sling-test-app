@@ -146,7 +146,7 @@ struct PressableRow<Content: View>: View {
         content()
             .contentShape(Rectangle())
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F5F5F5")) : Color.clear)
             )
             .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in

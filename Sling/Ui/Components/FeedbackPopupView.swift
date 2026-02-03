@@ -192,10 +192,10 @@ struct FeedbackPopupView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(selectedCategory == category ? Color(UIColor.systemGray6) : Color.clear)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: 24)
                             .stroke(selectedCategory == category ? color : Color.gray.opacity(0.2), lineWidth: selectedCategory == category ? 2 : 1)
                     )
             )

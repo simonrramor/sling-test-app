@@ -136,7 +136,7 @@ struct SendView: View {
             .padding(.horizontal, 16)
             .frame(height: 56)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(Color(hex: "F7F7F7"))
             )
             .padding(.horizontal, 16)
@@ -456,7 +456,7 @@ struct ContactRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(configuration.isPressed ? Color(hex: "EDEDED") : Color.clear)
             )
     }

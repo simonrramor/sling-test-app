@@ -280,7 +280,7 @@ struct AccountRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24)
                     .fill(configuration.isPressed ? Color(hex: "F7F7F7") : Color.clear)
             )
     }

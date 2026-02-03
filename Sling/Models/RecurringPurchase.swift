@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Recurring Purchase Frequency
 
-enum RecurringFrequency: String, CaseIterable, Identifiable {
+enum RecurringFrequency: String, CaseIterable, Identifiable, Codable {
     case daily = "daily"
     case weekly = "weekly" 
     case biweekly = "biweekly"
@@ -54,7 +54,7 @@ enum RecurringFrequency: String, CaseIterable, Identifiable {
 
 // MARK: - Recurring Purchase Status
 
-enum RecurringPurchaseStatus: String, CaseIterable {
+enum RecurringPurchaseStatus: String, CaseIterable, Codable {
     case active = "active"
     case paused = "paused"
     case cancelled = "cancelled"
@@ -238,10 +238,4 @@ struct RecurringPurchaseExecution: Identifiable, Codable {
         formatter.timeStyle = .short
         return formatter.string(from: executionDate)
     }
-}
-
-// MARK: - ActionSheet Support
-
-extension RecurringPurchase: Identifiable {
-    // Already has id property
 }

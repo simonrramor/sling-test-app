@@ -19,7 +19,7 @@ struct ScreenshotModeView: View {
     // Screens that can be captured
     let screens: [(name: String, id: String, view: AnyView)] = [
         ("Home", "home", AnyView(HomeView())),
-        ("Invest", "invest", AnyView(InvestView())),
+        ("Invest", "invest", AnyView(InvestView(isPresented: .constant(true)))),
         ("Spend", "spend", AnyView(SpendView(showSubscriptionsOverlay: .constant(false)))),
         ("Activity", "activity", AnyView(ActivityView())),
         ("Settings", "settings", AnyView(ScreenshotSettingsWrapper())),

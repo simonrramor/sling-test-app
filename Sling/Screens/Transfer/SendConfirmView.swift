@@ -24,20 +24,13 @@ struct SendConfirmView: View {
     
     // Full formatted amount with decimals (for info rows)
     var formattedAmount: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        formatter.usesGroupingSeparator = true
-        formatter.groupingSeparator = ","
-        let formattedNumber = formatter.string(from: NSNumber(value: amount)) ?? String(format: "%.2f", amount)
-        return "\(currencySymbol)\(formattedNumber)"
+        amount.asCurrency(currencySymbol)
     }
     
     // Short formatted amount (no decimals for whole numbers, for title/button)
     var shortAmount: String {
         if amount.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(currencySymbol)\(Int(amount))"
+            return "\(currencySymbol)\(Int(amount).formattedWithCommas)"
         }
         return formattedAmount
     }

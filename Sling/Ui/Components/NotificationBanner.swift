@@ -38,7 +38,7 @@ struct NotificationBanner: View {
         }
         .padding(16)
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(24)
         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
         .padding(.horizontal, 16)
     }

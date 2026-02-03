@@ -50,38 +50,20 @@ struct AddMoneyConfirmView: View {
     
     var formattedSourceAmount: String {
         let symbol = ExchangeRateService.symbol(for: sourceCurrency)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: sourceAmount)) ?? String(format: "%.2f", sourceAmount)
-        return "\(symbol)\(formattedNumber)"
+        return sourceAmount.asCurrency(symbol)
     }
     
     var formattedDestinationAmount: String {
-        let symbol = ExchangeRateService.symbol(for: slingCurrency)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: destinationAmount)) ?? String(format: "%.2f", destinationAmount)
-        return "\(symbol)\(formattedNumber)"
+        return destinationAmount.asUSD
     }
     
     var formattedAmountAfterFee: String {
-        let symbol = ExchangeRateService.symbol(for: slingCurrency)
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: amountAfterFee)) ?? String(format: "%.2f", amountAfterFee)
-        return "\(symbol)\(formattedNumber)"
+        return amountAfterFee.asUSD
     }
     
     var formattedExchangeRate: String {
         let sourceSymbol = ExchangeRateService.symbol(for: sourceCurrency)
-        let destSymbol = ExchangeRateService.symbol(for: slingCurrency)
-        return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", exchangeRate))"
+        return "\(sourceSymbol)1 = \(exchangeRate.asUSD)"
     }
     
     var body: some View {

@@ -200,7 +200,7 @@ class ActivityService: ObservableObject {
         shares: Double,
         symbol: String
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         let formattedShares = String(format: "+%.2f %@", shares, symbol)
         
         addActivity(
@@ -220,7 +220,7 @@ class ActivityService: ObservableObject {
         shares: Double,
         symbol: String
     ) {
-        let formattedAmount = String(format: "+£%.2f", amount)
+        let formattedAmount = "+" + amount.asGBP
         let formattedShares = String(format: "%.2f %@", shares, symbol)
         
         addActivity(
@@ -238,7 +238,7 @@ class ActivityService: ObservableObject {
         toContactAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         
         addActivity(
             avatar: toContactAvatar,
@@ -255,7 +255,7 @@ class ActivityService: ObservableObject {
         fromContactAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "£%.2f", amount)
+        let formattedAmount = amount.asGBP
         
         addActivity(
             avatar: fromContactAvatar,
@@ -273,7 +273,7 @@ class ActivityService: ObservableObject {
         splitAmount: Double,
         withContactName: String
     ) {
-        let formattedAmount = String(format: "£%.2f", splitAmount)
+        let formattedAmount = splitAmount.asGBP
         
         addActivity(
             avatar: merchantAvatar,
@@ -290,7 +290,7 @@ class ActivityService: ObservableObject {
         merchantAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         
         addActivity(
             avatar: merchantAvatar,
@@ -307,7 +307,7 @@ class ActivityService: ObservableObject {
         fromContactAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "+£%.2f", amount)
+        let formattedAmount = "+" + amount.asGBP
         
         addActivity(
             avatar: fromContactAvatar,
@@ -323,7 +323,7 @@ class ActivityService: ObservableObject {
         amount: Double,
         source: String = "Bank Transfer"
     ) {
-        let formattedAmount = String(format: "+£%.2f", amount)
+        let formattedAmount = "+" + amount.asGBP
         
         addActivity(
             avatar: "🏦",
@@ -339,7 +339,7 @@ class ActivityService: ObservableObject {
         amount: Double,
         method: String = "ATM"
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         
         addActivity(
             avatar: "💳",

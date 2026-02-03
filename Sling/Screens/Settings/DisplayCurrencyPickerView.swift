@@ -84,7 +84,7 @@ struct DisplayCurrencyPickerView: View {
             .padding(.horizontal, 16)
             .frame(height: 56)
             .background(Color(hex: "F7F7F7"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
             
@@ -155,7 +155,7 @@ struct DisplayCurrencyPickerView: View {
             }
             .padding(16)
             .background(Color.white)
-            .cornerRadius(16)
+            .cornerRadius(24)
         }
     }
 }

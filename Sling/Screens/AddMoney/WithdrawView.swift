@@ -5,24 +5,61 @@ struct WithdrawView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var portfolioService = PortfolioService.shared
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @State private var amountString = ""
     @State private var selectedAccount: PaymentAccount = .monzoBankLimited
     @State private var showAccountPicker = false
     @State private var showConfirmation = false
+    @State private var showingDestinationCurrency = true // true = destination currency primary, false = USD primary
+    @State private var destinationAmount: Double = 0 // Amount in destination account currency
+    @State private var usdAmount: Double = 0 // Amount in USD (storage currency)
+    @State private var exchangeRate: Double = 1.0 // Rate from destination currency to USD
+    
+    private let exchangeService = ExchangeRateService.shared
     
     var amountValue: Double {
         Double(amountString) ?? 0
     }
     
-    var formattedAmount: String {
-        if amountString.isEmpty {
-            return "£0"
+    /// Destination account currency
+    var destinationCurrency: String {
+        selectedAccount.currency.isEmpty ? "GBP" : selectedAccount.currency
+    }
+    
+    /// Symbol for destination currency
+    var destinationSymbol: String {
+        ExchangeRateService.symbol(for: destinationCurrency)
+    }
+    
+    /// Whether we need to show currency conversion (destination differs from USD)
+    var needsCurrencyConversion: Bool {
+        destinationCurrency != "USD"
+    }
+    
+    /// Formatted destination currency amount
+    var formattedDestinationAmount: String {
+        let value = showingDestinationCurrency ? amountValue : destinationAmount
+        if amountString.isEmpty || value == 0 {
+            return "\(destinationSymbol)0"
         }
-        return "£\(amountString)"
+        return value.asCurrency(destinationSymbol)
+    }
+    
+    /// Formatted USD amount (storage currency)
+    var formattedUSDAmount: String {
+        let value = showingDestinationCurrency ? usdAmount : amountValue
+        if amountString.isEmpty || value == 0 {
+            return "$0"
+        }
+        return value.asUSD
     }
     
     var canWithdraw: Bool {
-        amountValue > 0 && amountValue <= portfolioService.cashBalance
+        usdAmount > 0 && usdAmount <= portfolioService.cashBalance
+    }
+    
+    var isOverBalance: Bool {
+        usdAmount > portfolioService.cashBalance && usdAmount > 0
     }
     
     var selectedAccountIconName: String {
@@ -84,31 +121,62 @@ struct WithdrawView: View {
                 
                 Spacer()
                 
-                // Amount display
-                VStack(spacing: 8) {
-                    Text(formattedAmount)
-                        .font(.custom("Inter-Bold", size: 56))
-                        .foregroundColor(amountValue > portfolioService.cashBalance ? .red : Color(hex: "080808"))
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
-                    
-                    if amountValue > portfolioService.cashBalance {
-                        Text("Insufficient balance")
-                            .font(.custom("Inter-Medium", size: 14))
-                            .foregroundColor(.red)
+                // Amount display with currency swap
+                if needsCurrencyConversion {
+                    AnimatedCurrencySwapView(
+                        primaryDisplay: formattedDestinationAmount,
+                        secondaryDisplay: formattedUSDAmount,
+                        showingPrimaryOnTop: showingDestinationCurrency,
+                        onSwap: {
+                            // Convert current amount to the other currency before swapping
+                            if showingDestinationCurrency {
+                                // Switching to USD input
+                                amountString = usdAmount > 0 ? formatForInput(usdAmount) : ""
+                            } else {
+                                // Switching to destination currency input
+                                amountString = destinationAmount > 0 ? formatForInput(destinationAmount) : ""
+                            }
+                            showingDestinationCurrency.toggle()
+                        },
+                        errorMessage: isOverBalance ? "Insufficient balance" : nil
+                    )
+                } else {
+                    // No conversion needed - destination is USD
+                    VStack(spacing: 4) {
+                        Text(formattedUSDAmount)
+                            .font(.custom("Inter-Bold", size: 56))
+                            .foregroundColor(isOverBalance ? .red : themeService.textPrimaryColor)
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                        
+                        if isOverBalance {
+                            Text("Insufficient balance")
+                                .font(.custom("Inter-Medium", size: 14))
+                                .foregroundColor(Color(hex: "E30000"))
+                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.2), value: isOverBalance)
                 }
                 
                 Spacer()
                 
-                // Source account (Sling Balance)
+                // Source account (Sling Balance) - show in destination currency
                 PaymentInstrumentRow(
                     iconName: "SlingBalanceLogo",
                     title: "Sling Balance",
-                    subtitleParts: ["£\(String(format: "%.2f", portfolioService.cashBalance))"],
+                    subtitleParts: [formattedAvailableBalance],
                     actionButtonTitle: "Max",
                     onActionTap: {
-                        amountString = String(format: "%.0f", floor(portfolioService.cashBalance))
+                        // Set max in the current input currency
+                        if showingDestinationCurrency && needsCurrencyConversion {
+                            // Convert USD balance to destination currency
+                            let maxInDestination = exchangeRate > 0 ? portfolioService.cashBalance / exchangeRate : portfolioService.cashBalance
+                            amountString = formatForInput(floor(maxInDestination))
+                        } else {
+                            amountString = formatForInput(floor(portfolioService.cashBalance))
+                        }
+                        updateAmounts()
                     },
                     showMenu: true,
                     onMenuTap: {
@@ -137,7 +205,9 @@ struct WithdrawView: View {
             // Confirmation overlay
             if showConfirmation {
                 WithdrawConfirmView(
-                    amount: amountValue,
+                    usdAmount: usdAmount,
+                    destinationAmount: destinationAmount,
+                    destinationCurrency: destinationCurrency,
                     destinationAccount: selectedAccount,
                     isPresented: $showConfirmation,
                     onComplete: {
@@ -152,6 +222,91 @@ struct WithdrawView: View {
             isPresented: $showAccountPicker,
             selectedAccount: $selectedAccount
         )
+        .onChange(of: amountString) { _, _ in
+            updateAmounts()
+        }
+        .onChange(of: selectedAccount.id) { _, _ in
+            // Reset to destination currency when account changes
+            showingDestinationCurrency = true
+            destinationAmount = amountValue
+            usdAmount = 0
+            updateAmounts()
+        }
+        .onAppear {
+            updateAmounts()
+        }
+    }
+    
+    /// Available balance formatted in destination currency
+    private var formattedAvailableBalance: String {
+        if destinationCurrency == "USD" {
+            return portfolioService.cashBalance.asUSD
+        }
+        // Convert USD balance to destination currency
+        let convertedBalance = exchangeRate > 0 ? portfolioService.cashBalance / exchangeRate : portfolioService.cashBalance
+        return convertedBalance.asCurrency(destinationSymbol)
+    }
+    
+    private func formatForInput(_ value: Double) -> String {
+        if value == floor(value) {
+            return String(format: "%.0f", value)
+        } else {
+            return String(format: "%.2f", value)
+        }
+    }
+    
+    private func updateAmounts() {
+        guard needsCurrencyConversion else {
+            // No conversion needed (destination is USD)
+            destinationAmount = amountValue
+            usdAmount = amountValue
+            exchangeRate = 1.0
+            return
+        }
+        
+        let inputAmount = amountValue
+        
+        if showingDestinationCurrency {
+            // User is entering destination currency, convert to USD
+            destinationAmount = inputAmount
+            Task {
+                // Get rate from destination currency to USD
+                if let rate = await exchangeService.getRate(from: destinationCurrency, to: "USD") {
+                    await MainActor.run {
+                        exchangeRate = rate
+                    }
+                }
+                if let converted = await exchangeService.convert(
+                    amount: inputAmount,
+                    from: destinationCurrency,
+                    to: "USD"
+                ) {
+                    await MainActor.run {
+                        usdAmount = converted
+                    }
+                }
+            }
+        } else {
+            // User is entering USD, convert to destination currency
+            usdAmount = inputAmount
+            Task {
+                // Get rate from destination currency to USD (for display)
+                if let rate = await exchangeService.getRate(from: destinationCurrency, to: "USD") {
+                    await MainActor.run {
+                        exchangeRate = rate
+                    }
+                }
+                if let converted = await exchangeService.convert(
+                    amount: inputAmount,
+                    from: "USD",
+                    to: destinationCurrency
+                ) {
+                    await MainActor.run {
+                        destinationAmount = converted
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -160,7 +315,10 @@ struct WithdrawView: View {
 struct WithdrawConfirmView: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var feeService = FeeService.shared
-    let amount: Double
+    
+    let usdAmount: Double // Amount in USD (storage currency) - what gets deducted
+    let destinationAmount: Double // Amount in destination currency
+    let destinationCurrency: String // e.g., "GBP", "EUR"
     let destinationAccount: PaymentAccount
     @Binding var isPresented: Bool
     var onComplete: () -> Void = {}
@@ -168,15 +326,13 @@ struct WithdrawConfirmView: View {
     @State private var isButtonLoading = false
     
     private let portfolioService = PortfolioService.shared
-    private let slingCurrency = "USD" // Sling balance currency
     
-    /// Destination currency from account
-    private var destinationCurrency: String {
-        destinationAccount.currency.isEmpty ? "GBP" : destinationAccount.currency
+    /// Symbol for destination currency
+    private var destinationSymbol: String {
+        ExchangeRateService.symbol(for: destinationCurrency)
     }
     
     /// Calculate fee for this withdrawal
-    /// Fee applies when payment instrument currency differs from display currency
     private var withdrawalFee: FeeResult {
         feeService.calculateFee(
             for: .withdrawal,
@@ -184,20 +340,27 @@ struct WithdrawConfirmView: View {
         )
     }
     
-    /// Total amount deducted from balance (amount + fee)
-    private var totalDeducted: Double {
+    /// Total USD amount deducted from balance (amount + fee)
+    private var totalDeductedUSD: Double {
         if withdrawalFee.isFree {
-            return amount
+            return usdAmount
         }
-        return amount + withdrawalFee.amount
+        return usdAmount + withdrawalFee.amount
     }
     
-    var formattedAmount: String {
-        String(format: "£%.2f", amount)
+    /// Formatted destination currency amount (what user receives)
+    var formattedDestinationAmount: String {
+        destinationAmount.asCurrency(destinationSymbol)
     }
     
+    /// Formatted USD amount (storage currency)
+    var formattedUSDAmount: String {
+        usdAmount.asUSD
+    }
+    
+    /// Formatted total deducted in USD
     var formattedTotalDeducted: String {
-        String(format: "£%.2f", totalDeducted)
+        totalDeductedUSD.asUSD
     }
     
     var destinationAccountIcon: String {
@@ -247,10 +410,21 @@ struct WithdrawConfirmView: View {
                 
                 Spacer()
                 
-                // Amount display
-                Text(formattedAmount)
-                    .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(themeService.textPrimaryColor)
+                // Amount display - show destination currency as primary
+                VStack(spacing: 4) {
+                    Text(formattedDestinationAmount)
+                        .font(.custom("Inter-Bold", size: 56))
+                        .foregroundColor(themeService.textPrimaryColor)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                    
+                    // Show USD equivalent if different currency
+                    if destinationCurrency != "USD" {
+                        Text(formattedUSDAmount)
+                            .font(.custom("Inter-Medium", size: 18))
+                            .foregroundColor(themeService.textSecondaryColor)
+                    }
+                }
                 
                 Spacer()
                 
@@ -265,7 +439,11 @@ struct WithdrawConfirmView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     
-                    DetailRow(label: "Amount", value: formattedAmount)
+                    DetailRow(label: "You receive", value: formattedDestinationAmount)
+                    
+                    if destinationCurrency != "USD" {
+                        DetailRow(label: "From balance", value: formattedUSDAmount)
+                    }
                     
                     // Fee row
                     FeeRow(fee: withdrawalFee)
@@ -282,20 +460,20 @@ struct WithdrawConfirmView: View {
                 
                 // Withdraw button with smooth loading animation
                 LoadingButton(
-                    title: "Withdraw \(formattedAmount)",
+                    title: "Withdraw \(formattedDestinationAmount)",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Perform withdrawal (deduct total including fee)
-                    portfolioService.deductCash(totalDeducted)
+                    // Perform withdrawal (deduct total USD including fee)
+                    portfolioService.deductCash(totalDeductedUSD)
                     
                     // Record activity
                     ActivityService.shared.addActivity(
                         avatar: destinationAccountIcon,
                         titleLeft: destinationAccount.name,
                         subtitleLeft: "Withdrawal",
-                        titleRight: "-\(formattedTotalDeducted)",
-                        subtitleRight: ""
+                        titleRight: "-\(formattedDestinationAmount)",
+                        subtitleRight: formattedUSDAmount
                     )
                     
                     // Navigate home and complete

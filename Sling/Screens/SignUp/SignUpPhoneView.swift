@@ -187,7 +187,7 @@ struct PhoneInputField: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(Color(hex: "F7F7F7"))
-        .cornerRadius(16)
+        .cornerRadius(24)
     }
 }
 

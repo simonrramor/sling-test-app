@@ -75,6 +75,23 @@ struct SpendView: View {
         return "\(symbol)\(formattedNumber)"
     }
     
+    private var spentThisMonthSubtitle: String {
+        let now = Date()
+        let calendar = Calendar.current
+        
+        // Get start of current month
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        // Format dates
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        
+        let startStr = formatter.string(from: startOfMonth)
+        let endStr = formatter.string(from: now)
+        
+        return "Spent this month (\(startStr) – \(endStr))"
+    }
+    
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 0) {
@@ -187,7 +204,7 @@ struct SpendView: View {
                 }
                 .padding(16)
                 .background(themeService.backgroundSecondaryColor)
-                .cornerRadius(16)
+                .cornerRadius(24)
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
             }
@@ -226,24 +243,18 @@ struct SpendView: View {
             .padding(.bottom, 8)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("Spent this month (1st Dec – 1st Jan)")
+                Text(spentThisMonthSubtitle)
                     .font(.custom("Inter-Medium", size: 16))
                     .foregroundColor(themeService.textSecondaryColor)
                 
-                Text(formattedSpentThisMonth)
-                    .font(.custom("Inter-Bold", size: 33))
-                    .foregroundColor(themeService.textPrimaryColor)
+                SlidingNumberText(
+                    text: formattedSpentThisMonth,
+                    font: .custom("Inter-Bold", size: 48),
+                    color: themeService.textPrimaryColor
+                )
+                .tracking(-0.96)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(themeService.cardBackgroundColor)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
-            )
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
             
@@ -291,7 +302,7 @@ struct SpendView: View {
                 }
                 .padding(16)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: 24)
                         .fill(themeService.cardBackgroundColor)
                 )
             }
@@ -421,11 +432,11 @@ struct CategoryCard: View {
         .padding(16)
         .frame(width: 150)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(themeService.cardBackgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
         )
     }
@@ -513,11 +524,11 @@ struct CardDetailField: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(Color(hex: "FCFCFC"))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .stroke(Color(hex: "F7F7F7"), lineWidth: 1)
         )
     }
@@ -790,7 +801,7 @@ struct SubscriptionDetailContent: View {
                 }
                 .padding(.vertical, 12)
                 .background(Color.white)
-                .cornerRadius(16)
+                .cornerRadius(24)
                 
                 // Second card: Fees, Total
                 VStack(spacing: 0) {
@@ -799,7 +810,7 @@ struct SubscriptionDetailContent: View {
                 }
                 .padding(.vertical, 12)
                 .background(Color.white)
-                .cornerRadius(16)
+                .cornerRadius(24)
             }
             
             // Help row
@@ -819,7 +830,7 @@ struct SubscriptionDetailContent: View {
                 }
                 .padding(16)
                 .background(Color.white)
-                .cornerRadius(16)
+                .cornerRadius(24)
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -877,8 +888,6 @@ struct SubscriptionCalendarView: View {
     @ObservedObject private var themeService = ThemeService.shared
     @State private var selectedSubscription: Subscription? = nil
     @State private var showSubscriptionDetail = false
-    @State private var selectedActivity: ActivityItem? = nil
-    @State private var showTransactionDetail = false
     
     private let calendar = Calendar.current
     private let today = Date()
@@ -1057,9 +1066,8 @@ struct SubscriptionCalendarView: View {
                                     // Use callback for inline morph animation
                                     callback(activity)
                                 } else {
-                                    // Fallback to drawer
-                                    selectedActivity = activity
-                                    showTransactionDetail = true
+                                    // Fallback to global drawer via notification
+                                    NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
                                 }
                             }
                         }
@@ -1073,10 +1081,6 @@ struct SubscriptionCalendarView: View {
             }
             .padding(.bottom, 16)
         }
-        .transactionDetailDrawer(
-            isPresented: $showTransactionDetail,
-            activity: selectedActivity
-        )
     }
 }
 
@@ -1121,13 +1125,13 @@ struct SubscriptionDetailSheet: View {
                         .resizable()
                         .scaledToFill()
                         .frame(width: 64, height: 64)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16)
+                            RoundedRectangle(cornerRadius: 24)
                                 .stroke(Color.black.opacity(0.06), lineWidth: 1)
                         )
                 } else {
-                    RoundedRectangle(cornerRadius: 16)
+                    RoundedRectangle(cornerRadius: 24)
                         .fill(Color(hex: subscription.fallbackColor))
                         .frame(width: 64, height: 64)
                 }
@@ -1148,7 +1152,7 @@ struct SubscriptionDetailSheet: View {
                 SubscriptionDetailRow(label: "Status", value: "Completed", valueColor: Color(hex: "57CE43"))
             }
             .background(Color(hex: "F5F5F5"))
-            .cornerRadius(16)
+            .cornerRadius(24)
             .padding(.horizontal, 24)
             
             Spacer()

@@ -168,7 +168,7 @@ struct TransactionDetailDrawer: View {
             if isSavings {
                 // Deposits go TO savings, withdrawals come FROM savings
                 let isDeposit = activity.subtitleLeft.lowercased().contains("deposit")
-                return ("You moved", amountText, isDeposit ? "to \(name)" : "from \(name)")
+                return (isDeposit ? "You added" : "You withdrew", amountText, isDeposit ? "to \(name)" : "from \(name)")
             }
             // Try to parse "from X to Y" from subtitle or title
             if activity.subtitleLeft.lowercased().contains("to") {
@@ -618,6 +618,12 @@ struct TransactionDetailDrawer: View {
     }
     
     private var categoryInfo: (name: String, icon: String) {
+        // Savings transactions
+        let title = activity.titleLeft.lowercased()
+        if title.contains("savings deposit") || title.contains("savings withdrawal") {
+            return ("Savings", "IconSavings")
+        }
+        
         // P2P transactions should be categorized as Transfers
         if transactionType == .p2pSent || transactionType == .p2pReceived {
             return ("Transfers", "arrow.up.right")
@@ -710,17 +716,14 @@ extension View {
         isPresented: Binding<Bool>,
         activity: ActivityItem?
     ) -> some View {
-        self.fullScreenCover(isPresented: isPresented) {
-            if let activity = activity {
+        self.overlay {
+            if isPresented.wrappedValue, let activity = activity {
                 TransactionDetailDrawer(
                     activity: activity,
                     isPresented: isPresented
                 )
-                .background(ClearBackgroundView())
+                .ignoresSafeArea()
             }
-        }
-        .transaction { transaction in
-            transaction.disablesAnimations = true
         }
     }
 }
@@ -877,15 +880,19 @@ struct TransactionAvatarLarge: View {
         subtitleLeft.lowercased().contains("deposit")
     }
     
-    // For Home/Activity feed: badges reflect main balance perspective (inverted from savings)
-    // Deposit to savings = money leaving main balance = purple arrow down
-    // Withdrawal from savings = money returning = green plus
-    private var badgeColorForHome: Color {
-        isSavingsDeposit ? Color(hex: "9874FF") : Color(hex: "78D381")
+    private var isSavingsWithdrawal: Bool {
+        subtitleLeft.lowercased().contains("withdrawal")
     }
     
-    private var badgeIconForHome: String {
-        isSavingsDeposit ? "arrow.down" : "plus"
+    // Badge colors and icons for savings transactions
+    // Deposit to savings = green plus (money coming in)
+    // Withdrawal from savings = purple arrow down (money going out)
+    private var badgeColor: Color {
+        isSavingsDeposit ? Color(hex: "78D381") : Color(hex: "9874FF")
+    }
+    
+    private var badgeIcon: String {
+        isSavingsDeposit ? "plus" : "arrow.down"
     }
     
     private var isPerson: Bool {
@@ -917,15 +924,15 @@ struct TransactionAvatarLarge: View {
                         .foregroundColor(.white)
                 }
                 
-                // Badge - reflects main balance perspective (inverted from savings)
-                // Deposit to savings = money leaving = purple arrow down
-                // Withdrawal from savings = money returning = green plus
+                // Badge for savings transactions
+                // Deposit to savings = green plus (money coming in)
+                // Withdrawal from savings = purple arrow down (money going out)
                 ZStack {
                     Circle()
-                        .fill(badgeColorForHome)
+                        .fill(badgeColor)
                         .frame(width: 20, height: 20)
                     
-                    Image(systemName: badgeIconForHome)
+                    Image(systemName: badgeIcon)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -1041,7 +1048,7 @@ struct TransactionActionRow: View {
             }
             .padding(16)
             .background(Color.white)
-            .cornerRadius(16)
+            .cornerRadius(24)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -1062,7 +1069,7 @@ struct InfoCardSection<Content: View>: View {
         }
         .padding(.vertical, 12)
         .background(Color.white)
-        .cornerRadius(16)
+        .cornerRadius(24)
     }
 }
 
@@ -1227,9 +1234,17 @@ struct InfoCardRow: View {
                 }
                 
                 if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 14))
-                        .foregroundColor(valueColor)
+                    // Check if it's a custom asset (starts with "Icon") or SF Symbol
+                    if icon.hasPrefix("Icon") {
+                        Image(icon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 16)
+                    } else {
+                        Image(systemName: icon)
+                            .font(.system(size: 14))
+                            .foregroundColor(valueColor)
+                    }
                 }
                 
                 Text(value)

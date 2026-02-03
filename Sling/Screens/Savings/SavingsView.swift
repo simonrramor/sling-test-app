@@ -8,10 +8,8 @@ struct SavingsView: View {
     @State private var showDepositSheet = false
     @State private var showWithdrawSheet = false
     @State private var showHowItWorks = false
-    @State private var showAllTransactions = false
+    @State private var showAllActivity = false
     @State private var exchangeRate: Double = 1.0
-    @State private var selectedActivity: ActivityItem?
-    @State private var showTransactionDetail = false
     
     private let exchangeRateService = ExchangeRateService.shared
     
@@ -24,27 +22,37 @@ struct SavingsView: View {
                 savingsIntroView
             }
         }
+        .fullScreenCover(isPresented: $showDepositSheet) {
+            SavingsDepositSheet(isPresented: $showDepositSheet)
+        }
+        .fullScreenCover(isPresented: $showWithdrawSheet) {
+            SavingsWithdrawSheet(isPresented: $showWithdrawSheet)
+        }
         .fullScreenCover(isPresented: $showHowItWorks) {
             SavingsHowItWorksSheet(isPresented: $showHowItWorks)
                 .background(ClearBackgroundView())
         }
-        .transaction { transaction in
-            transaction.disablesAnimations = true
-        }
-        .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedActivity)
     }
     
     // MARK: - Main Savings View (after onboarding)
     
+    /// Number formatter with thousand separators
+    private var currencyFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = ","
+        formatter.usesGroupingSeparator = true
+        return formatter
+    }
+    
     /// Formatted savings balance in display currency
     private var formattedSavingsBalance: String {
         let usdValue = savingsService.totalValueUSD
-        if displayCurrencyService.displayCurrency == "USD" {
-            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, usdValue)
-        } else {
-            let convertedValue = usdValue * exchangeRate
-            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, convertedValue)
-        }
+        let value = displayCurrencyService.displayCurrency == "USD" ? usdValue : usdValue * exchangeRate
+        let formatted = currencyFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        return "\(displayCurrencyService.currencySymbol)\(formatted)"
     }
     
     /// Formatted USDY token amount
@@ -53,18 +61,16 @@ struct SavingsView: View {
         if tokens == 0 {
             return "0 USDY"
         }
-        return String(format: "%.2f USDY", tokens)
+        let formatted = currencyFormatter.string(from: NSNumber(value: tokens)) ?? String(format: "%.2f", tokens)
+        return "\(formatted) USDY"
     }
     
     /// Formatted total earnings in display currency
     private var formattedTotalEarnings: String {
         let usdEarnings = savingsService.totalEarnings
-        if displayCurrencyService.displayCurrency == "USD" {
-            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, usdEarnings)
-        } else {
-            let convertedEarnings = usdEarnings * exchangeRate
-            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, convertedEarnings)
-        }
+        let value = displayCurrencyService.displayCurrency == "USD" ? usdEarnings : usdEarnings * exchangeRate
+        let formatted = currencyFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        return "+\(displayCurrencyService.currencySymbol)\(formatted)"
     }
     
     /// Formatted monthly earnings in display currency
@@ -97,13 +103,9 @@ struct SavingsView: View {
         
         let monthlyProportion = monthSecondsElapsed / totalSecondsElapsed
         let usdMonthlyEarnings = savingsService.totalEarnings * monthlyProportion
-        
-        if displayCurrencyService.displayCurrency == "USD" {
-            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, usdMonthlyEarnings)
-        } else {
-            let convertedEarnings = usdMonthlyEarnings * exchangeRate
-            return String(format: "+%@%.2f", displayCurrencyService.currencySymbol, convertedEarnings)
-        }
+        let value = displayCurrencyService.displayCurrency == "USD" ? usdMonthlyEarnings : usdMonthlyEarnings * exchangeRate
+        let formatted = currencyFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        return "+\(displayCurrencyService.currencySymbol)\(formatted)"
     }
     
     /// Subtitle for monthly earnings showing date range
@@ -186,84 +188,81 @@ struct SavingsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 
-                // Earnings rows
-                VStack(spacing: 8) {
-                    earningsRow(
+                // Earnings card (combined)
+                VStack(spacing: 0) {
+                    earningsRowContent(
                         title: "Earned this month",
                         subtitle: monthlyEarningsSubtitle,
                         value: formattedMonthlyEarnings
                     )
                     
-                    earningsRow(
+                    Divider()
+                        .padding(.horizontal, 16)
+                    
+                    earningsRowContent(
                         title: "Total earned",
                         subtitle: totalEarningsSubtitle,
                         value: formattedTotalEarnings
                     )
                 }
+                .background(themeService.cardBackgroundColor)
+                .cornerRadius(24)
                 .padding(.horizontal, 16)
                 .padding(.top, 24)
                 
                 // Transaction history
                 if !savingsService.transactions.isEmpty {
-                    let displayedTransactions = showAllTransactions 
-                        ? savingsService.transactions 
-                        : Array(savingsService.transactions.prefix(3))
+                    let displayedTransactions = Array(savingsService.transactions.prefix(3))
                     let hasMore = savingsService.transactions.count > 3
                     
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Activity")
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Title inside card
+                        Text("Savings activity")
                             .font(.custom("Inter-Bold", size: 18))
                             .tracking(-0.36)
                             .foregroundColor(themeService.textPrimaryColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 16)
+                            .padding(.top, 16)
+                            .padding(.bottom, 12)
                         
-                        VStack(spacing: 0) {
-                            ForEach(displayedTransactions) { transaction in
-                                SavingsTransactionRow(transaction: transaction)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        let generator = UIImpactFeedbackGenerator(style: .light)
-                                        generator.impactOccurred()
-                                        selectedActivity = activityItem(from: transaction)
-                                        showTransactionDetail = true
-                                    }
-                                
-                                if transaction.id != displayedTransactions.last?.id {
-                                    Divider()
-                                        .padding(.horizontal, 16)
+                        ForEach(displayedTransactions) { transaction in
+                            SavingsTransactionRow(transaction: transaction)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.impactOccurred()
+                                    let activity = activityItem(from: transaction)
+                                    NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
                                 }
-                            }
-                            
-                            // "See more" button
-                            if hasMore && !showAllTransactions {
-                                Divider()
-                                    .padding(.horizontal, 16)
-                                
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        showAllTransactions = true
-                                    }
-                                }) {
-                                    HStack {
-                                        Text("See more")
-                                            .font(.custom("Inter-SemiBold", size: 16))
-                                            .foregroundColor(Color(hex: "FF5113"))
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(Color(hex: "FF5113"))
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 16)
+                        }
+                        
+                        // "See more" button - opens full screen
+                        if hasMore {
+                            Button(action: {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                showAllActivity = true
+                            }) {
+                                HStack {
+                                    Text("See more")
+                                        .font(.custom("Inter-SemiBold", size: 16))
+                                        .foregroundColor(Color(hex: "FF5113"))
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FF5113"))
                                 }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 16)
                             }
                         }
-                        .background(themeService.cardBackgroundColor)
-                        .cornerRadius(16)
-                        .padding(.horizontal, 16)
                     }
+                    .background(themeService.cardBackgroundColor)
+                    .cornerRadius(24)
+                    .padding(.horizontal, 16)
                     .padding(.top, 24)
                 }
                 
@@ -295,18 +294,17 @@ struct SavingsView: View {
                     .padding(16)
                 }
                 .background(themeService.cardBackgroundColor)
-                .cornerRadius(16)
+                .cornerRadius(24)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
             }
             .padding(.top, 16)
             .padding(.bottom, 120)
         }
-        .fullScreenCover(isPresented: $showDepositSheet) {
-            SavingsDepositSheet(isPresented: $showDepositSheet)
-        }
-        .fullScreenCover(isPresented: $showWithdrawSheet) {
-            SavingsWithdrawSheet(isPresented: $showWithdrawSheet)
+        .sheet(isPresented: $showAllActivity) {
+            SavingsAllActivityView(isPresented: $showAllActivity)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .onAppear {
             fetchExchangeRate()
@@ -319,35 +317,41 @@ struct SavingsView: View {
     // MARK: - Savings Balance Header
     
     private var savingsBalanceHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Label with USDY amount
-            HStack(spacing: 8) {
-                Text("Savings")
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(themeService.textSecondaryColor)
-                
-                if savingsService.usdyBalance > 0 {
-                    Text("·")
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                // Label with USDY amount - matches home balance subtitle style
+                HStack(spacing: 0) {
+                    Text("Savings")
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(themeService.textSecondaryColor)
                     
-                    Text(formattedUSDYAmount)
+                    Text("・")
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(themeService.textSecondaryColor)
-                } else {
-                    Text("3.75% APY")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(Color(hex: "57CE43"))
+                    
+                    if savingsService.usdyBalance > 0 {
+                        Text(formattedUSDYAmount)
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
+                    } else {
+                        Text("3.75% APY")
+                            .font(.custom("Inter-Bold", size: 16))
+                            .foregroundColor(Color(hex: "57CE43"))
+                    }
                 }
+                
+                // Balance in display currency - matches home balance H1 style
+                SlidingNumberText(
+                    text: formattedSavingsBalance,
+                    font: .custom("Inter-Bold", size: 48),
+                    color: themeService.textPrimaryColor
+                )
+                .tracking(-0.96) // -2% letter spacing at 48pt
             }
             
-            // Balance in display currency
-            Text(formattedSavingsBalance)
-                .font(.custom("Inter-Bold", size: 42))
-                .foregroundColor(themeService.textPrimaryColor)
+            Spacer()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 16)
+        .padding(.bottom, 8)
     }
     
     
@@ -404,13 +408,14 @@ struct SavingsView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(Color(hex: "080808"))
-                    .cornerRadius(16)
+                    .cornerRadius(24)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 120)
             }
         }
         .scrollIndicators(.hidden)
+        .background(themeService.backgroundGradient.ignoresSafeArea())
     }
     
     // MARK: - Savings Icon
@@ -446,7 +451,7 @@ struct SavingsView: View {
     
     // MARK: - Earnings Row
     
-    private func earningsRow(title: String, subtitle: String, value: String) -> some View {
+    private func earningsRowContent(title: String, subtitle: String, value: String) -> some View {
         HStack(alignment: .center, spacing: 16) {
             // Left side: Title and subtitle stacked vertically
             VStack(alignment: .leading, spacing: 2) {
@@ -470,8 +475,6 @@ struct SavingsView: View {
                 .foregroundColor(Color(hex: "57CE43"))
         }
         .padding(16)
-        .background(themeService.cardBackgroundColor)
-        .cornerRadius(16)
     }
 }
 
@@ -557,12 +560,12 @@ struct SavingsHowItWorksSheet: View {
                             dismissSheet()
                         }) {
                             Text("Done")
-                                .font(.custom("Inter-SemiBold", size: 16))
-                                .foregroundColor(Color(hex: "7B7B7B"))
+                                .font(.custom("Inter-Bold", size: 16))
+                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
-                                .background(Color(hex: "E5E5E5"))
-                                .cornerRadius(16)
+                                .background(Color(hex: "080808"))
+                                .cornerRadius(24)
                         }
                         .padding(.top, 8)
                     }
@@ -732,6 +735,72 @@ struct SavingsTransactionRow: View {
             .fixedSize(horizontal: true, vertical: false)
         }
         .padding(16)
+    }
+}
+
+// MARK: - Savings All Activity View (full screen)
+
+struct SavingsAllActivityView: View {
+    @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var savingsService = SavingsService.shared
+    @State private var selectedActivity: ActivityItem?
+    @State private var showTransactionDetail = false
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(savingsService.transactions) { transaction in
+                        SavingsTransactionRow(transaction: transaction)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                let activity = activityItem(from: transaction)
+                                NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
+                            }
+                    }
+                }
+                .background(themeService.cardBackgroundColor)
+                .cornerRadius(24)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 100)
+            }
+            .scrollIndicators(.hidden)
+            .background(themeService.backgroundColor)
+            .navigationTitle("Savings Activity")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { isPresented = false }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color(hex: "B0B0B0"), Color(hex: "E8E8E8"))
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showTransactionDetail) {
+            if let activity = selectedActivity {
+                TransactionDetailView(activity: activity)
+            }
+        }
+    }
+    
+    private func activityItem(from transaction: SavingsTransaction) -> ActivityItem {
+        let isDeposit = transaction.type == .deposit
+        let amountPrefix = isDeposit ? "+" : "-"
+        let formattedAmount = amountPrefix + transaction.usdAmount.asUSD
+        
+        return ActivityItem(
+            avatar: "IconSavings",
+            titleLeft: isDeposit ? "Savings deposit" : "Savings withdrawal",
+            subtitleLeft: transaction.formattedDate,
+            titleRight: formattedAmount,
+            subtitleRight: String(format: "%.2f USDY", transaction.usdyAmount),
+            date: transaction.date
+        )
     }
 }
 
