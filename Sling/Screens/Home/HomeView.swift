@@ -132,17 +132,11 @@ struct GetStartedSection: View {
     let onSendMoney: () -> Void
     let onSetup: () -> Void
     
-    @State private var showStockList = false
     @State private var showAccountDetails = false
-    
-    // Only show invest card if user has no stock holdings
-    private var showInvestCard: Bool {
-        portfolioService.holdings.isEmpty
-    }
     
     // Check if any cards should be shown
     private var hasAnyCards: Bool {
-        !hasAddedMoney || !hasSentMoney || !hasSetupAccount || showInvestCard || !hasCard
+        !hasAddedMoney || !hasSentMoney || !hasSetupAccount || !hasCard
     }
     
     var body: some View {
@@ -218,25 +212,6 @@ struct GetStartedSection: View {
                         )
                     }
                     
-                    // Invest promo card
-                    if showInvestCard {
-                        GetStartedCard(
-                            iconContent: AnyView(
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color(hex: "EDE8FF"))
-                                        .frame(width: 44, height: 44)
-                                    Image(systemName: "chart.line.uptrend.xyaxis")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundColor(Color(hex: "8B74FF"))
-                                }
-                            ),
-                            title: "Start investing from just $1",
-                            subtitle: "Buy stocks in your favorite companies to give your money a chance to grow.",
-                            buttonTitle: "Start investing",
-                            action: { showStockList = true }
-                        )
-                    }
                     
                     // Sling Card promo card
                     if !hasCard {
@@ -265,9 +240,6 @@ struct GetStartedSection: View {
             }
             }
             .padding(.top, 16)
-            .fullScreenCover(isPresented: $showStockList) {
-                BrowseStocksView(isPresented: $showStockList)
-            }
             .sheet(isPresented: $showAccountDetails, onDismiss: {
                 hasSetupAccount = true
             }) {
@@ -672,7 +644,7 @@ struct HomeSavingsCard: View {
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(themeService.textSecondaryColor)
                     
-                    Text("3.75% APY")
+                    Text("3.50% APY")
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(Color(hex: "57CE43"))
                 }

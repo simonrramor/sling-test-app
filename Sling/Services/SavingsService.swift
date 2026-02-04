@@ -91,8 +91,8 @@ class SavingsService: ObservableObject {
     
     // MARK: - Constants
     
-    /// Annual Percentage Yield (3.75%)
-    let apyRate: Double = 0.0375
+    /// Annual Percentage Yield (3.50%)
+    let apyRate: Double = 0.0350
     
     /// Base USDY price (always $1.00 at time of first deposit)
     let baseUsdyPrice: Double = 1.0

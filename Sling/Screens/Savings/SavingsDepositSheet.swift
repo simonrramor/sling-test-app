@@ -433,7 +433,7 @@ struct SavingsDepositConfirmView: View {
                     DetailRow(label: "Amount", value: formattedAmount)
                     DetailRow(label: "USDY price", value: savingsService.formatPrice(savingsService.baseUsdyPrice))
                     DetailRow(label: "You receive", value: "\(savingsService.formatTokens(usdyToReceive)) USDY")
-                    DetailRow(label: "Current APY", value: "3.75%", isHighlighted: true)
+                    DetailRow(label: "Current APY", value: "3.50%", isHighlighted: true)
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 16)

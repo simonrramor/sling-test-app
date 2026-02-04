@@ -334,7 +334,7 @@ struct SavingsView: View {
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
                     } else {
-                        Text("3.75% APY")
+                        Text("3.50% APY")
                             .font(.custom("Inter-Bold", size: 16))
                             .foregroundColor(Color(hex: "57CE43"))
                     }
@@ -543,7 +543,7 @@ struct SavingsHowItWorksSheet: View {
                                 .tracking(-0.32)
                                 .foregroundColor(Color(hex: "7B7B7B"))
                             
-                            Text("Your savings earn 3.75% APY, with yield accumulating daily. You can withdraw your funds at any time back to your Sling balance.")
+                            Text("Your savings earn 3.50% APY, with yield accumulating daily. You can withdraw your funds at any time back to your Sling balance.")
                                 .font(.custom("Inter-Regular", size: 16))
                                 .tracking(-0.32)
                                 .foregroundColor(Color(hex: "7B7B7B"))
