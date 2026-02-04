@@ -215,6 +215,10 @@ struct SavingsView: View {
                             .foregroundColor(themeService.textPrimaryColor)
                         
                         Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                     .padding(16)
                 }
@@ -327,6 +331,10 @@ struct SavingsView: View {
                             .foregroundColor(themeService.textPrimaryColor)
                         
                         Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                     .padding(16)
                 }
