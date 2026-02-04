@@ -22,8 +22,6 @@ struct CardStyleSelectionView: View {
     @AppStorage("hasCard") private var hasCard = false
     @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
     
-    @State private var selectedStyle: String = "orange"
-    
     var body: some View {
         ZStack {
             Color.white
@@ -55,11 +53,13 @@ struct CardStyleSelectionView: View {
                         ForEach(CardColorOption.allOptions) { option in
                             CardStyleOption(
                                 color: option.color,
-                                isSelected: selectedStyle == option.id,
                                 onTap: {
-                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
                                     generator.impactOccurred()
-                                    selectedStyle = option.id
+                                    selectedCardStyle = option.id
+                                    hasCard = true
+                                    isPresented = false
+                                    NotificationCenter.default.post(name: .navigateToCard, object: nil)
                                 }
                             )
                         }
@@ -68,27 +68,6 @@ struct CardStyleSelectionView: View {
                     .frame(maxHeight: .infinity)
                 }
                 .frame(maxHeight: .infinity)
-                
-                // Pick card button
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    selectedCardStyle = selectedStyle
-                    hasCard = true
-                    isPresented = false
-                    // Navigate to card tab
-                    NotificationCenter.default.post(name: .navigateToCard, object: nil)
-                }) {
-                    Text("Pick card")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color(hex: "FF5113"))
-                        .cornerRadius(20)
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 50)
             }
         }
     }
@@ -98,7 +77,6 @@ struct CardStyleSelectionView: View {
 
 struct CardStyleOption: View {
     let color: Color
-    let isSelected: Bool
     let onTap: () -> Void
     
     // Card dimensions
@@ -135,13 +113,6 @@ struct CardStyleOption: View {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .shadow(color: Color.black.opacity(0.25), radius: 22, x: 0, y: 24)
                 .shadow(color: Color.black.opacity(0.15), radius: 11, x: 0, y: 12)
-                
-                // Selection indicator
-                if isSelected {
-                    RoundedRectangle(cornerRadius: cornerRadius + 4)
-                        .stroke(color, lineWidth: 3)
-                        .frame(width: cardWidth + 10, height: cardHeight + 10)
-                }
             }
         }
         .buttonStyle(PlainButtonStyle())
