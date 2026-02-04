@@ -97,7 +97,7 @@ struct CardStyleOption: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 200, height: 200)
                     
-                    // Sling logo in top left corner
+                    // Sling logo in top left, Visa logo in bottom right
                     VStack {
                         HStack {
                             Image("SlingLogo")
@@ -109,6 +109,17 @@ struct CardStyleOption: View {
                             Spacer()
                         }
                         Spacer()
+                        HStack {
+                            Spacer()
+                            Image("VisaLogo")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 58, height: 19)
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(.bottom, 16)
+                                .padding(.trailing, 16)
+                        }
                     }
                     
                     // Border stroke
