@@ -72,6 +72,27 @@ struct PaymentAccount: Identifiable, Equatable {
         iconType: .asset("AccountCoinbase")
     )
     
+    static let mexicanBank = PaymentAccount(
+        name: "Mexican Bank",
+        accountNumber: "•••• 7832",
+        currency: "MXN",
+        iconType: .asset("AccountBankDefault")
+    )
+    
+    static let brazilianBank = PaymentAccount(
+        name: "Brazilian Bank",
+        accountNumber: "•••• 4521",
+        currency: "BRL",
+        iconType: .asset("AccountBankDefault")
+    )
+    
+    static let kenyanMobileMoney = PaymentAccount(
+        name: "Kenyan Mobile Money",
+        accountNumber: "+254 •••• 89",
+        currency: "KES",
+        iconType: .asset("AccountBankDefault")
+    )
+    
     static let addNewAccount = PaymentAccount(
         name: "Add a new account",
         currency: "",
@@ -84,6 +105,9 @@ struct PaymentAccount: Identifiable, Equatable {
         .ukBank,
         .usBank,
         .euBank,
+        .mexicanBank,
+        .brazilianBank,
+        .kenyanMobileMoney,
         .cryptoWallet,
         .addNewAccount
     ]
