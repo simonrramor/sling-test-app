@@ -294,7 +294,7 @@ struct AddMoneyConfirmView: View {
                 
                 // Add button with smooth loading animation
                 LoadingButton(
-                    title: "Add \(formattedAmountAfterFee)",
+                    title: "Add \(formattedAmountAfterFeeInDisplayCurrency)",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
