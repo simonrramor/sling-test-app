@@ -349,6 +349,10 @@ struct SavingsDepositConfirmView: View {
     var onComplete: () -> Void = {}
     
     @State private var isButtonLoading = false
+    @State private var quoteTimeRemaining: Int = 30
+    
+    // Timer for quote countdown
+    let quoteTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     private var formattedAmount: String {
         amount.asUSD
@@ -360,7 +364,7 @@ struct SavingsDepositConfirmView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
+                // Header - styled like BuyConfirmView
                 HStack(spacing: 16) {
                     // Back button
                     Button(action: {
@@ -375,55 +379,36 @@ struct SavingsDepositConfirmView: View {
                     }
                     .accessibilityLabel("Go back")
                     
-                    // Savings icon with deposit badge
-                    ZStack(alignment: .bottomTrailing) {
-                        // Black square background with savings icon
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(hex: "000000"))
-                                .frame(width: 44, height: 44)
-                            
-                            Image("NavSavings")
-                                .renderingMode(.template)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 24, height: 24)
-                                .foregroundColor(.white)
-                        }
-                        
-                        // Green badge with plus icon
-                        ZStack {
-                            Circle()
-                                .fill(Color(hex: "78D381"))
-                                .frame(width: 14, height: 14)
-                            
-                            Image(systemName: "plus")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(.white)
-                        }
+                    // USDY token icon
+                    Image("IconUSYC")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 44, height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                         .overlay(
-                            Circle()
-                                .stroke(themeService.currentTheme == .dark ? themeService.cardBackgroundColor : Color.white, lineWidth: 2)
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
                         )
-                        .offset(x: 4, y: 4)
-                    }
                     
-                    // Title
+                    // Title - styled like stock buy
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("Deposit to")
-                            .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        Text("Savings")
+                        HStack(spacing: 4) {
+                            Text("Buy")
+                                .font(.custom("Inter-Regular", size: 14))
+                                .foregroundColor(themeService.textSecondaryColor)
+                            Text("·")
+                                .font(.custom("Inter-Regular", size: 14))
+                                .foregroundColor(themeService.textSecondaryColor)
+                            Text("USDY")
+                                .font(.custom("Inter-Regular", size: 14))
+                                .foregroundColor(themeService.textSecondaryColor)
+                        }
+                        Text("Ondo US Dollar Yield")
                             .font(.custom("Inter-Bold", size: 16))
                             .foregroundColor(themeService.textPrimaryColor)
                     }
                     
                     Spacer()
-                    
-                    // USDY indicator
-                    Text("USDY")
-                        .font(.custom("Inter-SemiBold", size: 14))
-                        .foregroundColor(themeService.textSecondaryColor)
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 64)
@@ -434,37 +419,62 @@ struct SavingsDepositConfirmView: View {
                 
                 // Amount display
                 Text(formattedAmount)
-                    .font(.custom("Inter-Bold", size: 56))
+                    .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(themeService.textPrimaryColor)
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
                 
                 Spacer()
                 
-                // Details section
-                VStack(spacing: 0) {
-                    DetailRow(label: "From", value: "Sling Balance")
-                    DetailRow(label: "To", value: "Savings")
+                // Details section - styled like BuyConfirmView
+                VStack(spacing: 4) {
+                    // From
+                    DetailRow(
+                        label: "From",
+                        value: "Sling balance",
+                        showSlingIcon: true
+                    )
                     
+                    // Quote validity countdown
+                    QuoteValidityRow(secondsRemaining: quoteTimeRemaining)
+                    
+                    // Divider
                     Rectangle()
                         .fill(Color.black.opacity(0.06))
                         .frame(height: 1)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     
+                    // Amount
                     DetailRow(label: "Amount", value: formattedAmount)
-                    DetailRow(label: "USDY price", value: savingsService.formatPrice(savingsService.baseUsdyPrice))
-                    DetailRow(label: "You receive", value: "\(savingsService.formatTokens(usdyToReceive)) USDY")
-                    DetailRow(label: "Current APY", value: "3.50%", isHighlighted: true)
+                    
+                    // Price
+                    DetailRow(
+                        label: "Price",
+                        value: "1 USDY = \(savingsService.formatPrice(savingsService.baseUsdyPrice))",
+                        isHighlighted: true
+                    )
+                    
+                    // You receive (estimated tokens)
+                    DetailRow(
+                        label: "You receive",
+                        value: "\(savingsService.formatTokens(usdyToReceive)) USDY"
+                    )
+                    
+                    // Current APY
+                    DetailRow(
+                        label: "Current APY",
+                        value: "3.50%",
+                        isHighlighted: true
+                    )
                 }
-                .padding(.vertical, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
                 .padding(.horizontal, 16)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
-                // Deposit button
+                // Confirm button - styled like BuyConfirmView
                 LoadingButton(
-                    title: "Deposit \(formattedAmount)",
+                    title: "Confirm",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
@@ -478,9 +488,9 @@ struct SavingsDepositConfirmView: View {
                     ActivityService.shared.addActivity(
                         avatar: "IconSavings",
                         titleLeft: "Savings",
-                        subtitleLeft: "Deposit",
-                        titleRight: "+\(formattedAmount)",
-                        subtitleRight: ""
+                        subtitleLeft: "Buy USDY",
+                        titleRight: "+\(savingsService.formatTokens(usdyToReceive)) USDY",
+                        subtitleRight: formattedAmount
                     )
                     
                     // Navigate back to savings and complete
@@ -492,6 +502,19 @@ struct SavingsDepositConfirmView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .onReceive(quoteTimer) { _ in
+            // Don't count down if loading
+            guard !isButtonLoading else { return }
+            
+            if quoteTimeRemaining > 0 {
+                quoteTimeRemaining -= 1
+            } else {
+                // Reset timer (USDY price is stable, no need to refresh)
+                quoteTimeRemaining = 30
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+            }
+        }
     }
 }
 
