@@ -250,6 +250,7 @@ struct SavingsDepositSheet: View {
                 SavingsDepositConfirmView(
                     isPresented: $showConfirmation,
                     amount: usdAmount,
+                    displayAmount: amountValue,  // Fiat amount user typed
                     usdyToReceive: usdyAmount,
                     onComplete: {
                         isPresented = false
@@ -335,8 +336,10 @@ struct SavingsDepositConfirmView: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var savingsService = SavingsService.shared
     @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
-    let amount: Double
+    let amount: Double // USD amount for storage
+    let displayAmount: Double // Fiat amount user inputted
     let usdyToReceive: Double
     var onComplete: () -> Void = {}
     
@@ -346,8 +349,10 @@ struct SavingsDepositConfirmView: View {
     // Timer for quote countdown
     let quoteTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    private var formattedAmount: String {
-        amount.asUSD
+    /// Formatted display currency amount (what user typed)
+    private var formattedDisplayAmount: String {
+        let symbol = ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+        return displayAmount.asCurrency(symbol)
     }
     
     var body: some View {
@@ -404,8 +409,8 @@ struct SavingsDepositConfirmView: View {
                 
                 Spacer()
                 
-                // Amount display
-                Text(formattedAmount)
+                // Amount display (fiat amount user inputted)
+                Text(formattedDisplayAmount)
                     .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(themeService.textPrimaryColor)
                 
@@ -430,8 +435,8 @@ struct SavingsDepositConfirmView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
                     
-                    // Amount
-                    DetailRow(label: "Amount", value: formattedAmount)
+                    // Amount (fiat amount user inputted)
+                    DetailRow(label: "Amount", value: formattedDisplayAmount)
                     
                     // Price
                     DetailRow(
@@ -443,14 +448,7 @@ struct SavingsDepositConfirmView: View {
                     // You receive (estimated tokens)
                     DetailRow(
                         label: "You receive",
-                        value: "\(savingsService.formatTokens(usdyToReceive)) USDY"
-                    )
-                    
-                    // Current APY
-                    DetailRow(
-                        label: "Current APY",
-                        value: "3.50%",
-                        isHighlighted: true
+                        value: "~\(savingsService.formatTokens(usdyToReceive)) USDY"
                     )
                 }
                 .padding(.top, 16)
