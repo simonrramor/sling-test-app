@@ -76,7 +76,7 @@ struct PaymentAccount: Identifiable, Equatable {
         name: "Mexican Bank",
         accountNumber: "•••• 7832",
         currency: "MXN",
-        iconType: .asset("AccountBankDefault")
+        iconType: .asset("AccountBBVA")
     )
     
     static let brazilianBank = PaymentAccount(
