@@ -9,6 +9,7 @@ struct Card3DView: UIViewRepresentable {
     var cardDepth: Double = 0.057
     var contentBlur: Double = 8.0  // Blur radius for locked state
     var backgroundColor: Color = Color(red: 0.949, green: 0.949, blue: 0.949)  // Default to grey theme
+    var cardColor: Color = Color(hex: "FF5113")  // Card color (default orange)
     var onTap: (() -> Void)? = nil  // Callback for tap events
     
     func makeUIView(context: Context) -> SCNView {
@@ -42,17 +43,17 @@ struct Card3DView: UIViewRepresentable {
         
         // Create materials for the card
         let frontMaterial = SCNMaterial()
-        frontMaterial.diffuse.contents = createCardFrontImage()
+        frontMaterial.diffuse.contents = createCardFrontImage(color: UIColor(cardColor))
         frontMaterial.isDoubleSided = false
         frontMaterial.lightingModel = .constant  // No lighting effects
         
         let backMaterial = SCNMaterial()
-        backMaterial.diffuse.contents = createCardBackImage()
+        backMaterial.diffuse.contents = createCardBackImage(color: UIColor(cardColor))
         backMaterial.isDoubleSided = false
         backMaterial.lightingModel = .constant
         
         let sideMaterial = SCNMaterial()
-        sideMaterial.diffuse.contents = UIColor(hex: "FF5113")  // Match card orange
+        sideMaterial.diffuse.contents = UIColor(cardColor)  // Match card color
         sideMaterial.lightingModel = .constant
         
         // Box has 6 faces: front, right, back, left, top, bottom
@@ -101,19 +102,19 @@ struct Card3DView: UIViewRepresentable {
             cameraNode.position = SCNVector3(x: 0, y: 0, z: Float(cameraZ))
         }
         
-        // Update card texture based on lock state
+        // Update card texture based on lock state and color
+        let uiCardColor = UIColor(cardColor)
         if let cardNode = uiView.scene?.rootNode.childNode(withName: "card", recursively: false),
            let box = cardNode.geometry as? SCNBox {
             
-            let frontImage = isLocked ? createLockedCardImage(blurRadius: contentBlur) : createCardFrontImage()
+            let frontImage = isLocked ? createLockedCardImage(color: uiCardColor, blurRadius: contentBlur) : createCardFrontImage(color: uiCardColor)
             box.materials[0].diffuse.contents = frontImage
             
-            // Keep side material orange (no grayscale)
-            let sideColor = UIColor(hex: "FF5113")
-            box.materials[1].diffuse.contents = sideColor
-            box.materials[3].diffuse.contents = sideColor
-            box.materials[4].diffuse.contents = sideColor
-            box.materials[5].diffuse.contents = sideColor
+            // Update side material to match card color
+            box.materials[1].diffuse.contents = uiCardColor
+            box.materials[3].diffuse.contents = uiCardColor
+            box.materials[4].diffuse.contents = uiCardColor
+            box.materials[5].diffuse.contents = uiCardColor
         }
         
         // Update card depth if changed
@@ -128,17 +129,17 @@ struct Card3DView: UIViewRepresentable {
             
             // Recreate materials
             let frontMaterial = SCNMaterial()
-            frontMaterial.diffuse.contents = isLocked ? createLockedCardImage(blurRadius: contentBlur) : createCardFrontImage()
+            frontMaterial.diffuse.contents = isLocked ? createLockedCardImage(color: uiCardColor, blurRadius: contentBlur) : createCardFrontImage(color: uiCardColor)
             frontMaterial.isDoubleSided = false
             frontMaterial.lightingModel = .constant
             
             let backMaterial = SCNMaterial()
-            backMaterial.diffuse.contents = createCardBackImage()
+            backMaterial.diffuse.contents = createCardBackImage(color: uiCardColor)
             backMaterial.isDoubleSided = false
             backMaterial.lightingModel = .constant
             
             let sideMaterial = SCNMaterial()
-            sideMaterial.diffuse.contents = UIColor(hex: "FF5113")
+            sideMaterial.diffuse.contents = uiCardColor
             sideMaterial.lightingModel = .constant
             
             newBox.materials = [frontMaterial, sideMaterial, backMaterial, sideMaterial, sideMaterial, sideMaterial]
@@ -218,17 +219,111 @@ struct Card3DView: UIViewRepresentable {
         }
     }
     
-    private func createCardFrontImage() -> UIImage {
-        // Use the actual Figma-exported card image
-        return UIImage(named: "SlingCardFront") ?? UIImage()
+    private func createCardFrontImage(color: UIColor) -> UIImage {
+        // Generate card front dynamically with the selected color
+        let size = CGSize(width: 1035, height: 648)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        return renderer.image { context in
+            let ctx = context.cgContext
+            
+            // Card background color
+            color.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            
+            // Draw watermark logo (SlingLogoBg pattern)
+            // Large concentric circles at 8% opacity
+            let circleColor = UIColor.white.withAlphaComponent(0.08)
+            circleColor.setFill()
+            
+            // Draw filled Sling logo watermark centered
+            // The logo is about 218x218 on a 345x196 card, scale up proportionally
+            let logoSize: CGFloat = 650
+            let logoCenter = CGPoint(x: size.width / 2, y: size.height / 2)
+            
+            // Outer circle
+            let outerPath = UIBezierPath(ovalIn: CGRect(
+                x: logoCenter.x - logoSize / 2,
+                y: logoCenter.y - logoSize / 2,
+                width: logoSize,
+                height: logoSize
+            ))
+            outerPath.fill()
+            
+            // Cut out the inner ring area (create the crescent effect)
+            ctx.saveGState()
+            let innerSize = logoSize * 0.667
+            let innerPath = UIBezierPath(ovalIn: CGRect(
+                x: logoCenter.x - innerSize / 2,
+                y: logoCenter.y - innerSize / 2,
+                width: innerSize,
+                height: innerSize
+            ))
+            color.setFill()
+            innerPath.fill()
+            
+            // Inner filled circle
+            let coreSize = innerSize * 0.5
+            let corePath = UIBezierPath(ovalIn: CGRect(
+                x: logoCenter.x - logoSize * 0.35 - coreSize / 2,
+                y: logoCenter.y - coreSize / 2,
+                width: coreSize,
+                height: coreSize
+            ))
+            circleColor.setFill()
+            corePath.fill()
+            ctx.restoreGState()
+            
+            // Draw Sling logo in top left
+            if let logoImage = UIImage(named: "SlingLogo") {
+                let logoRect = CGRect(x: 50, y: 50, width: 100, height: 100)
+                logoImage.draw(in: logoRect)
+            }
+            
+            // Draw card number dots and number at bottom left
+            let dotColor = UIColor.white.withAlphaComponent(0.8)
+            dotColor.setFill()
+            let dotY: CGFloat = size.height - 80
+            let dotSpacing: CGFloat = 12
+            let dotSize: CGFloat = 8
+            for i in 0..<4 {
+                let dotX: CGFloat = 50 + CGFloat(i) * dotSpacing
+                ctx.fillEllipse(in: CGRect(x: dotX, y: dotY, width: dotSize, height: dotSize))
+            }
+            
+            let numberText = "9543"
+            let numberAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 48, weight: .medium),
+                .foregroundColor: UIColor.white.withAlphaComponent(0.8)
+            ]
+            numberText.draw(at: CGPoint(x: 110, y: dotY - 12), withAttributes: numberAttrs)
+            
+            // Draw Visa logo at bottom right
+            if let visaImage = UIImage(named: "VisaLogo")?.withRenderingMode(.alwaysTemplate) {
+                let visaRect = CGRect(x: size.width - 220, y: size.height - 95, width: 170, height: 56)
+                UIColor.white.withAlphaComponent(0.8).setFill()
+                visaImage.draw(in: visaRect)
+            }
+        }
     }
     
-    private func createLockedCardImage(blurRadius: Double) -> UIImage {
-        // Use pre-made blurred asset from Figma
-        return UIImage(named: "SlingCardFrontLocked") ?? UIImage(named: "SlingCardFront") ?? UIImage()
+    private func createLockedCardImage(color: UIColor, blurRadius: Double) -> UIImage {
+        // Generate locked card image with blur
+        let frontImage = createCardFrontImage(color: color)
+        
+        guard let ciImage = CIImage(image: frontImage) else { return frontImage }
+        let filter = CIFilter(name: "CIGaussianBlur")
+        filter?.setValue(ciImage, forKey: kCIInputImageKey)
+        filter?.setValue(blurRadius, forKey: kCIInputRadiusKey)
+        
+        guard let outputImage = filter?.outputImage else { return frontImage }
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(outputImage, from: ciImage.extent) else { return frontImage }
+        
+        return UIImage(cgImage: cgImage)
     }
     
-    private func createCardBackImage() -> UIImage {
+    private func createCardBackImage(color: UIColor) -> UIImage {
         // Match front image proportions: 1035x648
         let size = CGSize(width: 1035, height: 648)
         let renderer = UIGraphicsImageRenderer(size: size)
@@ -236,9 +331,9 @@ struct Card3DView: UIViewRepresentable {
         return renderer.image { context in
             let ctx = context.cgContext
             
-            // Orange background to match front
-            UIColor(hex: "FF5113")!.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
+            // Card background color
+            color.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
             
             // Same background circles as front (mirrored)
             let circleColor = UIColor.white.withAlphaComponent(0.08)
@@ -251,17 +346,19 @@ struct Card3DView: UIViewRepresentable {
             let smallCircleSize: CGFloat = 435
             ctx.strokeEllipse(in: CGRect(x: size.width - 300 - smallCircleSize, y: 78, width: smallCircleSize, height: smallCircleSize))
             
-            // Magnetic stripe (darker)
-            UIColor(hex: "E04510")!.setFill()
-            context.fill(CGRect(x: 0, y: 90, width: size.width, height: 100))
+            // Magnetic stripe (darker version of the color)
+            var hue: CGFloat = 0, sat: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+            color.getHue(&hue, saturation: &sat, brightness: &brightness, alpha: &alpha)
+            UIColor(hue: hue, saturation: sat, brightness: max(0, brightness - 0.1), alpha: alpha).setFill()
+            ctx.fill(CGRect(x: 0, y: 90, width: size.width, height: 100))
             
             // Signature strip
             UIColor(hex: "F5E6D3")!.setFill()
-            context.fill(CGRect(x: 60, y: 260, width: size.width - 120, height: 80))
+            ctx.fill(CGRect(x: 60, y: 260, width: size.width - 120, height: 80))
             
             // CVV area
             UIColor.white.setFill()
-            context.fill(CGRect(x: size.width - 200, y: 270, width: 130, height: 60))
+            ctx.fill(CGRect(x: size.width - 200, y: 270, width: 130, height: 60))
             
             let cvvText = "123"
             let cvvAttrs: [NSAttributedString.Key: Any] = [

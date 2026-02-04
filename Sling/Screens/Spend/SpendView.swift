@@ -17,6 +17,7 @@ struct SpendView: View {
     @State private var showCardDetails = false
     @State private var showCardStyleSelection = false
     @AppStorage("hasCard") private var hasCard = false
+    @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
@@ -26,6 +27,21 @@ struct SpendView: View {
     @State private var exchangeRate: Double = 1.0
     
     private let exchangeRateService = ExchangeRateService.shared
+    
+    // Card color based on selected style
+    private var cardColor: Color {
+        switch selectedCardStyle {
+        case "orange": return Color(hex: "FF5113")
+        case "blue": return Color(hex: "0887DC")
+        case "green": return Color(hex: "34C759")
+        case "purple": return Color(hex: "AF52DE")
+        case "pink": return Color(hex: "FF2D55")
+        case "teal": return Color(hex: "5AC8FA")
+        case "indigo": return Color(hex: "5856D6")
+        case "black": return Color(hex: "1C1C1E")
+        default: return Color(hex: "FF5113")
+        }
+    }
     
     // Shadow control sliders
     @State private var shadowOpacity: Double = 0.25
@@ -160,7 +176,7 @@ struct SpendView: View {
     private var cardContent: some View {
         VStack(spacing: 0) {
             // 3D Interactive Card
-            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1, backgroundColor: themeService.backgroundColor, onTap: {
+            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1, backgroundColor: themeService.backgroundColor, cardColor: cardColor, onTap: {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showShadowControls.toggle()
                 }
