@@ -8,9 +8,10 @@ private func formatCurrency(_ amount: Double, withPrefix prefix: String = "") ->
     formatter.numberStyle = .decimal
     formatter.minimumFractionDigits = 2
     formatter.maximumFractionDigits = 2
+    formatter.usesGroupingSeparator = true
     formatter.groupingSeparator = ","
     formatter.decimalSeparator = "."
-    let formatted = formatter.string(from: NSNumber(value: amount)) ?? String(format: "%.2f", amount)
+    let formatted = formatter.string(from: NSNumber(value: amount)) ?? NumberFormatService.shared.formatNumber(amount)
     return "\(prefix)£\(formatted)"
 }
 
@@ -367,7 +368,7 @@ struct SellConfirmView: View {
                     // Approx. share price
                     DetailRow(
                         label: "Approx. share price",
-                        value: String(format: "~$%.2f", stockPrice),
+                        value: "~" + stockPrice.asUSD,
                         isHighlighted: true
                     )
                     

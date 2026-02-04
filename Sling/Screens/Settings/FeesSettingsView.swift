@@ -255,7 +255,7 @@ enum FeeValue {
             return "Free"
         case .amount(let value, let currency):
             let symbol = currencySymbol(for: currency)
-            return "\(symbol)\(String(format: "%.2f", value))"
+            return value.asCurrency(symbol)
         case .percentage(let value):
             return "\(String(format: "%.1f", value))%"
         }

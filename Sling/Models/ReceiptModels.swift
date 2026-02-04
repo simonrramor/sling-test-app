@@ -9,12 +9,7 @@ struct ReceiptItem: Identifiable {
     var assignedTo: [Contact] // Multiple people can share an item
     
     var formattedPrice: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencySymbol = "£"
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: price)) ?? "£\(String(format: "%.2f", price))"
+        price.asGBP
     }
     
     var isAssigned: Bool {
@@ -31,32 +26,17 @@ struct ScannedReceipt {
     var total: Double
     
     var formattedTotal: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencySymbol = "£"
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: total)) ?? "£\(String(format: "%.2f", total))"
+        total.asGBP
     }
     
     var formattedTax: String? {
         guard let tax = tax else { return nil }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencySymbol = "£"
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: tax)) ?? "£\(String(format: "%.2f", tax))"
+        return tax.asGBP
     }
     
     var formattedTip: String? {
         guard let tip = tip else { return nil }
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencySymbol = "£"
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: tip)) ?? "£\(String(format: "%.2f", tip))"
+        return tip.asGBP
     }
     
     // Calculate how much each person owes based on assigned items

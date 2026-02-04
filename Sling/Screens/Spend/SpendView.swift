@@ -957,7 +957,7 @@ struct SubscriptionCalendarView: View {
         let total = subscriptions.reduce(0.0) { sum, sub in
             sum + (monthlyCosts[sub.name] ?? 0)
         }
-        return String(format: "$%.2f", total)
+        return total.asUSD
     }
     
     // Create an ActivityItem from a subscription for the transaction detail drawer
@@ -972,7 +972,7 @@ struct SubscriptionCalendarView: View {
             avatar: subscription.imageName ?? subscription.name,
             titleLeft: subscription.name,
             subtitleLeft: "Subscription",
-            titleRight: String(format: "-$%.2f", cost),
+            titleRight: "-" + cost.asUSD,
             subtitleRight: "",
             date: date
         )
@@ -1145,7 +1145,7 @@ struct SubscriptionDetailSheet: View {
             
             // Transaction details
             VStack(spacing: 0) {
-                SubscriptionDetailRow(label: "Amount", value: String(format: "-$%.2f", cost))
+                SubscriptionDetailRow(label: "Amount", value: "-" + cost.asUSD)
                 SubscriptionDetailRow(label: "Date", value: paymentDate)
                 SubscriptionDetailRow(label: "Category", value: "Subscriptions")
                 SubscriptionDetailRow(label: "Payment method", value: "Sling Card ••••9543")

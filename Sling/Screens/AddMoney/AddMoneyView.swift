@@ -58,7 +58,9 @@ struct AddMoneyView: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: sourceAmount)) ?? String(format: "%.2f", sourceAmount)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        let formattedNumber = formatter.string(from: NSNumber(value: sourceAmount)) ?? NumberFormatService.shared.formatNumber(sourceAmount)
         return "\(symbol)\(formattedNumber)"
     }
     
@@ -72,7 +74,9 @@ struct AddMoneyView: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: usdAmount)) ?? String(format: "%.2f", usdAmount)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        let formattedNumber = formatter.string(from: NSNumber(value: usdAmount)) ?? NumberFormatService.shared.formatNumber(usdAmount)
         return "\(symbol)\(formattedNumber)"
     }
     

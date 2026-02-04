@@ -85,7 +85,9 @@ struct SavingsDepositSheet: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2  // Always show 2 decimals for USD
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        let formattedNumber = formatter.string(from: NSNumber(value: value)) ?? NumberFormatService.shared.formatNumber(value)
         return "$\(formattedNumber)"
     }
     
@@ -98,7 +100,9 @@ struct SavingsDepositSheet: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: usdyAmount)) ?? String(format: "%.2f", usdyAmount)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        let formattedNumber = formatter.string(from: NSNumber(value: usdyAmount)) ?? NumberFormatService.shared.formatNumber(usdyAmount)
         return "\(formattedNumber) USDY"
     }
     

@@ -529,7 +529,7 @@ struct SplitAmountView: View {
         formatter.maximumFractionDigits = 2
         formatter.groupingSeparator = ","
         formatter.usesGroupingSeparator = true
-        let formatted = formatter.string(from: NSNumber(value: totalAmount)) ?? String(format: "%.2f", totalAmount)
+        let formatted = formatter.string(from: NSNumber(value: totalAmount)) ?? NumberFormatService.shared.formatNumber(totalAmount)
         return "£\(formatted)"
     }
     
@@ -540,7 +540,7 @@ struct SplitAmountView: View {
         formatter.maximumFractionDigits = 2
         formatter.groupingSeparator = ","
         formatter.usesGroupingSeparator = true
-        let formatted = formatter.string(from: NSNumber(value: splitAmount)) ?? String(format: "%.2f", splitAmount)
+        let formatted = formatter.string(from: NSNumber(value: splitAmount)) ?? NumberFormatService.shared.formatNumber(splitAmount)
         return "£\(formatted)"
     }
     

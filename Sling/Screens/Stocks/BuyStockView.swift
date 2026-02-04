@@ -43,7 +43,7 @@ struct BuyStockView: View {
     var dollarDisplay: String {
         if isSharesMode {
             // This is calculated (secondary) - add ~ prefix
-            return dollarAmount > 0 ? String(format: "~£%.2f", dollarAmount) : "~£0"
+            return dollarAmount > 0 ? "~" + dollarAmount.asGBP : "~£0"
         } else {
             // This is the input (primary)
             if amountString.isEmpty {
@@ -75,8 +75,9 @@ struct BuyStockView: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
+        formatter.usesGroupingSeparator = true
         formatter.groupingSeparator = ","
-        let formatted = formatter.string(from: NSNumber(value: remainingBalance)) ?? String(format: "%.2f", remainingBalance)
+        let formatted = formatter.string(from: NSNumber(value: remainingBalance)) ?? NumberFormatService.shared.formatNumber(remainingBalance)
         return "£\(formatted)"
     }
     

@@ -85,7 +85,7 @@ struct FeeInfoCard: View {
                     .cornerRadius(8)
             } else {
                 let symbol = feeService.accountStablecoin == "EURC" ? "€" : "$"
-                Text("\(symbol)\(String(format: "%.2f", feeService.baseFee))")
+                Text(feeService.baseFee.asCurrency(symbol))
                     .font(.custom("Inter-Bold", size: 14))
                     .foregroundColor(themeService.textPrimaryColor)
                     .padding(.horizontal, 12)

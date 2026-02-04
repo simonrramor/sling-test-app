@@ -51,11 +51,11 @@ struct BalanceSheet: View {
         let symbol = ExchangeRateService.symbol(for: selectedCurrency)
         if isRateSwapped {
             // Show: 1 USDP = €0.84
-            return String(format: "1 USDP = %@%.2f", symbol, exchangeRate)
+            return "1 USDP = \(exchangeRate.asCurrency(symbol))"
         } else {
             // Show: €1.00 = $X.XX USDP (inverted rate)
             let invertedRate = exchangeRate > 0 ? 1.0 / exchangeRate : 0
-            return String(format: "%@1.00 = $%.2f", symbol, invertedRate)
+            return "\(symbol)1.00 = \(invertedRate.asUSD)"
         }
     }
     
@@ -341,7 +341,9 @@ struct BalanceSheet: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        return formatter.string(from: NSNumber(value: value)) ?? NumberFormatService.shared.formatNumber(value)
     }
     
     private func fetchExchangeRate() {

@@ -141,7 +141,7 @@ struct BuyConfirmView: View {
                     // Price
                     DetailRow(
                         label: "Price",
-                        value: String(format: "1 %@ = $%.2f", stock.symbol, stockPrice),
+                        value: "1 \(stock.symbol) = \(stockPrice.asUSD)",
                         isHighlighted: true
                     )
                     

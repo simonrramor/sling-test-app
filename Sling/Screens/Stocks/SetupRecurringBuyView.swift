@@ -225,7 +225,7 @@ struct SetupRecurringBuyView: View {
                                     
                                     SummaryRow(
                                         title: "Monthly estimate",
-                                        value: String(format: "£%.0f", monthlyEstimate),
+                                        value: "£\(NumberFormatService.shared.formatWholeNumber(monthlyEstimate))",
                                         subtitle: "Approximate based on frequency"
                                     )
                                     

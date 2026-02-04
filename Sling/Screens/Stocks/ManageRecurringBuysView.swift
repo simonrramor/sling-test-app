@@ -43,7 +43,7 @@ struct ManageRecurringBuysView: View {
                         HStack(spacing: 16) {
                             SummaryCard(
                                 title: "Monthly Investment",
-                                value: String(format: "£%.0f", recurringService.totalMonthlyInvestment),
+                                value: "£\(NumberFormatService.shared.formatWholeNumber(recurringService.totalMonthlyInvestment))",
                                 subtitle: "Estimated total",
                                 iconName: "calendar.badge.clock",
                                 color: DesignSystem.Colors.primary
@@ -51,7 +51,7 @@ struct ManageRecurringBuysView: View {
                             
                             SummaryCard(
                                 title: "Total Invested",
-                                value: String(format: "£%.2f", recurringService.totalInvested),
+                                value: recurringService.totalInvested.asGBP,
                                 subtitle: "\(recurringService.totalExecutions) purchases",
                                 iconName: "chart.line.uptrend.xyaxis",
                                 color: DesignSystem.Colors.positiveGreen

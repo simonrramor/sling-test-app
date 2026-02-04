@@ -34,7 +34,7 @@ struct ReceiptSplitSummaryView: View {
         formatter.currencySymbol = "£"
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: amount)) ?? "£\(String(format: "%.2f", amount))"
+        return formatter.string(from: NSNumber(value: amount)) ?? amount.asGBP
     }
     
     var body: some View {

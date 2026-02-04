@@ -46,7 +46,7 @@ struct SavingsBalanceSheet: View {
             return "1 USDP = $1.00"
         }
         let symbol = ExchangeRateService.symbol(for: selectedCurrency)
-        return String(format: "1 USDP = %@%.2f", symbol, exchangeRate)
+        return "1 USDP = \(exchangeRate.asCurrency(symbol))"
     }
     
     var body: some View {
@@ -293,7 +293,9 @@ struct SavingsBalanceSheet: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        return formatter.string(from: NSNumber(value: value)) ?? NumberFormatService.shared.formatNumber(value)
     }
     
     private func fetchExchangeRate() {

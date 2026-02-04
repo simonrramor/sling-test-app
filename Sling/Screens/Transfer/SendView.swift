@@ -255,7 +255,7 @@ struct SendAmountView: View {
         formatter.maximumFractionDigits = 2
         formatter.usesGroupingSeparator = true
         formatter.groupingSeparator = ","
-        let formattedNumber = formatter.string(from: NSNumber(value: balance)) ?? String(format: "%.2f", balance)
+        let formattedNumber = formatter.string(from: NSNumber(value: balance)) ?? NumberFormatService.shared.formatNumber(balance)
         return "\(currencySymbol)\(formattedNumber)"
     }
     

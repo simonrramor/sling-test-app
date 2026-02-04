@@ -95,7 +95,9 @@ struct SavingsWithdrawSheet: View {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
-        let formattedNumber = formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        let formattedNumber = formatter.string(from: NSNumber(value: value)) ?? NumberFormatService.shared.formatNumber(value)
         return "\(formattedNumber) USDY"
     }
     

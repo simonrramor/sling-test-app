@@ -134,8 +134,10 @@ extension ExchangeRateService {
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
         
-        let formattedNumber = formatter.string(from: NSNumber(value: amount)) ?? String(format: "%.2f", amount)
+        let formattedNumber = formatter.string(from: NSNumber(value: amount)) ?? NumberFormatService.shared.formatNumber(amount)
         return "\(symbol)\(formattedNumber)"
     }
 }
