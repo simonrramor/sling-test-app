@@ -56,6 +56,13 @@ struct AddMoneyConfirmView: View {
         return sourceAmount.asCurrency(symbol)
     }
     
+    /// Original input amount formatted in display currency (what user typed)
+    var formattedInputAmount: String {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        let symbol = ExchangeRateService.symbol(for: displayCurrency)
+        return sourceAmount.asCurrency(symbol)
+    }
+    
     var formattedDestinationAmount: String {
         return destinationAmount.asUSD
     }
@@ -184,8 +191,8 @@ struct AddMoneyConfirmView: View {
                 
                 Spacer()
                 
-                // Amount display - centered (shows amount you'll receive in display currency)
-                Text(formattedAmountAfterFeeInDisplayCurrency)
+                // Amount display - centered (shows original input amount in display currency)
+                Text(formattedInputAmount)
                     .font(.custom("Inter-Bold", size: 56))
                     .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
