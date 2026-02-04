@@ -86,9 +86,11 @@ struct CardStyleSelectionView: View {
                                 .frame(width: cardDisplayWidth, height: 311)
                             }
                         }
+                        .scrollTargetLayout()
                         .padding(.horizontal, horizontalInset)
                         .frame(maxHeight: .infinity)
                     }
+                    .scrollTargetBehavior(.viewAligned)
                 }
                 .frame(maxHeight: .infinity)
                 
