@@ -896,7 +896,8 @@ struct AllActivityView: View {
                     .tracking(-0.64)
                     .foregroundColor(themeService.textPrimaryColor)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
+                    .padding(.leading, 32)
+                    .padding(.trailing, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
                 
