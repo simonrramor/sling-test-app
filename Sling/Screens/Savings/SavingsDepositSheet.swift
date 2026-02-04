@@ -355,6 +355,33 @@ struct SavingsDepositConfirmView: View {
         return displayAmount.asCurrency(symbol)
     }
     
+    /// Price formatted as "1 [display currency] = X USDY"
+    private var formattedPrice: String {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        let symbol = ExchangeRateService.symbol(for: displayCurrency)
+        let usdyPriceInUSD = savingsService.liveUsdyPrice
+        
+        // Get exchange rate from display currency to USD
+        var exchangeRate: Double = 1.0
+        if displayCurrency != "USD" {
+            if let rate = ExchangeRateService.shared.getCachedRate(from: displayCurrency, to: "USD") {
+                exchangeRate = rate
+            } else {
+                // Fallback rates
+                let fallbackRates: [String: Double] = ["EUR": 1.09, "GBP": 1.27]
+                exchangeRate = fallbackRates[displayCurrency] ?? 1.0
+            }
+        }
+        
+        // Calculate: 1 display currency = how many USDY?
+        // 1 display currency = exchangeRate USD
+        // 1 USDY = usdyPriceInUSD USD
+        // So 1 display currency = exchangeRate / usdyPriceInUSD USDY
+        let usdyPerDisplayCurrency = exchangeRate / usdyPriceInUSD
+        
+        return "1\(symbol) = \(savingsService.formatTokens(usdyPerDisplayCurrency)) USDY"
+    }
+    
     var body: some View {
         ZStack {
             Color.white
@@ -438,10 +465,10 @@ struct SavingsDepositConfirmView: View {
                     // Amount (fiat amount user inputted)
                     DetailRow(label: "Amount", value: formattedDisplayAmount)
                     
-                    // Price (live USDY price from market)
+                    // Price (how many USDY per display currency unit)
                     DetailRow(
                         label: "Price",
-                        value: "1 USDY = \(savingsService.formatPrice(savingsService.liveUsdyPrice))",
+                        value: formattedPrice,
                         isHighlighted: true
                     )
                     
