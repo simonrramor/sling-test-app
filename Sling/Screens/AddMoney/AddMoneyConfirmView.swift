@@ -48,7 +48,7 @@ struct AddMoneyConfirmView: View {
     }
     
     var hasCurrencyDifference: Bool {
-        sourceCurrency != slingCurrency
+        sourceCurrency != displayCurrencyService.displayCurrency
     }
     
     var formattedSourceAmount: String {
