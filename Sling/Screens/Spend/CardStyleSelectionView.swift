@@ -128,9 +128,12 @@ struct CardStyleOption: View {
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .rotationEffect(.degrees(90))
                 .shadow(color: Color.black.opacity(0.25), radius: 22, x: 0, y: 24)
                 .shadow(color: Color.black.opacity(0.15), radius: 11, x: 0, y: 12)
             }
+            // Account for rotated dimensions in layout
+            .frame(width: cardHeight, height: cardWidth)
         }
         .buttonStyle(PlainButtonStyle())
     }
