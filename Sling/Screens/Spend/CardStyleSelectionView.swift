@@ -48,24 +48,36 @@ struct CardStyleSelectionView: View {
                 .frame(height: 64)
                 
                 // Card selection area - horizontal scroll (fills available space)
-                GeometryReader { geometry in
-                    let cardWidth: CGFloat = 195 // Card height after rotation becomes width
-                    let horizontalInset = (geometry.size.width - cardWidth) / 2
+                GeometryReader { outerGeometry in
+                    let cardDisplayWidth: CGFloat = 195 // Card height after rotation becomes width
+                    let horizontalInset = (outerGeometry.size.width - cardDisplayWidth) / 2
+                    let screenCenter = outerGeometry.size.width / 2
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
                             ForEach(CardColorOption.allOptions) { option in
-                                CardStyleOption(
-                                    color: option.color,
-                                    onTap: {
-                                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                                        generator.impactOccurred()
-                                        selectedCardStyle = option.id
-                                        hasCard = true
-                                        isPresented = false
-                                        NotificationCenter.default.post(name: .navigateToCard, object: nil)
-                                    }
-                                )
+                                GeometryReader { cardGeometry in
+                                    let cardCenter = cardGeometry.frame(in: .global).midX
+                                    let distanceFromCenter = abs(screenCenter - cardCenter)
+                                    let maxDistance: CGFloat = 200
+                                    let normalizedDistance = min(distanceFromCenter / maxDistance, 1.0)
+                                    let scale = 1.0 - (normalizedDistance * 0.1) // 100% at center, 90% at edges
+                                    
+                                    CardStyleOption(
+                                        color: option.color,
+                                        onTap: {
+                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                            generator.impactOccurred()
+                                            selectedCardStyle = option.id
+                                            hasCard = true
+                                            isPresented = false
+                                            NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                                        }
+                                    )
+                                    .scaleEffect(scale)
+                                    .animation(.easeOut(duration: 0.15), value: scale)
+                                }
+                                .frame(width: cardDisplayWidth, height: 311)
                             }
                         }
                         .padding(.horizontal, horizontalInset)
