@@ -188,6 +188,13 @@ struct WithdrawView: View {
                         .buttonStyle(PlainButtonStyle())
                     }
                     
+                    // Divider before Add new account
+                    Rectangle()
+                        .fill(Color(hex: "F0F0F0"))
+                        .frame(height: 1)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 8)
+                    
                     // Add a new account row
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
