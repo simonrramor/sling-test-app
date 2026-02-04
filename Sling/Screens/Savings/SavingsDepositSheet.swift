@@ -371,31 +371,26 @@ struct SavingsDepositConfirmView: View {
                     }
                     .accessibilityLabel("Go back")
                     
-                    // USDY token icon
-                    Image("IconUSYC")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 44, height: 44)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                        )
+                    // Savings icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(hex: "000000"))
+                            .frame(width: 44, height: 44)
+                        
+                        Image("NavSavings")
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(.white)
+                    }
                     
-                    // Title - styled like stock buy
+                    // Title
                     VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 4) {
-                            Text("Buy")
-                                .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(themeService.textSecondaryColor)
-                            Text("·")
-                                .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(themeService.textSecondaryColor)
-                            Text("USDY")
-                                .font(.custom("Inter-Regular", size: 14))
-                                .foregroundColor(themeService.textSecondaryColor)
-                        }
-                        Text("Ondo US Dollar Yield")
+                        Text("Add to")
+                            .font(.custom("Inter-Regular", size: 14))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        Text("Savings")
                             .font(.custom("Inter-Bold", size: 16))
                             .foregroundColor(themeService.textPrimaryColor)
                     }
@@ -480,7 +475,7 @@ struct SavingsDepositConfirmView: View {
                     ActivityService.shared.addActivity(
                         avatar: "IconSavings",
                         titleLeft: "Savings",
-                        subtitleLeft: "Buy USDY",
+                        subtitleLeft: "Deposit",
                         titleRight: "+\(savingsService.formatTokens(usdyToReceive)) USDY",
                         subtitleRight: formattedAmount
                     )
