@@ -113,68 +113,19 @@ struct CardStyleOption: View {
                     // Base color
                     color
                     
-                    // Large Sling logo watermark (concentric circles)
-                    // Positioned center-right, extending beyond card edges
-                    GeometryReader { geo in
-                        let centerX = geo.size.width * 0.55  // Slightly right of center
-                        let centerY = geo.size.height * 0.45 // Slightly above center
-                        
-                        // Outer circle - large, extends beyond card
-                        let outerSize = geo.size.height * 1.6
-                        // Inner circle - about 2/3 of outer
-                        let innerSize = outerSize * 0.667
-                        
-                        let strokeWidth: CGFloat = 5.5
-                        
-                        ZStack {
-                            Circle()
-                                .stroke(Color.white.opacity(0.08), lineWidth: strokeWidth)
-                                .frame(width: outerSize, height: outerSize)
-                            
-                            Circle()
-                                .stroke(Color.white.opacity(0.08), lineWidth: strokeWidth)
-                                .frame(width: innerSize, height: innerSize)
-                        }
-                        .position(x: centerX, y: centerY)
-                    }
-                    
-                    // Card content
-                    VStack(alignment: .leading) {
-                        SlingLogoMark(size: 32)
-                            .padding(.top, 16)
-                            .padding(.leading, 16)
-                        
-                        Spacer()
-                        
-                        HStack(alignment: .center) {
-                            HStack(spacing: 6) {
-                                HStack(spacing: 3) {
-                                    ForEach(0..<4, id: \.self) { _ in
-                                        Circle()
-                                            .fill(Color.white.opacity(0.8))
-                                            .frame(width: 4, height: 4)
-                                    }
-                                }
-                                
-                                Text("9543")
-                                    .font(.custom("Inter-Medium", size: 16))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .tracking(-0.32)
-                            }
-                            
-                            Spacer()
-                            
-                            Image("VisaLogo")
-                                .renderingMode(.template)
+                    // Sling logo in top left corner
+                    VStack {
+                        HStack {
+                            Image("SlingLogo")
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 58, height: 19)
-                                .foregroundColor(.white.opacity(0.8))
+                                .frame(width: 32, height: 32)
+                                .padding(.top, 16)
+                                .padding(.leading, 16)
+                            Spacer()
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 16)
+                        Spacer()
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     
                     // Border stroke
                     RoundedRectangle(cornerRadius: cornerRadius)
@@ -194,27 +145,6 @@ struct CardStyleOption: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
-    }
-}
-
-// MARK: - Sling Logo Mark
-
-struct SlingLogoMark: View {
-    var size: CGFloat = 24
-    
-    var body: some View {
-        ZStack {
-            // Outer ring
-            Circle()
-                .stroke(Color.white, lineWidth: size * 0.12)
-                .frame(width: size, height: size)
-            
-            // Inner ring
-            Circle()
-                .stroke(Color.white, lineWidth: size * 0.12)
-                .frame(width: size * 0.667, height: size * 0.667)
-        }
-        .frame(width: size, height: size)
     }
 }
 
