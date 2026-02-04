@@ -377,10 +377,6 @@ struct AddMoneyConfirmView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 16)
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeService.cardBackgroundColor)
-                )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 40)
                 .opacity(isButtonLoading ? 0 : 1)
