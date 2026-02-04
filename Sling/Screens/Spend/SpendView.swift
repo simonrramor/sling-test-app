@@ -310,6 +310,28 @@ struct SpendView: View {
             .padding(.horizontal, 24)
             .padding(.top, 16)
             
+            // Delete card button
+            Button(action: {
+                let generator = UIImpactFeedbackGenerator(style: .medium)
+                generator.impactOccurred()
+                hasCard = false
+            }) {
+                HStack {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(Color(hex: "E30000"))
+                    
+                    Text("Delete card")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(Color(hex: "E30000"))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            
             Spacer()
         }
     }
