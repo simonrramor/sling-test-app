@@ -48,24 +48,29 @@ struct CardStyleSelectionView: View {
                 .frame(height: 64)
                 
                 // Card selection area - horizontal scroll (fills available space)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        ForEach(CardColorOption.allOptions) { option in
-                            CardStyleOption(
-                                color: option.color,
-                                onTap: {
-                                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                                    generator.impactOccurred()
-                                    selectedCardStyle = option.id
-                                    hasCard = true
-                                    isPresented = false
-                                    NotificationCenter.default.post(name: .navigateToCard, object: nil)
-                                }
-                            )
+                GeometryReader { geometry in
+                    let cardWidth: CGFloat = 195 // Card height after rotation becomes width
+                    let horizontalInset = (geometry.size.width - cardWidth) / 2
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(CardColorOption.allOptions) { option in
+                                CardStyleOption(
+                                    color: option.color,
+                                    onTap: {
+                                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                                        generator.impactOccurred()
+                                        selectedCardStyle = option.id
+                                        hasCard = true
+                                        isPresented = false
+                                        NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                                    }
+                                )
+                            }
                         }
+                        .padding(.horizontal, horizontalInset)
+                        .frame(maxHeight: .infinity)
                     }
-                    .padding(.horizontal, 24)
-                    .frame(maxHeight: .infinity)
                 }
                 .frame(maxHeight: .infinity)
             }
