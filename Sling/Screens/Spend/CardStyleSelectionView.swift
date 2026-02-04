@@ -101,9 +101,9 @@ struct CardStyleOption: View {
     let isSelected: Bool
     let onTap: () -> Void
     
-    // Card dimensions - landscape orientation
-    private let cardWidth: CGFloat = 320
-    private let cardHeight: CGFloat = 182
+    // Card dimensions - landscape orientation matching real card ratio (1035:648 = 1.597)
+    private let cardWidth: CGFloat = 311
+    private let cardHeight: CGFloat = 195
     private let cornerRadius: CGFloat = 24
     
     var body: some View {
@@ -115,30 +115,26 @@ struct CardStyleOption: View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(color)
                     
-                    // Sling Logo Watermark
-                    GeometryReader { geo in
-                        SlingLogoMark(size: 202)
-                            .opacity(0.08)
-                            .position(x: geo.size.width / 2, y: geo.size.height / 2 - 8)
-                    }
-                    .clipped()
+                    // Background circles watermark - matching real card
+                    // Original card: 1035x648, circles at 654px and 435px with 18px stroke
+                    // Scale: 311/1035 = 0.30
+                    CardWatermarkCircles()
                     
-                    // Subtle border stroke (from Figma)
+                    // Subtle border stroke
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(Color.black.opacity(0.06), lineWidth: 1)
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                // Enhanced shadow to match "debit card shadow" style
-                .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 24)
-                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 12)
+                .shadow(color: Color.black.opacity(0.25), radius: 22, x: 0, y: 24)
+                .shadow(color: Color.black.opacity(0.15), radius: 11, x: 0, y: 12)
                 
                 // Card content overlay
                 VStack(alignment: .leading) {
                     // Sling logo at top left
                     SlingLogoMark(size: 32)
-                        .padding(.top, 20)
-                        .padding(.leading, 20)
+                        .padding(.top, 16)
+                        .padding(.leading, 16)
                     
                     Spacer()
                     
@@ -147,11 +143,11 @@ struct CardStyleOption: View {
                         // Card number
                         HStack(spacing: 6) {
                             // Dots
-                            HStack(spacing: 4) {
-                                ForEach(0..<4) { _ in
+                            HStack(spacing: 3) {
+                                ForEach(0..<4, id: \.self) { _ in
                                     Circle()
                                         .fill(Color.white.opacity(0.8))
-                                        .frame(width: 5, height: 5) // Slightly larger dots
+                                        .frame(width: 4, height: 4)
                                 }
                             }
                             
@@ -171,20 +167,57 @@ struct CardStyleOption: View {
                             .frame(width: 58, height: 19)
                             .foregroundColor(.white.opacity(0.8))
                     }
-                    .padding(.horizontal, 24) // Increased padding
-                    .padding(.bottom, 24) // Increased padding
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
                 .frame(width: cardWidth, height: cardHeight, alignment: .topLeading)
                 
                 // Selection indicator
                 if isSelected {
-                    RoundedRectangle(cornerRadius: cornerRadius + 5)
-                        .stroke(color, lineWidth: 3) // Match card color
-                        .frame(width: cardWidth + 12, height: cardHeight + 12)
+                    RoundedRectangle(cornerRadius: cornerRadius + 4)
+                        .stroke(color, lineWidth: 3)
+                        .frame(width: cardWidth + 10, height: cardHeight + 10)
                 }
             }
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Card Watermark Circles (matches real Sling card)
+
+struct CardWatermarkCircles: View {
+    var body: some View {
+        GeometryReader { geo in
+            let scale = geo.size.width / 1035.0
+            
+            // Large circle: 654px diameter, positioned center-right
+            // Original position: x = 189 from right edge, y = -33 from top
+            let largeSize = 654 * scale
+            let largeX = geo.size.width - (189 * scale) - (largeSize / 2)
+            let largeY = (-33 * scale) + (largeSize / 2)
+            
+            // Small circle: 435px diameter
+            // Original position: x = 300 from right edge, y = 78 from top
+            let smallSize = 435 * scale
+            let smallX = geo.size.width - (300 * scale) - (smallSize / 2)
+            let smallY = (78 * scale) + (smallSize / 2)
+            
+            let strokeWidth = 18 * scale
+            
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: strokeWidth)
+                    .frame(width: largeSize, height: largeSize)
+                    .position(x: largeX, y: largeY)
+                
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: strokeWidth)
+                    .frame(width: smallSize, height: smallSize)
+                    .position(x: smallX, y: smallY)
+            }
+        }
+        .clipped()
     }
 }
 
@@ -197,13 +230,13 @@ struct SlingLogoMark: View {
         ZStack {
             // Outer ring
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.11)
+                .stroke(Color.white, lineWidth: size * 0.12)
                 .frame(width: size, height: size)
             
             // Inner ring
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.11)
-                .frame(width: size * 0.60, height: size * 0.60)
+                .stroke(Color.white, lineWidth: size * 0.12)
+                .frame(width: size * 0.667, height: size * 0.667)
         }
         .frame(width: size, height: size)
     }
