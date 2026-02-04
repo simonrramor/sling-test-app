@@ -150,8 +150,8 @@ struct AddMoneyConfirmView: View {
                 
                 Spacer()
                 
-                // Amount display - centered (shows source amount being sent)
-                Text(formattedSourceAmount)
+                // Amount display - centered (shows amount you'll receive in display currency)
+                Text(formattedAmountAfterFeeInDisplayCurrency)
                     .font(.custom("Inter-Bold", size: 56))
                     .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
