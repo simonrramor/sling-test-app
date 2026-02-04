@@ -846,11 +846,18 @@ struct MiniPortfolioChart: View {
 struct AllActivityView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
+    @State private var selectedActivity: ActivityItem?
+    @State private var showTransactionDetail = false
     
     var body: some View {
         NavigationStack {
             ScrollView {
-                TransactionListContent()
+                TransactionListContent(
+                    onTransactionSelected: { activity in
+                        selectedActivity = activity
+                        showTransactionDetail = true
+                    }
+                )
                     .padding(.horizontal, 16)
                     .padding(.bottom, 100)
             }
@@ -868,6 +875,7 @@ struct AllActivityView: View {
                 }
             }
         }
+        .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedActivity)
     }
 }
 
