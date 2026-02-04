@@ -14,7 +14,6 @@ struct WithdrawView: View {
     @State private var destinationAmount: Double = 0 // Amount in destination account currency
     @State private var usdAmount: Double = 0 // Amount in USD (storage currency)
     @State private var exchangeRate: Double = 1.0 // Rate from destination currency to USD
-    @State private var showFeesSheet = false
     
     private let exchangeService = ExchangeRateService.shared
     
@@ -325,6 +324,7 @@ struct WithdrawConfirmView: View {
     var onComplete: () -> Void = {}
     
     @State private var isButtonLoading = false
+    @State private var showFeesSheet = false
     
     private let portfolioService = PortfolioService.shared
     
