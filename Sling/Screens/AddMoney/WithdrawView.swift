@@ -99,13 +99,13 @@ struct WithdrawView: View {
         .onAppear {
             updateAmounts()
         }
-        .onChange(of: selectedAccount) { _ in
+        .onChange(of: selectedAccount) { _, _ in
             showingDestinationCurrency = true
             destinationAmount = amountValue
             usdAmount = 0
             updateAmounts()
         }
-        .onChange(of: amountString) { _ in
+        .onChange(of: amountString) { _, _ in
             updateAmounts()
         }
     }
