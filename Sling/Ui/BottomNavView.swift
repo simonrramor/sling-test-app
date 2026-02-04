@@ -7,9 +7,9 @@ enum Tab: String, CaseIterable {
     case invest = "Invest"
     case savings = "Savings"
     
-    // Tabs that appear in the left pill (no transfer - it's a sheet now)
+    // Tabs that appear in the left pill (no invest or transfer - they're separate)
     static var pillTabs: [Tab] {
-        [.home, .card, .invest, .savings]
+        [.home, .card, .savings]
     }
 }
 
