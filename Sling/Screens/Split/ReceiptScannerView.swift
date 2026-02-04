@@ -129,7 +129,7 @@ struct ReceiptFrameGuide: View {
     var body: some View {
         ZStack {
             // Semi-transparent overlay with cutout
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.white.opacity(0.8), lineWidth: 2)
             
             // Corner accents

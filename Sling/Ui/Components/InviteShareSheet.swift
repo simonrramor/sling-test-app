@@ -78,7 +78,7 @@ struct InviteShareSheet: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(themeService.textPrimaryColor)
-                    .cornerRadius(24)
+                    .cornerRadius(16)
                 }
                 
                 Button(action: {
@@ -94,7 +94,7 @@ struct InviteShareSheet: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED"))
-                    .cornerRadius(24)
+                    .cornerRadius(16)
                 }
             }
             .padding(.horizontal, 16)

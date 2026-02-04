@@ -251,7 +251,7 @@ struct AddMoneyView: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

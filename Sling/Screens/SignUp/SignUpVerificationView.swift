@@ -225,10 +225,10 @@ struct CodeDigitBox: View {
     
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color(hex: "F7F7F7"))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24)
+                    RoundedRectangle(cornerRadius: 16)
                         .stroke(isActive ? Color(hex: "FF5113") : Color.clear, lineWidth: 2)
                 )
             

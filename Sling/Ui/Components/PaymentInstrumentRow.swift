@@ -39,20 +39,6 @@ struct PaymentInstrumentRow: View {
                     .frame(width: 44, height: 44)
                     .background(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7"))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else if iconName == "NavSavings" || iconName == "IconSavings" {
-                // Savings icon - black background with white plant icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(hex: "000000"))
-                        .frame(width: 44, height: 44)
-                    
-                    Image("NavSavings")
-                        .renderingMode(.template)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 24, height: 24)
-                        .foregroundColor(.white)
-                }
             } else {
                 Image(iconName)
                     .resizable()
@@ -128,7 +114,7 @@ struct PaymentInstrumentRow: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
         )
     }
@@ -267,7 +253,7 @@ struct PaymentInstrumentRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(configuration.isPressed ? 
                           (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED")) : 
                           (themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")))

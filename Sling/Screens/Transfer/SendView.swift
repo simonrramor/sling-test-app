@@ -347,7 +347,7 @@ struct SendAmountView: View {
                     generator.impactOccurred()
                     showConfirmation = true
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
             

@@ -14,23 +14,29 @@ struct SendConfirmView: View {
     @Namespace private var animation
     
     private let portfolioService = PortfolioService.shared
-    private let displayCurrencyService = DisplayCurrencyService.shared
     private let activityService = ActivityService.shared
     
     // Get the currency symbol from user's display currency
     var currencySymbol: String {
-        ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+        ExchangeRateService.symbol(for: portfolioService.displayCurrency)
     }
     
     // Full formatted amount with decimals (for info rows)
     var formattedAmount: String {
-        amount.asCurrency(currencySymbol)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = ","
+        let formattedNumber = formatter.string(from: NSNumber(value: amount)) ?? String(format: "%.2f", amount)
+        return "\(currencySymbol)\(formattedNumber)"
     }
     
     // Short formatted amount (no decimals for whole numbers, for title/button)
     var shortAmount: String {
         if amount.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(currencySymbol)\(Int(amount).formattedWithCommas)"
+            return "\(currencySymbol)\(Int(amount))"
         }
         return formattedAmount
     }
@@ -61,7 +67,7 @@ struct SendConfirmView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .frame(height: 48)
                 .opacity(isButtonLoading ? 0 : 1)
                 
@@ -153,7 +159,7 @@ struct SendConfirmView: View {
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 32)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 24)
                     .transition(.opacity)
                 }
                 

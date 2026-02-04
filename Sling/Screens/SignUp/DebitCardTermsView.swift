@@ -154,7 +154,7 @@ struct TermsDocumentRow: View {
             }
             .padding(16)
             .background(Color.white)
-            .cornerRadius(24)
+            .cornerRadius(16)
         }
     }
 }

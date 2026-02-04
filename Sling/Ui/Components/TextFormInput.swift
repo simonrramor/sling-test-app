@@ -11,7 +11,7 @@ struct TextFormInput: View {
     // Design constants from Figma
     private enum Constants {
         static let cursorColor = Color(hex: "FF5113")
-        static let cornerRadius: CGFloat = 24
+        static let cornerRadius: CGFloat = 16
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 14
         static let labelFontSizeSmall: CGFloat = 13

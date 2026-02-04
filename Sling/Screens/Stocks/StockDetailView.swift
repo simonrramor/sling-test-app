@@ -22,8 +22,6 @@ struct StockDetailView: View {
     @State private var chartData: [CGFloat] = []
     @State private var showBuyScreen = false
     @State private var showSellScreen = false
-    @State private var showRecurringBuyScreen = false
-    @ObservedObject private var recurringService = RecurringPurchaseService.shared
     
     // Check if user owns this stock
     var ownsStock: Bool {
@@ -75,7 +73,7 @@ struct StockDetailView: View {
         
         if isDragging {
             let price = data.priceAt(progress: Double(dragProgress))
-            return price.asUSD
+            return String(format: "$%.2f", price)
         } else {
             return data.formattedPrice
         }
@@ -172,7 +170,7 @@ struct StockDetailView: View {
                                     SlidingNumberText(
                                         text: displayPrice,
                                         font: .custom("Inter-Bold", size: 24),
-                                        color: themeService.textPrimaryColor
+                                        color: Color(hex: "080808")
                                     )
                                     
                                     HStack(spacing: 4) {
@@ -190,8 +188,8 @@ struct StockDetailView: View {
                         }
                         .padding(16)
                         .background(
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(themeService.cardBackgroundColor)
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white)
                         )
                         .padding(.horizontal, 8)
                         .animation(.easeInOut(duration: 0.1), value: dragProgress)
@@ -234,59 +232,37 @@ struct StockDetailView: View {
                 }
                 
                 // Bottom buttons
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        // Sell button - active only when user owns shares
-                        Button(action: {
-                            if ownsStock {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.impactOccurred()
-                                showSellScreen = true
-                            }
-                        }) {
-                            Text("Sell")
-                                .font(.custom("Inter-Bold", size: 16))
-                                .foregroundColor(ownsStock ? themeService.textPrimaryColor : themeService.textTertiaryColor)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(ownsStock ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "EDEDED")) : (themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7")))
-                                .cornerRadius(20)
-                        }
-                        .disabled(!ownsStock)
-                        
-                        Button(action: {
+                HStack(spacing: 8) {
+                    // Sell button - active only when user owns shares
+                    Button(action: {
+                        if ownsStock {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
-                            showBuyScreen = true
-                        }) {
-                            Text("Buy")
-                                .font(.custom("Inter-Bold", size: 16))
-                                .foregroundColor(themeService.currentTheme == .dark ? .black : .white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(themeService.textPrimaryColor)
-                                .cornerRadius(20)
+                            showSellScreen = true
                         }
+                    }) {
+                        Text("Sell")
+                            .font(.custom("Inter-Bold", size: 16))
+                            .foregroundColor(ownsStock ? Color(hex: "080808") : Color(hex: "BFBFBF"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(ownsStock ? Color(hex: "EDEDED") : Color(hex: "F7F7F7"))
+                            .cornerRadius(20)
                     }
+                    .disabled(!ownsStock)
                     
-                    // Recurring buy button
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
-                        showRecurringBuyScreen = true
+                        showBuyScreen = true
                     }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "repeat")
-                                .font(.system(size: 16, weight: .medium))
-                            
-                            Text(recurringService.hasRecurringPurchase(for: stock.iconName) ? "Manage Recurring Buy" : "Setup Recurring Buy")
-                                .font(.custom("Inter-Medium", size: 16))
-                        }
-                        .foregroundColor(Color(hex: DesignSystem.Colors.primary))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(Color(hex: "FFF5F0"))
-                        .cornerRadius(24)
+                        Text("Buy")
+                            .font(.custom("Inter-Bold", size: 16))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color(hex: "080808"))
+                            .cornerRadius(20)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -327,18 +303,8 @@ struct StockDetailView: View {
                     .zIndex(1)
             }
         }
-        .overlay {
-            if showRecurringBuyScreen {
-                SetupRecurringBuyView(stock: stock, isPresented: $showRecurringBuyScreen, onComplete: {
-                    // No need to dismiss the detail view
-                })
-                    .transition(.move(edge: .trailing))
-                    .zIndex(1)
-            }
-        }
         .animation(.easeInOut(duration: 0.3), value: showBuyScreen)
         .animation(.easeInOut(duration: 0.3), value: showSellScreen)
-        .animation(.easeInOut(duration: 0.3), value: showRecurringBuyScreen)
         } // Close GeometryReader
     }
 
@@ -393,7 +359,7 @@ struct YourInvestmentSection: View {
                     Text("Value")
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
-                    Text(holdingValue.asUSD)
+                    Text(String(format: "$%.2f", holdingValue))
                         .font(.custom("Inter-Bold", size: 24))
                         .foregroundColor(themeService.textPrimaryColor)
                 }
@@ -417,21 +383,27 @@ struct YourInvestmentSection: View {
                 // Today's returns (simulated as small daily change)
                 InvestmentDetailRow(
                     label: "Today's returns",
-                    value: "\(profitLoss.isPositive ? "+" : "")\((profitLoss.amount * 0.05).asUSD) (\(String(format: "%.2f%%", profitLoss.percent * 0.05)))",
+                    value: String(format: "%@$%.2f (%.2f%%)",
+                                  profitLoss.isPositive ? "+" : "",
+                                  profitLoss.amount * 0.05,
+                                  profitLoss.percent * 0.05),
                     isPositive: profitLoss.isPositive
                 )
                 
                 // Total return (total profit/loss)
                 InvestmentDetailRow(
                     label: "Total return",
-                    value: "\(profitLoss.isPositive ? "+" : "")\(profitLoss.amount.asUSD) (\(String(format: "%.2f%%", profitLoss.percent)))",
+                    value: String(format: "%@$%.2f (%.2f%%)",
+                                  profitLoss.isPositive ? "+" : "",
+                                  profitLoss.amount,
+                                  profitLoss.percent),
                     isPositive: profitLoss.isPositive
                 )
                 
                 // Average purchase price
                 InvestmentDetailRow(
                     label: "Average purchase price",
-                    value: (portfolioService.holdings[stock.iconName]?.averageCost ?? 0).asUSD,
+                    value: String(format: "$%.2f", portfolioService.holdings[stock.iconName]?.averageCost ?? 0),
                     isPositive: nil
                 )
                 
@@ -457,7 +429,7 @@ struct InvestmentDetailRow: View {
         if let isPositive = isPositive {
             return isPositive ? Color(hex: "57CE43") : Color(hex: "E30000")
         }
-        return themeService.textPrimaryColor
+        return Color(hex: "080808")
     }
     
     var body: some View {
@@ -778,7 +750,7 @@ struct StockChartView: View {
                     } label: {
                         Text(period)
                             .font(.custom(selectedPeriod == period ? "Inter-Medium" : "Inter-Regular", size: 14))
-                            .foregroundColor(selectedPeriod == period ? themeService.textPrimaryColor : themeService.textSecondaryColor)
+                            .foregroundColor(selectedPeriod == period ? Color(hex: "080808") : Color(hex: "7B7B7B"))
                             .frame(height: 20) // Line height 20
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)

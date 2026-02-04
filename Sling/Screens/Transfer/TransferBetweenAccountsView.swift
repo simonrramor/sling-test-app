@@ -92,7 +92,7 @@ struct TransferBetweenAccountsView: View {
                             }
                             .padding(16)
                             .background(Color(hex: "F7F7F7"))
-                            .cornerRadius(24)
+                            .cornerRadius(16)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -141,7 +141,7 @@ struct TransferBetweenAccountsView: View {
                             }
                             .padding(16)
                             .background(Color(hex: "F7F7F7"))
-                            .cornerRadius(24)
+                            .cornerRadius(16)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -163,10 +163,10 @@ struct TransferBetweenAccountsView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(amountValue > 0 ? Color(hex: "080808") : Color(hex: "CCCCCC"))
-                        .cornerRadius(24)
+                        .cornerRadius(16)
                 }
                 .disabled(amountValue <= 0)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
             }
             .padding(.bottom, 24)
             }

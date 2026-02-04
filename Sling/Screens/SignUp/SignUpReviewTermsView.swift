@@ -132,7 +132,7 @@ struct TermsAgreementRow: View {
         }
         .padding(16)
         .background(Color.white)
-        .cornerRadius(24)
+        .cornerRadius(16)
     }
 }
 
@@ -173,9 +173,9 @@ struct ESignatureRow: View {
             }
             .padding(16)
             .background(Color(hex: "FCFCFC"))
-            .cornerRadius(24)
+            .cornerRadius(16)
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 16)
                     .stroke(Color(hex: "F7F7F7"), lineWidth: 1)
             )
         }

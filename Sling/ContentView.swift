@@ -6,9 +6,6 @@ extension Notification.Name {
     static let navigateToHome = Notification.Name("navigateToHome")
     static let navigateToInvest = Notification.Name("navigateToInvest")
     static let navigateToCard = Notification.Name("navigateToCard")
-    static let navigateToSavings = Notification.Name("navigateToSavings")
-    static let showBalanceSheet = Notification.Name("showBalanceSheet")
-    static let showTransactionDetail = Notification.Name("showTransactionDetail")
 }
 
 
@@ -26,17 +23,13 @@ struct ContentView: View {
     @State private var showTransferBetweenAccounts = false
     @State private var showReceiveSalary = false
     
-    // Global transaction detail state
-    @State private var selectedTransaction: ActivityItem?
-    @State private var showTransactionDetail = false
     
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var feedbackManager = FeedbackModeManager.shared
     @State private var showSubscriptionsOverlay = false
-    @State private var showBalanceSheet = false
     
-    var backgroundGradient: LinearGradient {
-        themeService.backgroundGradient
+    var backgroundColor: Color {
+        themeService.backgroundColor
     }
     
     // Get index of a tab for directional comparison
@@ -64,7 +57,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            backgroundGradient
+            backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -75,6 +68,12 @@ struct ContentView: View {
                     onProfileTap: {
                         showSettings = true
                     },
+                    onChatTap: {
+                        showChat = true
+                    },
+                    onQRCodeTap: {
+                        showQRScanner = true
+                    },
                     onSearchTap: {
                         showSearch = true
                     },
@@ -82,7 +81,7 @@ struct ContentView: View {
                         showInviteSheet = true
                     }
                 )
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 24)
                 
                 // Tab Content with directional transitions
                 ZStack {
@@ -94,8 +93,7 @@ struct ContentView: View {
                         SpendView(showSubscriptionsOverlay: $showSubscriptionsOverlay)
                             .transition(tabTransition)
                     case .invest:
-                        // Investments removed from nav - redirect to home
-                        HomeView()
+                        InvestView()
                             .transition(tabTransition)
                     case .savings:
                         SavingsView()
@@ -108,8 +106,8 @@ struct ContentView: View {
             // Progressive blur behind nav - positioned at very bottom
             ProgressiveBlurView(
                 blurAmount: 1.0,
-                blurStyle: themeService.currentTheme == .dark ? .dark : .prominent,
-                backgroundColorValue: themeService.currentTheme == .dark ? 0.95 : 0.05,
+                blurStyle: .prominent,
+                backgroundColorValue: 0.05,
                 backgroundOpacity: 0.79
             )
                 .frame(height: 140)
@@ -158,12 +156,6 @@ struct ContentView: View {
             if showSubscriptionsOverlay {
                 SubscriptionsCardOverlay(isPresented: $showSubscriptionsOverlay)
             }
-            
-            // Balance sheet overlay (covers everything including nav)
-            if showBalanceSheet {
-                BalanceSheet(isPresented: $showBalanceSheet)
-                    .zIndex(100)
-            }
         }
         .animation(.easeInOut(duration: 0.2), value: feedbackManager.isActive)
         .fullScreenCover(isPresented: $showFABMenu) {
@@ -178,6 +170,12 @@ struct ContentView: View {
                     showFABMenu = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         showRequestMoney = true
+                    }
+                },
+                onTransfer: {
+                    showFABMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showTransferBetweenAccounts = true
                     }
                 }
             )
@@ -202,7 +200,7 @@ struct ContentView: View {
             ChatView()
         }
         .fullScreenCover(isPresented: $showQRScanner) {
-            QRScannerView(isPresented: $showQRScanner)
+            QRScannerView()
         }
         .fullScreenCover(isPresented: $showSearch) {
             SearchView()
@@ -225,20 +223,6 @@ struct ContentView: View {
             previousTab = selectedTab
             selectedTab = .card
         }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToSavings)) { _ in
-            previousTab = selectedTab
-            selectedTab = .savings
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showBalanceSheet)) { _ in
-            showBalanceSheet = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showTransactionDetail)) { notification in
-            if let activity = notification.object as? ActivityItem {
-                selectedTransaction = activity
-                showTransactionDetail = true
-            }
-        }
-        .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedTransaction)
         .onFlip {
             // Only activate if not already in feedback mode and no popups are showing
             if !feedbackManager.isActive && !feedbackManager.showFeedbackPopup {
@@ -264,7 +248,7 @@ struct FloatingActionButton: View {
         }) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "FF5113"))
+                    .fill(Color(hex: "080808"))
                     .frame(width: 56, height: 56)
                     .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 
@@ -294,6 +278,7 @@ struct FABMenuSheet: View {
     @Environment(\.dismiss) private var dismiss
     var onSend: () -> Void
     var onRequest: () -> Void
+    var onTransfer: () -> Void
     
     var body: some View {
         ZStack {
@@ -328,8 +313,18 @@ struct FABMenuSheet: View {
                         iconBgColor: Color(hex: "E9FAEB"),
                         title: "Request",
                         subtitle: "Ask someone to pay you back",
-                        isLast: true,
                         action: onRequest
+                    )
+                    
+                    // Transfer row
+                    FABMenuRow(
+                        iconName: "arrow.left.arrow.right",
+                        iconColor: Color(hex: "FFC774"),
+                        iconBgColor: Color(hex: "FFF5E5"),
+                        title: "Transfer",
+                        subtitle: "Move money between accounts",
+                        isLast: true,
+                        action: onTransfer
                     )
                 }
                 .background(Color.white)
@@ -391,7 +386,7 @@ struct FABMenuRow: View {
             }
             .padding(16)
             .background(Color.white)
-            .cornerRadius(isFirst ? 24 : (isLast ? 24 : 24), corners: isFirst ? [.topLeft, .topRight] : (isLast ? [.bottomLeft, .bottomRight] : []))
+            .cornerRadius(isFirst ? 24 : (isLast ? 24 : 16), corners: isFirst ? [.topLeft, .topRight] : (isLast ? [.bottomLeft, .bottomRight] : []))
         }
         .buttonStyle(PlainButtonStyle())
     }

@@ -211,7 +211,7 @@ struct BuyStockView: View {
                 }
                 .buttonStyle(PressedButtonStyle())
                 .disabled(!(dollarAmount > 0 && dollarAmount <= portfolioService.cashBalance))
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
         }

@@ -140,7 +140,7 @@ struct DateFieldInput: View {
     
     var body: some View {
         ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color(hex: "F7F7F7"))
             
             VStack(alignment: .leading, spacing: 4) {
@@ -186,7 +186,7 @@ struct MonthFieldInput: View {
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(Color(hex: "F7F7F7"))
                 
                 VStack(alignment: .leading, spacing: 4) {

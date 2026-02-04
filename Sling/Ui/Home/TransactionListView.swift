@@ -44,35 +44,6 @@ struct TransactionListContent: View {
     @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     
-    /// Maximum number of transactions to show (nil = show all)
-    var limit: Int? = nil
-    /// Callback when "See more" is tapped
-    var onSeeMore: (() -> Void)? = nil
-    /// Callback when a transaction is selected (for external drawer handling)
-    var onTransactionSelected: ((ActivityItem) -> Void)? = nil
-    
-    @State private var selectedActivity: ActivityItem?
-    @State private var showDetail = false
-    
-    /// Whether to handle drawer internally (legacy behavior) or externally
-    private var handlesDrawerInternally: Bool {
-        onTransactionSelected == nil
-    }
-    
-    private var displayedActivities: [ActivityItem] {
-        if let limit = limit {
-            return Array(activityService.activities.prefix(limit))
-        }
-        return activityService.activities
-    }
-    
-    private var hasMoreActivities: Bool {
-        if let limit = limit {
-            return activityService.activities.count > limit
-        }
-        return false
-    }
-    
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 0) {
             if activityService.isLoading {
@@ -98,46 +69,10 @@ struct TransactionListContent: View {
                 .padding(.vertical, 40)
             } else {
                 // Activity Rows (flat list, no section headers)
-                ForEach(displayedActivities) { activity in
-                    if let onTransactionSelected = onTransactionSelected {
-                        // External handling - just call the callback
-                        ActivityRowView(
-                            activity: activity,
-                            onTap: { onTransactionSelected(activity) }
-                        )
-                    } else {
-                        // Internal handling - use bindings
-                        ActivityRowView(
-                            activity: activity,
-                            selectedActivity: $selectedActivity,
-                            showDetail: $showDetail
-                        )
-                    }
+                ForEach(activityService.activities) { activity in
+                    ActivityRowView(activity: activity)
                 }
                 .padding(.top, 4)
-                
-                // "See more" row if there are more activities
-                if hasMoreActivities, let onSeeMore = onSeeMore {
-                    Divider()
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                    
-                    Button(action: onSeeMore) {
-                        HStack {
-                            Text("See more")
-                                .font(.custom("Inter-SemiBold", size: 16))
-                                .foregroundColor(Color(hex: "FF5113"))
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color(hex: "FF5113"))
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
-                    }
-                }
             }
         }
         .onAppear {
@@ -145,11 +80,6 @@ struct TransactionListContent: View {
                 await activityService.fetchActivities()
             }
         }
-        .modifier(ConditionalDrawerModifier(
-            isPresented: $showDetail,
-            activity: selectedActivity,
-            enabled: handlesDrawerInternally
-        ))
     }
     
     // Group activities by date (e.g., "Today", "Yesterday", "16 January 2026")
@@ -170,98 +100,37 @@ struct TransactionListContent: View {
     }
 }
 
-// MARK: - Conditional Drawer Modifier
-
-struct ConditionalDrawerModifier: ViewModifier {
-    @Binding var isPresented: Bool
-    let activity: ActivityItem?
-    let enabled: Bool
-    
-    func body(content: Content) -> some View {
-        if enabled {
-            content.transactionDetailDrawer(isPresented: $isPresented, activity: activity)
-        } else {
-            content
-        }
-    }
-}
-
 // MARK: - Activity Row View
 
 struct ActivityRowView: View {
     @ObservedObject private var themeService = ThemeService.shared
     let activity: ActivityItem
-    
-    // Option 1: Binding-based (internal drawer handling)
-    var selectedActivity: Binding<ActivityItem?>?
-    var showDetail: Binding<Bool>?
-    
-    // Option 2: Callback-based (external drawer handling)
-    var onTap: (() -> Void)?
-    
+    @State private var showDetail = false
     @State private var isPressed = false
-    
-    // Convenience init for binding-based usage
-    init(activity: ActivityItem, selectedActivity: Binding<ActivityItem?>, showDetail: Binding<Bool>) {
-        self.activity = activity
-        self.selectedActivity = selectedActivity
-        self.showDetail = showDetail
-        self.onTap = nil
-    }
-    
-    // Convenience init for callback-based usage
-    init(activity: ActivityItem, onTap: @escaping () -> Void) {
-        self.activity = activity
-        self.selectedActivity = nil
-        self.showDetail = nil
-        self.onTap = onTap
-    }
-    
-    // Check if this is a savings activity (Home feed shows from main balance perspective)
-    private var isSavingsActivity: Bool {
-        activity.avatar == "IconSavings" || activity.avatar.contains("Savings")
-    }
-    
-    // For Home feed: invert savings amounts (deposits leave main balance, withdrawals return to it)
-    private var displayAmount: String {
-        guard isSavingsActivity else { return activity.titleRight }
-        
-        // Invert the sign for savings transactions on Home feed
-        let amount = activity.titleRight
-        if amount.hasPrefix("+") {
-            // Deposit to savings = negative for main balance
-            return "-" + amount.dropFirst()
-        } else if amount.hasPrefix("-") {
-            // Withdrawal from savings = positive for main balance
-            return "+" + amount.dropFirst()
-        }
-        return amount
-    }
     
     var body: some View {
         HStack(spacing: 16) {
-            // Avatar - pass subtitle for context (e.g., to differentiate deposit/withdrawal)
-            TransactionAvatarView(identifier: activity.avatar, subtitleLeft: activity.subtitleLeft)
+            // Avatar
+            TransactionAvatarView(identifier: activity.avatar)
             
             // Name and Subtitle
             VStack(alignment: .leading, spacing: 2) {
                 Text(activity.titleLeft)
                     .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(themeService.textPrimaryColor)
-                    .lineLimit(1)
                 
                 if !activity.subtitleLeft.isEmpty {
                     Text(activity.subtitleLeft)
                         .font(.custom("Inter-Regular", size: 14))
                         .foregroundColor(.gray)
-                        .lineLimit(1)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Spacer()
             
             // Amount and subtitle
             VStack(alignment: .trailing, spacing: 2) {
-                Text(displayAmount)
+                Text(activity.titleRight)
                     .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(amountColor)
                 
@@ -271,14 +140,13 @@ struct ActivityRowView: View {
                         .foregroundColor(.gray)
                 }
             }
-            .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7")) : Color.clear)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isPressed ? Color(hex: "F7F7F7") : Color.clear)
         )
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
             isPressed = pressing
@@ -286,20 +154,15 @@ struct ActivityRowView: View {
         .onTapGesture {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
-            
-            if let onTap = onTap {
-                // External handling via callback
-                onTap()
-            } else {
-                // Internal handling via bindings
-                selectedActivity?.wrappedValue = activity
-                showDetail?.wrappedValue = true
-            }
+            showDetail = true
+        }
+        .sheet(isPresented: $showDetail) {
+            TransactionDetailView(activity: activity)
         }
     }
     
     private var amountColor: Color {
-        if displayAmount.hasPrefix("+") {
+        if activity.titleRight.hasPrefix("+") {
             return Color(hex: "57CE43")
         } else {
             return themeService.textPrimaryColor
@@ -345,14 +208,10 @@ class AppIconFetcher: ObservableObject {
 struct TransactionAvatarView: View {
     @ObservedObject private var themeService = ThemeService.shared
     let identifier: String
-    var subtitleLeft: String = ""  // Optional subtitle for context (e.g., "Deposit" or "Withdrawal")
     @StateObject private var iconFetcher = AppIconFetcher()
     
     private var isInitials: Bool {
-        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Must be 1-2 characters AND not contain emojis (emojis have unicode scalars > 255)
-        let isLikelyEmoji = trimmed.unicodeScalars.contains { $0.value > 255 }
-        return trimmed.count <= 2 && !isLikelyEmoji
+        identifier.trimmingCharacters(in: .whitespacesAndNewlines).count <= 2
     }
     
     private var isSFSymbol: Bool {
@@ -367,34 +226,12 @@ struct TransactionAvatarView: View {
         return trimmed.hasPrefix("Avatar") || trimmed.hasPrefix("Account") || trimmed.hasPrefix("Stock") || UIImage(named: trimmed) != nil
     }
     
-    // Check if this is a savings activity
-    private var isSavingsActivity: Bool {
-        identifier == "IconSavings" || identifier.contains("Savings")
-    }
-    
-    // Determine if this is a deposit or withdrawal based on subtitle
-    private var isSavingsDeposit: Bool {
-        subtitleLeft.lowercased().contains("deposit")
-    }
-    
-    // For Home feed: badges should reflect main balance perspective (inverted from savings)
-    // Deposit to savings = money leaving main balance = purple arrow down
-    // Withdrawal from savings = money returning = green plus
-    private var badgeColorForHome: Color {
-        isSavingsDeposit ? Color(hex: "9874FF") : Color(hex: "78D381")
-    }
-    
-    private var badgeIconForHome: String {
-        isSavingsDeposit ? "arrow.down" : "plus"
-    }
-    
     // People have rounded avatars, businesses have square
     private var isPerson: Bool {
         let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Person if: starts with "Avatar", is initials (1-2 chars, not emoji), or is a person's name (contains space and no dots)
-        let isLikelyEmoji = trimmed.unicodeScalars.contains { $0.value > 255 }
+        // Person if: starts with "Avatar", is initials (1-2 chars), or is a person's name (contains space and no dots)
         return trimmed.hasPrefix("Avatar") || 
-               (trimmed.count <= 2 && !isLikelyEmoji) || 
+               trimmed.count <= 2 || 
                (trimmed.contains(" ") && !trimmed.contains(".") && !trimmed.hasPrefix("http"))
     }
     
@@ -403,42 +240,7 @@ struct TransactionAvatarView: View {
     }
     
     var body: some View {
-        if isSavingsActivity {
-            // Savings activity - show black square with plant icon and badge
-            ZStack(alignment: .bottomTrailing) {
-                // Black square background with savings icon
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(hex: "000000"))
-                        .frame(width: 44, height: 44)
-                    
-                    Image("NavSavings")
-                        .renderingMode(.template)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 24, height: 24)
-                        .foregroundColor(.white)
-                }
-                
-                // Badge - reflects main balance perspective (inverted from savings)
-                // Deposit to savings = money leaving = purple arrow down
-                // Withdrawal from savings = money returning = green plus
-                ZStack {
-                    Circle()
-                        .fill(badgeColorForHome)
-                        .frame(width: 14, height: 14)
-                    
-                    Image(systemName: badgeIconForHome)
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .overlay(
-                    Circle()
-                        .stroke(themeService.cardBackgroundColor, lineWidth: 2)
-                )
-                .offset(x: 4, y: 4)
-            }
-        } else if isInitials {
+        if isInitials {
             // Initials (1-2 characters) - always person, so rounded
             ZStack {
                 RoundedRectangle(cornerRadius: cornerRadius)

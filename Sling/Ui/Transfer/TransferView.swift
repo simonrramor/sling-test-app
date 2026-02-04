@@ -31,10 +31,14 @@ struct TransferView: View {
             iconName: "TransferRequest"
         ),
         TransferAction(
+            title: "Transfer",
+            subtitle: "Move money between accounts",
+            iconName: "TransferTransfer"
+        ),
+        TransferAction(
             title: "Receive your salary",
             subtitle: "Get paid into Sling",
-            iconName: "TransferSalary",
-            iconColor: Color(hex: "080808")
+            iconName: "TransferSalary"
         )
     ]
     
@@ -72,7 +76,6 @@ struct TransferView: View {
                             title: action.title,
                             subtitle: action.subtitle,
                             iconStyle: .plain,
-                            iconColor: action.iconColor,
                             isButton: true,
                             onTap: {
                                 switch action.title {
@@ -193,7 +196,7 @@ struct ReceiveSalarySheet: View {
             }
             .padding(16)
             .background(Color(hex: "F7F7F7"))
-            .cornerRadius(24)
+            .cornerRadius(16)
             .padding(.horizontal, 16)
             
             Spacer()
@@ -215,7 +218,7 @@ struct ReceiveSalarySheet: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(Color(hex: "080808"))
-                    .cornerRadius(24)
+                    .cornerRadius(16)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
@@ -307,7 +310,7 @@ struct SocialListRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(configuration.isPressed && !isComingSoon ? Color(hex: "F5F5F5") : Color.clear)
             )
     }

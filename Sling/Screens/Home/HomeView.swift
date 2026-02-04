@@ -867,29 +867,50 @@ struct AllActivityView: View {
     @State private var showTransactionDetail = false
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                TransactionListContent(
-                    onTransactionSelected: { activity in
-                        selectedActivity = activity
-                        showTransactionDetail = true
+        ZStack {
+            themeService.backgroundColor
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with close button on left
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .frame(width: 44, height: 44)
                     }
-                )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 100)
-            }
-            .scrollIndicators(.hidden)
-            .background(themeService.backgroundColor)
-            .navigationTitle("Activity")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { isPresented = false }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Color(hex: "B0B0B0"), Color(hex: "E8E8E8"))
-                    }
+                    
+                    Spacer()
                 }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                
+                // Title
+                Text("Activity")
+                    .font(.custom("Inter-Bold", size: 32))
+                    .tracking(-0.64)
+                    .foregroundColor(themeService.textPrimaryColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                
+                // Activity list
+                ScrollView {
+                    TransactionListContent(
+                        onTransactionSelected: { activity in
+                            selectedActivity = activity
+                            showTransactionDetail = true
+                        }
+                    )
+                    .padding(.bottom, 100)
+                }
+                .scrollIndicators(.hidden)
             }
         }
         .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedActivity)
