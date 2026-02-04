@@ -370,15 +370,9 @@ struct AddMoneyConfirmView: View {
                         
                         Spacer()
                         
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(Color(hex: "EDEDED"))
-                                .frame(width: 6, height: 6)
-                            
-                            Text(formattedAmountAfterFeeInDisplayCurrency)
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textPrimaryColor)
-                        }
+                        Text(formattedAmountAfterFeeInDisplayCurrency)
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textPrimaryColor)
                     }
                     .padding(.vertical, 4)
                     .padding(.horizontal, 16)
