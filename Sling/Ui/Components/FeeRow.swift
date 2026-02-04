@@ -5,10 +5,66 @@ struct FeeRow: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     let fee: FeeResult
+    var paymentInstrumentCurrency: String? = nil
     var onTap: (() -> Void)? = nil
     
-    /// Fixed fee based on storage currency (-$0.50 or -€0.50)
-    private var fixedFeeDisplay: String {
+    /// Base fee amount in storage currency (0.50 USD or EUR)
+    private let baseFee: Double = 0.50
+    
+    /// Fee converted to payment instrument currency
+    private var feeInPaymentCurrency: Double {
+        guard let currency = paymentInstrumentCurrency else {
+            return baseFee
+        }
+        
+        let storageCurrency = displayCurrencyService.storageCurrency == "EUR" ? "EUR" : "USD"
+        
+        // If payment instrument is same as storage currency, no conversion needed
+        if currency.uppercased() == storageCurrency {
+            return baseFee
+        }
+        
+        // Convert from storage currency to payment instrument currency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: storageCurrency, to: currency.uppercased()) {
+            return baseFee * rate
+        }
+        
+        // Fallback rates from USD
+        let fallbackRatesFromUSD: [String: Double] = [
+            "GBP": 0.79,
+            "EUR": 0.92,
+            "JPY": 149.0,
+            "CHF": 0.88,
+            "CAD": 1.36,
+            "AUD": 1.53
+        ]
+        
+        // Fallback rates from EUR
+        let fallbackRatesFromEUR: [String: Double] = [
+            "GBP": 0.86,
+            "USD": 1.09,
+            "JPY": 162.0,
+            "CHF": 0.96,
+            "CAD": 1.48,
+            "AUD": 1.66
+        ]
+        
+        if storageCurrency == "USD", let rate = fallbackRatesFromUSD[currency.uppercased()] {
+            return baseFee * rate
+        } else if storageCurrency == "EUR", let rate = fallbackRatesFromEUR[currency.uppercased()] {
+            return baseFee * rate
+        }
+        
+        return baseFee
+    }
+    
+    /// Formatted fee in payment instrument currency
+    private var feeDisplay: String {
+        if let currency = paymentInstrumentCurrency {
+            let symbol = ExchangeRateService.symbol(for: currency)
+            return "-\(feeInPaymentCurrency.asCurrency(symbol))"
+        }
+        // Fallback to storage currency display
         let symbol = displayCurrencyService.storageCurrency == "EUR" ? "€" : "$"
         return "-\(symbol)0.50"
     }
@@ -32,8 +88,8 @@ struct FeeRow: View {
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(themeService.textPrimaryColor)
                 } else {
-                    // Fee applies - always show fixed $0.50 or €0.50 in orange
-                    Text(fixedFeeDisplay)
+                    // Fee applies - show converted fee in payment instrument currency
+                    Text(feeDisplay)
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(Color(hex: "FF5113"))
                 }
@@ -124,6 +180,7 @@ struct FeeInfoCard: View {
     VStack(spacing: 16) {
         FeeRow(fee: .free)
         
+        // Fee in GBP (converted from $0.50 USD)
         FeeRow(fee: FeeResult(
             amount: 0.40,
             stablecoin: "GBP",
@@ -131,7 +188,17 @@ struct FeeInfoCard: View {
             displayCurrency: "GBP",
             isWaived: false,
             waiverReason: nil
-        ))
+        ), paymentInstrumentCurrency: "GBP")
+        
+        // Fee in EUR (converted from $0.50 USD)
+        FeeRow(fee: FeeResult(
+            amount: 0.46,
+            stablecoin: "EUR",
+            displayAmount: 0.46,
+            displayCurrency: "EUR",
+            isWaived: false,
+            waiverReason: nil
+        ), paymentInstrumentCurrency: "EUR")
     }
     .padding()
     .background(Color.white)

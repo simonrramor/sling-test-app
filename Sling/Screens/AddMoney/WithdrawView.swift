@@ -447,7 +447,7 @@ struct WithdrawConfirmView: View {
                     }
                     
                     // Fee row
-                    FeeRow(fee: withdrawalFee, onTap: { showFeesSheet = true })
+                    FeeRow(fee: withdrawalFee, paymentInstrumentCurrency: destinationCurrency, onTap: { showFeesSheet = true })
                     
                     // Total deducted (if fee applies)
                     if !withdrawalFee.isFree {

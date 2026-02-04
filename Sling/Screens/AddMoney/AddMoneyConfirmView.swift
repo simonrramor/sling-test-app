@@ -5,6 +5,7 @@ struct AddMoneyConfirmView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var feeService = FeeService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @AppStorage("hasAddedMoney") private var hasAddedMoney = false
     let sourceAccount: PaymentAccount // The selected payment account
     let sourceAmount: Double // Amount in source currency (e.g., GBP)
@@ -59,6 +60,22 @@ struct AddMoneyConfirmView: View {
     }
     
     var formattedAmountAfterFee: String {
+        return amountAfterFee.asUSD
+    }
+    
+    /// Amount after fee in display currency
+    var formattedAmountAfterFeeInDisplayCurrency: String {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        if displayCurrency == "USD" {
+            return amountAfterFee.asUSD
+        }
+        // Convert from USD to display currency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
+            let displayAmount = amountAfterFee * rate
+            let symbol = ExchangeRateService.symbol(for: displayCurrency)
+            return displayAmount.asCurrency(symbol)
+        }
+        // Fallback to USD if no rate available
         return amountAfterFee.asUSD
     }
     
@@ -209,7 +226,7 @@ struct AddMoneyConfirmView: View {
                     .padding(.horizontal, 16)
                     
                     // Fees row
-                    FeeRow(fee: depositFee, onTap: { showFeesSheet = true })
+                    FeeRow(fee: depositFee, paymentInstrumentCurrency: sourceCurrency, onTap: { showFeesSheet = true })
                     
                     // Amount exchanged row (only show when there's a fee)
                     if !depositFee.isFree {
@@ -245,7 +262,7 @@ struct AddMoneyConfirmView: View {
                         .padding(.horizontal, 16)
                     }
                     
-                    // You receive row (in USD - Sling balance, after fees)
+                    // You receive row (in display currency, after fees)
                     HStack {
                         Text("You receive")
                             .font(.custom("Inter-Regular", size: 16))
@@ -258,7 +275,7 @@ struct AddMoneyConfirmView: View {
                                 .fill(Color(hex: "EDEDED"))
                                 .frame(width: 6, height: 6)
                             
-                            Text(formattedAmountAfterFee)
+                            Text(formattedAmountAfterFeeInDisplayCurrency)
                                 .font(.custom("Inter-Medium", size: 16))
                                 .foregroundColor(themeService.textPrimaryColor)
                         }
