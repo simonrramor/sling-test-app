@@ -334,6 +334,12 @@ struct SavingsView: View {
                 .cornerRadius(24)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
+                
+                // Demo speed-up notice
+                Text("Accumulation is sped up \(NumberFormatService.shared.formatWholeNumber(savingsService.demoTimeMultiplier))x for demo")
+                    .font(.custom("Inter-Regular", size: 12))
+                    .foregroundColor(themeService.textSecondaryColor.opacity(0.6))
+                    .padding(.top, 16)
             }
             .padding(.top, 16)
             .padding(.bottom, 120)
@@ -348,6 +354,10 @@ struct SavingsView: View {
         }
         .onChange(of: displayCurrencyService.displayCurrency) {
             fetchExchangeRate()
+        }
+        // SavingsService.refreshTrigger updates every second, forcing UI refresh
+        .onChange(of: savingsService.refreshTrigger) { _, _ in
+            // View automatically refreshes when refreshTrigger changes
         }
     }
     
@@ -600,9 +610,9 @@ struct SavingsHowItWorksSheet: View {
                                 .font(.custom("Inter-Bold", size: 16))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 48)
+                                .frame(height: DesignSystem.Button.height)
                                 .background(Color(hex: "080808"))
-                                .cornerRadius(24)
+                                .cornerRadius(DesignSystem.CornerRadius.large)
                         }
                         .padding(.top, 8)
                     }

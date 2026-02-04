@@ -50,6 +50,12 @@ class SavingsService: ObservableObject {
     
     // MARK: - Published State
     
+    /// Refresh trigger - toggles every second to force UI updates
+    @Published var refreshTrigger: Bool = false
+    
+    /// Timer for live value updates
+    private var updateTimer: Timer?
+    
     /// Base USDY tokens held (before any rebasing adjustment)
     @Published var usdyBalance: Double = 0.0 {
         didSet {
@@ -149,6 +155,11 @@ class SavingsService: ObservableObject {
         
         // Fetch live USDY price on init
         fetchLiveUsdyPrice()
+        
+        // Start timer for live UI updates (every second)
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.refreshTrigger.toggle()
+        }
     }
     
     // MARK: - Transaction Persistence
