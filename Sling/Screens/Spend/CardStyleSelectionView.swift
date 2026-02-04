@@ -1,5 +1,21 @@
 import SwiftUI
 
+struct CardColorOption: Identifiable {
+    let id: String
+    let color: Color
+    
+    static let allOptions: [CardColorOption] = [
+        CardColorOption(id: "orange", color: Color(hex: "FF5113")),
+        CardColorOption(id: "blue", color: Color(hex: "0887DC")),
+        CardColorOption(id: "green", color: Color(hex: "34C759")),
+        CardColorOption(id: "purple", color: Color(hex: "AF52DE")),
+        CardColorOption(id: "pink", color: Color(hex: "FF2D55")),
+        CardColorOption(id: "teal", color: Color(hex: "5AC8FA")),
+        CardColorOption(id: "indigo", color: Color(hex: "5856D6")),
+        CardColorOption(id: "black", color: Color(hex: "1C1C1E"))
+    ]
+}
+
 struct CardStyleSelectionView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
@@ -35,31 +51,23 @@ struct CardStyleSelectionView: View {
                 
                 Spacer()
                 
-                // Card selection area
-                HStack(spacing: 32) {
-                    // Orange card
-                    CardStyleOption(
-                        color: Color(hex: "FF5113"),
-                        isSelected: selectedStyle == "orange",
-                        onTap: {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                            selectedStyle = "orange"
+                // Card selection area - horizontal scroll
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(CardColorOption.allOptions) { option in
+                            CardStyleOption(
+                                color: option.color,
+                                isSelected: selectedStyle == option.id,
+                                onTap: {
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.impactOccurred()
+                                    selectedStyle = option.id
+                                }
+                            )
                         }
-                    )
-                    
-                    // Blue card
-                    CardStyleOption(
-                        color: Color(hex: "0887DC"),
-                        isSelected: selectedStyle == "blue",
-                        onTap: {
-                            let generator = UIImpactFeedbackGenerator(style: .light)
-                            generator.impactOccurred()
-                            selectedStyle = "blue"
-                        }
-                    )
+                    }
+                    .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 24)
                 
                 Spacer()
                 
