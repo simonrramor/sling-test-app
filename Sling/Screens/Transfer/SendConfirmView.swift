@@ -15,10 +15,11 @@ struct SendConfirmView: View {
     
     private let portfolioService = PortfolioService.shared
     private let activityService = ActivityService.shared
+    private let displayCurrencyService = DisplayCurrencyService.shared
     
     // Get the currency symbol from user's display currency
     var currencySymbol: String {
-        ExchangeRateService.symbol(for: portfolioService.displayCurrency)
+        ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
     }
     
     // Full formatted amount with decimals (for info rows)
