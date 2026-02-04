@@ -97,6 +97,9 @@ class SavingsService: ObservableObject {
     /// Base USDY price (always $1.00 at time of first deposit)
     let baseUsdyPrice: Double = 1.0
     
+    /// Live USDY market price (fetched from API)
+    @Published var liveUsdyPrice: Double = 1.0
+    
     /// Demo mode: Time multiplier (1 second = this many seconds of yield)
     /// For prototype: 1 second = ~1 day of yield (86400x speed)
     let demoTimeMultiplier: Double = 86400.0
@@ -143,6 +146,9 @@ class SavingsService: ObservableObject {
             transactions = [historicalTransaction]
             UserDefaults.standard.set(true, forKey: "savingsTransactionsMigrated_v1")
         }
+        
+        // Fetch live USDY price on init
+        fetchLiveUsdyPrice()
     }
     
     // MARK: - Transaction Persistence
@@ -311,5 +317,33 @@ class SavingsService: ObservableObject {
     
     func formatUSD(_ amount: Double) -> String {
         return amount.asUSD
+    }
+    
+    // MARK: - Live Price Fetching
+    
+    /// Fetch live USDY price from CoinGecko
+    func fetchLiveUsdyPrice() {
+        let urlString = "https://api.coingecko.com/api/v3/simple/price?ids=ondo-us-dollar-yield&vs_currencies=usd"
+        guard let url = URL(string: urlString) else { return }
+        
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let data = data, error == nil else {
+                print("SavingsService: Failed to fetch USDY price - \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let usdyData = json["ondo-us-dollar-yield"] as? [String: Any],
+                   let price = usdyData["usd"] as? Double {
+                    DispatchQueue.main.async {
+                        self?.liveUsdyPrice = price
+                        print("SavingsService: Live USDY price fetched: $\(price)")
+                    }
+                }
+            } catch {
+                print("SavingsService: Failed to parse USDY price - \(error)")
+            }
+        }.resume()
     }
 }

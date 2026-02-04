@@ -438,10 +438,10 @@ struct SavingsDepositConfirmView: View {
                     // Amount (fiat amount user inputted)
                     DetailRow(label: "Amount", value: formattedDisplayAmount)
                     
-                    // Price (live USDY price)
+                    // Price (live USDY price from market)
                     DetailRow(
                         label: "Price",
-                        value: "1 USDY = \(savingsService.formatPrice(savingsService.currentUsdyPrice))",
+                        value: "1 USDY = \(savingsService.formatPrice(savingsService.liveUsdyPrice))",
                         isHighlighted: true
                     )
                     
@@ -487,6 +487,10 @@ struct SavingsDepositConfirmView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .onAppear {
+            // Fetch fresh live USDY price
+            savingsService.fetchLiveUsdyPrice()
+        }
         .onReceive(quoteTimer) { _ in
             // Don't count down if loading
             guard !isButtonLoading else { return }
@@ -494,7 +498,8 @@ struct SavingsDepositConfirmView: View {
             if quoteTimeRemaining > 0 {
                 quoteTimeRemaining -= 1
             } else {
-                // Reset timer (USDY price is stable, no need to refresh)
+                // Refresh price and reset timer
+                savingsService.fetchLiveUsdyPrice()
                 quoteTimeRemaining = 30
                 let generator = UIImpactFeedbackGenerator(style: .light)
                 generator.impactOccurred()
