@@ -63,6 +63,7 @@ struct CardStyleSelectionView: View {
                                     let maxDistance: CGFloat = 200
                                     let normalizedDistance = min(distanceFromCenter / maxDistance, 1.0)
                                     let scale = 1.0 - (normalizedDistance * 0.1) // 100% at center, 90% at edges
+                                    let isClosestToCenter = distanceFromCenter < 50
                                     
                                     CardStyleOption(
                                         color: option.color,
@@ -74,6 +75,13 @@ struct CardStyleSelectionView: View {
                                     )
                                     .scaleEffect(scale)
                                     .animation(.easeOut(duration: 0.15), value: scale)
+                                    .onChange(of: isClosestToCenter) { _, newValue in
+                                        if newValue && currentSelection != option.id {
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
+                                            generator.impactOccurred()
+                                            currentSelection = option.id
+                                        }
+                                    }
                                 }
                                 .frame(width: cardDisplayWidth, height: 311)
                             }
