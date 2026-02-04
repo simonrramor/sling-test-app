@@ -333,7 +333,6 @@ struct WithdrawView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
-        }
     }
     
     /// Available balance formatted in destination currency
