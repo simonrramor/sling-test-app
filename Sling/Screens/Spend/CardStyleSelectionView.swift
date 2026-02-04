@@ -101,10 +101,12 @@ struct CardStyleOption: View {
     let isSelected: Bool
     let onTap: () -> Void
     
-    // Card dimensions - portrait orientation matching real card ratio
-    private let cardWidth: CGFloat = 200
-    private let cardHeight: CGFloat = 316
-    private let cornerRadius: CGFloat = 20
+    // Card dimensions - landscape orientation matching Figma and new reference
+    // Figma width: 345, height: 196 (ratio 1.76)
+    // We'll scale slightly for mobile screens
+    private let cardWidth: CGFloat = 320
+    private let cardHeight: CGFloat = 182 // 320 / 1.76
+    private let cornerRadius: CGFloat = 24
     
     var body: some View {
         Button(action: onTap) {
@@ -115,32 +117,20 @@ struct CardStyleOption: View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(color)
                     
-                    // Concentric circle watermark (positioned to right side)
+                    // Sling Logo Watermark
+                    // Figma: 218x218 on 345x196 card. Centered horizontally, slightly up vertically.
+                    // Scale factor: 320/345 = 0.927 -> Watermark size ~202
                     GeometryReader { geo in
-                        ZStack {
-                            // Large outer circle
-                            Circle()
-                                .stroke(Color.white.opacity(0.08), lineWidth: 12)
-                                .frame(width: geo.size.width * 1.1, height: geo.size.width * 1.1)
-                            
-                            // Medium circle
-                            Circle()
-                                .stroke(Color.white.opacity(0.08), lineWidth: 10)
-                                .frame(width: geo.size.width * 0.75, height: geo.size.width * 0.75)
-                            
-                            // Inner circle
-                            Circle()
-                                .stroke(Color.white.opacity(0.08), lineWidth: 8)
-                                .frame(width: geo.size.width * 0.45, height: geo.size.width * 0.45)
-                        }
-                        .position(x: geo.size.width * 0.65, y: geo.size.height * 0.45)
+                        SlingLogoMark(size: 202)
+                            .opacity(0.08) // 8% white opacity from Figma
+                            .position(x: geo.size.width / 2, y: geo.size.height / 2 - 8)
                     }
                     .clipped()
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 16)
-                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 8)
+                .shadow(color: Color.black.opacity(0.2), radius: 24, x: 0, y: 16)
+                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 8)
                 
                 // Card content overlay
                 VStack(alignment: .leading) {
@@ -152,15 +142,22 @@ struct CardStyleOption: View {
                     Spacer()
                     
                     // Bottom section: card number and Visa logo
-                    HStack(alignment: .bottom) {
+                    HStack(alignment: .center) {
                         // Card number
-                        HStack(spacing: 4) {
-                            Text("••••")
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(.white.opacity(0.7))
+                        HStack(spacing: 6) {
+                            // Dots (custom drawing to match Figma "Card number dots")
+                            HStack(spacing: 4) {
+                                ForEach(0..<4) { _ in
+                                    Circle()
+                                        .fill(Color.white.opacity(0.8))
+                                        .frame(width: 4, height: 4)
+                                }
+                            }
+                            
                             Text("9543")
                                 .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.white.opacity(0.8))
+                                .tracking(-0.32)
                         }
                         
                         Spacer()
@@ -170,8 +167,8 @@ struct CardStyleOption: View {
                             .renderingMode(.template)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(height: 24)
-                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 58, height: 19) // Approx scale from 72x24
+                            .foregroundColor(.white.opacity(0.8))
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
@@ -180,9 +177,9 @@ struct CardStyleOption: View {
                 
                 // Selection indicator
                 if isSelected {
-                    RoundedRectangle(cornerRadius: cornerRadius + 2)
+                    RoundedRectangle(cornerRadius: cornerRadius + 4)
                         .stroke(Color(hex: "FF5113"), lineWidth: 3)
-                        .frame(width: cardWidth + 6, height: cardHeight + 6)
+                        .frame(width: cardWidth + 10, height: cardHeight + 10)
                 }
             }
         }
@@ -199,28 +196,15 @@ struct SlingLogoMark: View {
         ZStack {
             // Outer ring
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.1)
+                .stroke(Color.white, lineWidth: size * 0.12)
                 .frame(width: size, height: size)
             
             // Inner ring
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.1)
-                .frame(width: size * 0.66, height: size * 0.66)
+                .stroke(Color.white, lineWidth: size * 0.12)
+                .frame(width: size * 0.62, height: size * 0.62)
         }
         .frame(width: size, height: size)
-    }
-}
-
-// MARK: - Visa Logo Vertical
-
-struct VisaLogoVertical: View {
-    var body: some View {
-        Image("VisaLogo")
-            .renderingMode(.template)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .foregroundColor(.white.opacity(0.8))
-            .rotationEffect(.degrees(-90))
     }
 }
 
