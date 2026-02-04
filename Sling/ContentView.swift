@@ -202,7 +202,7 @@ struct ContentView: View {
             ChatView()
         }
         .fullScreenCover(isPresented: $showQRScanner) {
-            QRScannerView(isPresented: $showQRScanner)
+            QRScannerView()
         }
         .fullScreenCover(isPresented: $showSearch) {
             SearchView()

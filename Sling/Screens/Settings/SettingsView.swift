@@ -353,7 +353,7 @@ struct SettingsView: View {
             InvestView(isPresented: $showInvestments)
         }
         .fullScreenCover(isPresented: $showQRScanner) {
-            QRScannerView(isPresented: $showQRScanner)
+            QRScannerView()
         }
         .fullScreenCover(isPresented: $showHelpChat) {
             ChatView()
