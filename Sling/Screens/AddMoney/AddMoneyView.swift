@@ -174,8 +174,8 @@ struct AddMoneyView: View {
                     
                     Spacer()
                     
-                    // Currency tag (shows wallet storage currency)
-                    Text(displayCurrencyService.storageCurrency)
+                    // Currency tag (shows display currency)
+                    Text(displayCurrencyService.displayCurrency)
                         .font(.custom("Inter-Medium", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
                         .padding(.horizontal, 12)
