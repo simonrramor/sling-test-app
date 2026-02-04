@@ -91,6 +91,27 @@ struct CardStyleOption: View {
                     // Base color
                     color
                     
+                    // Background watermark logo (8% opacity, centered)
+                    // Figma: 218x218 on 345x196 card, we scale proportionally
+                    GeometryReader { geo in
+                        let watermarkSize: CGFloat = 200 // Scaled from 218
+                        let innerSize: CGFloat = 133 // Scaled from 145.33 (ratio 0.667)
+                        let strokeWidth: CGFloat = 6
+                        
+                        ZStack {
+                            // Outer circle
+                            Circle()
+                                .stroke(Color.white.opacity(0.08), lineWidth: strokeWidth)
+                                .frame(width: watermarkSize, height: watermarkSize)
+                            
+                            // Inner circle
+                            Circle()
+                                .stroke(Color.white.opacity(0.08), lineWidth: strokeWidth)
+                                .frame(width: innerSize, height: innerSize)
+                        }
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                    }
+                    
                     // Sling logo in top left corner
                     VStack {
                         HStack {
