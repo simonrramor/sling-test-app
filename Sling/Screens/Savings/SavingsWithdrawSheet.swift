@@ -169,7 +169,7 @@ struct SavingsWithdrawSheet: View {
                 
                 Spacer()
                 
-                // Payment source row (Savings - where money comes FROM)
+                // Payment source row (Savings - where money comes FROM) with Max button
                 HStack(spacing: 12) {
                     // Black square background with savings icon
                     ZStack {
@@ -196,6 +196,24 @@ struct SavingsWithdrawSheet: View {
                     }
                     
                     Spacer()
+                    
+                    // Max button
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        // Set to max available balance in display currency
+                        let maxInDisplayCurrency = exchangeRate > 0 ? availableUSD / exchangeRate : availableUSD
+                        amountString = formatForInput(maxInDisplayCurrency)
+                        updateAmounts()
+                    }) {
+                        Text("Max")
+                            .font(.custom("Inter-SemiBold", size: 14))
+                            .foregroundColor(Color(hex: "FF5113"))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color(hex: "FF5113").opacity(0.1))
+                            .cornerRadius(16)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
