@@ -49,9 +49,7 @@ struct CardStyleSelectionView: View {
                 .padding(.top, 16)
                 .frame(height: 64)
                 
-                Spacer()
-                
-                // Card selection area - horizontal scroll
+                // Card selection area - horizontal scroll (fills available space)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 16) {
                         ForEach(CardColorOption.allOptions) { option in
@@ -67,10 +65,9 @@ struct CardStyleSelectionView: View {
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.vertical, 40)
+                    .frame(maxHeight: .infinity)
                 }
-                
-                Spacer()
+                .frame(maxHeight: .infinity)
                 
                 // Pick card button
                 Button(action: {
