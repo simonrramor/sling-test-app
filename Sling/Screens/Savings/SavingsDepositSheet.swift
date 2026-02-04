@@ -475,7 +475,7 @@ struct SavingsDepositConfirmView: View {
                         titleLeft: "Savings",
                         subtitleLeft: "Deposit",
                         titleRight: "+\(savingsService.formatTokens(usdyToReceive)) USDY",
-                        subtitleRight: formattedAmount
+                        subtitleRight: formattedDisplayAmount
                     )
                     
                     // Navigate back to savings and complete
