@@ -373,14 +373,23 @@ struct WithdrawView: View {
             }
     }
     
-    /// Available balance formatted in destination currency
+    /// Available balance formatted in display currency
     private var formattedAvailableBalance: String {
-        if destinationCurrency == "USD" {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        let symbol = ExchangeRateService.symbol(for: displayCurrency)
+        
+        if displayCurrency == "USD" {
             return portfolioService.cashBalance.asUSD
         }
-        // Convert USD balance to destination currency
-        let convertedBalance = exchangeRate > 0 ? portfolioService.cashBalance / exchangeRate : portfolioService.cashBalance
-        return convertedBalance.asCurrency(destinationSymbol)
+        
+        // Convert USD balance to display currency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
+            let convertedBalance = portfolioService.cashBalance * rate
+            return convertedBalance.asCurrency(symbol)
+        }
+        
+        // Fallback - just show USD
+        return portfolioService.cashBalance.asUSD
     }
     
     private func formatForInput(_ value: Double) -> String {
