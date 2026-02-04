@@ -107,6 +107,34 @@ struct AddMoneyConfirmView: View {
         return youReceiveAmount.asCurrency(symbol)
     }
     
+    /// Amount to store in USD (converts youReceiveAmount from display currency to USD)
+    private var amountToStoreInUSD: Double {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        
+        // If display currency is already USD, just return the amount
+        if displayCurrency == "USD" {
+            return youReceiveAmount
+        }
+        
+        // Convert from display currency to USD
+        if let rate = ExchangeRateService.shared.getCachedRate(from: displayCurrency, to: "USD") {
+            return youReceiveAmount * rate
+        }
+        
+        // Fallback rates to USD
+        let fallbackRatesToUSD: [String: Double] = [
+            "EUR": 1.09,
+            "GBP": 1.27
+        ]
+        
+        if let rate = fallbackRatesToUSD[displayCurrency] {
+            return youReceiveAmount * rate
+        }
+        
+        // Last resort: return the amount as-is
+        return youReceiveAmount
+    }
+    
     /// Formatted linked account amount (what will be taken from bank)
     var formattedLinkedAccountAmount: String {
         let symbol = ExchangeRateService.symbol(for: sourceCurrency)
@@ -370,8 +398,8 @@ struct AddMoneyConfirmView: View {
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Add money to portfolio (in USD, after fees)
-                    portfolioService.addCash(amountAfterFee)
+                    // Add money to portfolio (converted to USD for storage)
+                    portfolioService.addCash(amountToStoreInUSD)
                     
                     // Record the transaction in activity feed
                     activityService.recordAddMoney(
