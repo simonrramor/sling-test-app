@@ -909,6 +909,7 @@ struct AllActivityView: View {
                             showTransactionDetail = true
                         }
                     )
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 100)
                 }
                 .scrollIndicators(.hidden)
