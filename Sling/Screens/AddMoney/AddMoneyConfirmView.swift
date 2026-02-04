@@ -62,6 +62,21 @@ struct AddMoneyConfirmView: View {
         return amountAfterFee.asUSD
     }
     
+    /// Amount exchanged after fee deduction (in source currency)
+    private var amountExchangedAfterFee: Double {
+        if depositFee.isFree {
+            return sourceAmount
+        }
+        // Convert the $0.50 fee to source currency and subtract
+        let feeInSourceCurrency = 0.50 / exchangeRate // Convert USD fee to source currency
+        return max(0, sourceAmount - feeInSourceCurrency)
+    }
+    
+    var formattedAmountExchanged: String {
+        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
+        return amountExchangedAfterFee.asCurrency(symbol)
+    }
+    
     var formattedExchangeRate: String {
         let sourceSymbol = ExchangeRateService.symbol(for: sourceCurrency)
         return "\(sourceSymbol)1 = \(exchangeRate.asUSD)"
@@ -205,7 +220,7 @@ struct AddMoneyConfirmView: View {
                             
                             Spacer()
                             
-                            Text(formattedSourceAmount)
+                            Text(formattedAmountExchanged)
                                 .font(.custom("Inter-Medium", size: 16))
                                 .foregroundColor(themeService.textPrimaryColor)
                         }
