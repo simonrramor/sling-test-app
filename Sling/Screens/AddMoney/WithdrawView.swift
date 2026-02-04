@@ -22,7 +22,7 @@ struct WithdrawView: View {
         Double(amountString) ?? 0
     }
     
-    /// Destination account currency
+    /// Destination account currency (where money goes TO)
     var destinationCurrency: String {
         selectedAccount.currency.isEmpty ? "GBP" : selectedAccount.currency
     }
@@ -32,27 +32,42 @@ struct WithdrawView: View {
         ExchangeRateService.symbol(for: destinationCurrency)
     }
     
-    /// Whether we need to show currency conversion (destination differs from USD)
-    var needsCurrencyConversion: Bool {
-        destinationCurrency != "USD"
+    /// Display currency (user's preferred currency - source)
+    var sourceCurrency: String {
+        displayCurrencyService.displayCurrency
     }
     
-    /// Formatted destination currency amount
+    /// Symbol for source/display currency
+    var sourceSymbol: String {
+        ExchangeRateService.symbol(for: sourceCurrency)
+    }
+    
+    /// Whether we need to show currency conversion (source differs from destination)
+    var needsCurrencyConversion: Bool {
+        sourceCurrency != destinationCurrency
+    }
+    
+    /// Formatted source/display currency amount (EUR - what user is withdrawing FROM)
+    var formattedSourceAmount: String {
+        let value = showingDestinationCurrency ? usdAmount : amountValue
+        if amountString.isEmpty || value == 0 {
+            return "\(sourceSymbol)0"
+        }
+        // Convert from USD storage to display currency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) {
+            let displayAmount = showingDestinationCurrency ? (usdAmount * rate) : amountValue
+            return displayAmount.asCurrency(sourceSymbol)
+        }
+        return value.asCurrency(sourceSymbol)
+    }
+    
+    /// Formatted destination currency amount (GBP - where money goes TO)
     var formattedDestinationAmount: String {
         let value = showingDestinationCurrency ? amountValue : destinationAmount
         if amountString.isEmpty || value == 0 {
             return "\(destinationSymbol)0"
         }
         return value.asCurrency(destinationSymbol)
-    }
-    
-    /// Formatted USD amount (storage currency)
-    var formattedUSDAmount: String {
-        let value = showingDestinationCurrency ? usdAmount : amountValue
-        if amountString.isEmpty || value == 0 {
-            return "$0"
-        }
-        return value.asUSD
     }
     
     var canWithdraw: Bool {
@@ -292,18 +307,20 @@ struct WithdrawView: View {
                 Spacer()
                 
                 // Amount display with currency swap
+                // Shows: Source currency (EUR - display currency) and Destination currency (GBP - linked account)
                 if needsCurrencyConversion {
                     AnimatedCurrencySwapView(
-                        primaryDisplay: formattedDestinationAmount,
-                        secondaryDisplay: formattedUSDAmount,
-                        showingPrimaryOnTop: showingDestinationCurrency,
+                        primaryDisplay: formattedSourceAmount,
+                        secondaryDisplay: formattedDestinationAmount,
+                        showingPrimaryOnTop: !showingDestinationCurrency,
                         onSwap: {
                             // Convert current amount to the other currency before swapping
                             if showingDestinationCurrency {
-                                // Switching to USD input
-                                amountString = usdAmount > 0 ? formatForInput(usdAmount) : ""
+                                // Currently showing destination (GBP), switch to source (EUR) input
+                                let sourceAmount = usdAmount > 0 ? usdAmount * (ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) ?? 1.0) : 0
+                                amountString = sourceAmount > 0 ? formatForInput(sourceAmount) : ""
                             } else {
-                                // Switching to destination currency input
+                                // Currently showing source (EUR), switch to destination (GBP) input
                                 amountString = destinationAmount > 0 ? formatForInput(destinationAmount) : ""
                             }
                             showingDestinationCurrency.toggle()
@@ -311,9 +328,9 @@ struct WithdrawView: View {
                         errorMessage: isOverBalance ? "Insufficient balance" : nil
                     )
                 } else {
-                    // No conversion needed - destination is USD
+                    // No conversion needed - same currency
                     VStack(spacing: 4) {
-                        Text(formattedUSDAmount)
+                        Text(formattedSourceAmount)
                             .font(.custom("Inter-Bold", size: 56))
                             .foregroundColor(isOverBalance ? .red : themeService.textPrimaryColor)
                             .minimumScaleFactor(0.5)
