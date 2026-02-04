@@ -23,6 +23,11 @@ struct CardStyleSelectionView: View {
     @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
     @State private var currentSelection: String = "orange"
     
+    // Get color for current selection
+    private var currentSelectionColor: Color {
+        CardColorOption.allOptions.first { $0.id == currentSelection }?.color ?? Color(hex: "FF5113")
+    }
+    
     var body: some View {
         ZStack {
             Color.white
@@ -108,9 +113,10 @@ struct CardStyleSelectionView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color(hex: "FF5113"))
+                        .background(currentSelectionColor)
                         .cornerRadius(20)
                 }
+                .animation(.easeOut(duration: 0.2), value: currentSelection)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 50)
             }

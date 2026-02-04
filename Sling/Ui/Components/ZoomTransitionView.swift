@@ -40,11 +40,27 @@ enum ZoomMenuOption: String, CaseIterable, Identifiable {
 /// A simple morph transition view that animates between a circle and a rectangle
 struct ZoomTransitionView: View {
     @ObservedObject private var themeService = ThemeService.shared
+    @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
     @State private var isExpanded = false
     @State private var isPressed = false
     
     // Action callback when a menu option is selected
     var onAction: ((ZoomMenuOption) -> Void)?
+    
+    // Map card style to FAB color
+    private var fabColor: Color {
+        switch selectedCardStyle {
+        case "orange": return Color(hex: "FF5113")
+        case "blue": return Color(hex: "0887DC")
+        case "green": return Color(hex: "34C759")
+        case "purple": return Color(hex: "AF52DE")
+        case "pink": return Color(hex: "FF2D55")
+        case "teal": return Color(hex: "5AC8FA")
+        case "indigo": return Color(hex: "5856D6")
+        case "black": return Color(hex: "1C1C1E")
+        default: return Color(hex: "FF5113") // Default orange
+        }
+    }
     
     // Animated properties (3 menu options: send, request, receive salary)
     private var height: CGFloat { isExpanded ? 240 : DesignSystem.Button.height }
@@ -122,7 +138,7 @@ struct ZoomTransitionView: View {
                         }
                     }
                     .frame(width: width(in: geometry.size.width), height: height)
-                    .background(isExpanded ? themeService.cardBackgroundColor : Color(hex: DesignSystem.Colors.primary))
+                    .background(isExpanded ? themeService.cardBackgroundColor : fabColor)
                     .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                     .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
                     .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)

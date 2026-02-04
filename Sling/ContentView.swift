@@ -255,6 +255,22 @@ struct ContentView: View {
 
 struct FloatingActionButton: View {
     @Binding var isMenuOpen: Bool
+    @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
+    
+    // Map card style to color
+    private var fabColor: Color {
+        switch selectedCardStyle {
+        case "orange": return Color(hex: "FF5113")
+        case "blue": return Color(hex: "0887DC")
+        case "green": return Color(hex: "34C759")
+        case "purple": return Color(hex: "AF52DE")
+        case "pink": return Color(hex: "FF2D55")
+        case "teal": return Color(hex: "5AC8FA")
+        case "indigo": return Color(hex: "5856D6")
+        case "black": return Color(hex: "1C1C1E")
+        default: return Color(hex: "FF5113") // Default orange
+        }
+    }
     
     var body: some View {
         Button(action: {
@@ -264,7 +280,7 @@ struct FloatingActionButton: View {
         }) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: "FF5113"))
+                    .fill(fabColor)
                     .frame(width: 56, height: 56)
                     .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 

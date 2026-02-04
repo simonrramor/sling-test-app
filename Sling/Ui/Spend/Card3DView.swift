@@ -234,23 +234,28 @@ struct Card3DView: UIViewRepresentable {
             return originalImage
         }
         
-        // For other colors, apply a color replacement
-        let size = originalImage.size
-        let renderer = UIGraphicsImageRenderer(size: size)
+        // Calculate hue shift from orange to target color
+        var orangeHue: CGFloat = 0, orangeSat: CGFloat = 0, orangeBri: CGFloat = 0
+        var targetHue: CGFloat = 0, targetSat: CGFloat = 0, targetBri: CGFloat = 0
+        orangeColor.getHue(&orangeHue, saturation: &orangeSat, brightness: &orangeBri, alpha: nil)
+        color.getHue(&targetHue, saturation: &targetSat, brightness: &targetBri, alpha: nil)
         
-        return renderer.image { context in
-            let rect = CGRect(origin: .zero, size: size)
-            
-            // Draw the new color as background
-            color.setFill()
-            context.fill(rect)
-            
-            // Draw the original image with luminosity blend to keep the details
-            originalImage.draw(in: rect, blendMode: .luminosity, alpha: 1.0)
-            
-            // Draw again with soft light to enhance
-            originalImage.draw(in: rect, blendMode: .softLight, alpha: 0.3)
-        }
+        // Hue shift in radians (CIHueAdjust uses radians)
+        let hueShift = (targetHue - orangeHue) * 2 * .pi
+        
+        guard let ciImage = CIImage(image: originalImage) else { return originalImage }
+        
+        // Apply hue rotation
+        let hueFilter = CIFilter(name: "CIHueAdjust")
+        hueFilter?.setValue(ciImage, forKey: kCIInputImageKey)
+        hueFilter?.setValue(hueShift, forKey: kCIInputAngleKey)
+        
+        guard let hueOutput = hueFilter?.outputImage else { return originalImage }
+        
+        let ciContext = CIContext()
+        guard let cgImage = ciContext.createCGImage(hueOutput, from: hueOutput.extent) else { return originalImage }
+        
+        return UIImage(cgImage: cgImage)
     }
     
     private func createLockedCardImage(color: UIColor, blurRadius: Double) -> UIImage {
