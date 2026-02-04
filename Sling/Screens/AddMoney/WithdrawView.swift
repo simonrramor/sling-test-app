@@ -186,19 +186,50 @@ struct WithdrawView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
-                        if account.id != PaymentAccount.allAccounts.filter({ !$0.isAddNew }).last?.id {
-                            Rectangle()
-                                .fill(Color(hex: "F0F0F0"))
-                                .frame(height: 1)
-                                .padding(.horizontal, 24)
-                        }
                     }
+                    
+                    // Add a new account row
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        // TODO: Handle add new account action
+                    }) {
+                        HStack(spacing: 16) {
+                            // Icon
+                            Image("AccountAddNew")
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 44, height: 44)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            
+                            // Details
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Add a new account")
+                                    .font(.custom("Inter-Bold", size: 16))
+                                    .foregroundColor(themeService.textPrimaryColor)
+                                
+                                Text("Bank · Card · Mobile wallet")
+                                    .font(.custom("Inter-Regular", size: 14))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(themeService.textSecondaryColor)
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             
             Spacer()
         }
+        .background(Color.white)
     }
     
     // MARK: - Amount Input View
