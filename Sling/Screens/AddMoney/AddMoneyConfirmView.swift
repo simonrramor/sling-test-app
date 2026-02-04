@@ -85,6 +85,17 @@ struct AddMoneyConfirmView: View {
             return amountExchangedAfterFee * rate
         }
         
+        // Fallback rates for common pairs
+        let fallbackRates: [String: [String: Double]] = [
+            "GBP": ["EUR": 1.16, "USD": 1.27],
+            "EUR": ["GBP": 0.86, "USD": 1.09],
+            "USD": ["GBP": 0.79, "EUR": 0.92]
+        ]
+        
+        if let rate = fallbackRates[sourceCurrency]?[displayCurrency] {
+            return amountExchangedAfterFee * rate
+        }
+        
         // Fallback to sourceAmount if no rate available
         return sourceAmount
     }
@@ -112,6 +123,15 @@ struct AddMoneyConfirmView: View {
             let feeInLinkedCurrency = 0.50 * rate
             return max(0, linkedAccountAmount - feeInLinkedCurrency)
         }
+        // Fallback rates from USD
+        let fallbackRatesFromUSD: [String: Double] = [
+            "GBP": 0.79,
+            "EUR": 0.92
+        ]
+        if let rate = fallbackRatesFromUSD[sourceCurrency] {
+            let feeInLinkedCurrency = 0.50 * rate
+            return max(0, linkedAccountAmount - feeInLinkedCurrency)
+        }
         return linkedAccountAmount
     }
     
@@ -136,7 +156,18 @@ struct AddMoneyConfirmView: View {
             return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", rate))"
         }
         
-        // Fallback to passed exchange rate (which may be to USD)
+        // Fallback rates for common pairs
+        let fallbackRates: [String: [String: Double]] = [
+            "GBP": ["EUR": 1.16, "USD": 1.27],
+            "EUR": ["GBP": 0.86, "USD": 1.09],
+            "USD": ["GBP": 0.79, "EUR": 0.92]
+        ]
+        
+        if let rate = fallbackRates[sourceCurrency]?[displayCurrency] {
+            return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", rate))"
+        }
+        
+        // Last resort fallback
         return "\(sourceSymbol)1 = \(exchangeRate.asUSD)"
     }
     
