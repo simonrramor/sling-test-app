@@ -58,12 +58,18 @@ struct HomeView: View {
                         
                         Spacer()
                         
-                        // See more button (only show if there are more than 3 activities)
+                        // See all button (only show if there are more than 3 activities)
                         if activityService.activities.count > 3 {
                             Button(action: { showAllActivity = true }) {
-                                Text("See more")
+                                Text("See all")
                                     .font(.custom("Inter-SemiBold", size: 14))
-                                    .foregroundColor(Color(hex: "FF5113"))
+                                    .foregroundColor(themeService.textPrimaryColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
+                                    )
                             }
                         }
                     }
