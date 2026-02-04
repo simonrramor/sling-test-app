@@ -9,6 +9,7 @@ struct WithdrawView: View {
     @State private var amountString = ""
     @State private var selectedAccount: PaymentAccount = .ukBank
     @State private var showAccountPicker = false
+    @State private var showAccountSelection = true
     @State private var showConfirmation = false
     @State private var showingDestinationCurrency = true // true = destination currency primary, false = USD primary
     @State private var destinationAmount: Double = 0 // Amount in destination account currency
@@ -74,21 +75,152 @@ struct WithdrawView: View {
             Color.white
                 .ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Header - shows DESTINATION (where money goes TO)
-                HStack(spacing: 16) {
-                    // Back button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        isPresented = false
-                    }) {
-                        Image("ArrowLeft")
-                            .renderingMode(.template)
-                            .foregroundColor(themeService.textSecondaryColor)
-                            .frame(width: 24, height: 24)
+            if showAccountSelection {
+                // Account Selection Screen
+                accountSelectionView
+            } else {
+                // Amount Input Screen
+                amountInputView
+            }
+        }
+        .accountSelectorOverlay(isPresented: $showAccountPicker, selectedAccount: $selectedAccount)
+        .fullScreenCover(isPresented: $showConfirmation) {
+            WithdrawConfirmView(
+                usdAmount: showingDestinationCurrency ? usdAmount : amountValue,
+                destinationAmount: showingDestinationCurrency ? amountValue : destinationAmount,
+                destinationCurrency: destinationCurrency,
+                destinationAccount: selectedAccount,
+                isPresented: $showConfirmation,
+                onComplete: {
+                    isPresented = false
+                }
+            )
+        }
+        .onAppear {
+            updateAmounts()
+        }
+        .onChange(of: selectedAccount) { _ in
+            showingDestinationCurrency = true
+            destinationAmount = amountValue
+            usdAmount = 0
+            updateAmounts()
+        }
+        .onChange(of: amountString) { _ in
+            updateAmounts()
+        }
+    }
+    
+    // MARK: - Account Selection View
+    
+    private var accountSelectionView: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    isPresented = false
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(themeService.textPrimaryColor)
+                        .frame(width: 32, height: 32)
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            
+            // Title
+            Text("Withdraw to")
+                .font(.custom("Inter-Bold", size: 28))
+                .foregroundColor(themeService.textPrimaryColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+            
+            Text("Select an account to withdraw funds to")
+                .font(.custom("Inter-Regular", size: 16))
+                .foregroundColor(themeService.textSecondaryColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+            
+            // Account list
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(PaymentAccount.allAccounts.filter { !$0.isAddNew }) { account in
+                        Button(action: {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            selectedAccount = account
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                showAccountSelection = false
+                            }
+                        }) {
+                            HStack(spacing: 16) {
+                                // Account icon
+                                AccountIconView(iconType: account.iconType)
+                                
+                                // Account details
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(account.name)
+                                        .font(.custom("Inter-Bold", size: 16))
+                                        .foregroundColor(themeService.textPrimaryColor)
+                                    
+                                    Text(account.subtitle)
+                                        .font(.custom("Inter-Regular", size: 14))
+                                        .foregroundColor(themeService.textSecondaryColor)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 16)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        if account.id != PaymentAccount.allAccounts.filter({ !$0.isAddNew }).last?.id {
+                            Rectangle()
+                                .fill(Color(hex: "F0F0F0"))
+                                .frame(height: 1)
+                                .padding(.horizontal, 24)
+                        }
                     }
-                    .accessibilityLabel("Go back")
+                }
+            }
+            
+            Spacer()
+        }
+    }
+    
+    // MARK: - Amount Input View
+    
+    private var amountInputView: some View {
+        VStack(spacing: 0) {
+            // Header - shows DESTINATION (where money goes TO)
+            HStack(spacing: 16) {
+                // Back button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showAccountSelection = true
+                    }
+                }) {
+                    Image("ArrowLeft")
+                        .renderingMode(.template)
+                        .foregroundColor(themeService.textSecondaryColor)
+                        .frame(width: 24, height: 24)
+                }
+                .accessibilityLabel("Go back")
                     
                     // Destination account icon
                     AccountIconView(iconType: selectedAccount.iconType)
@@ -198,42 +330,9 @@ struct WithdrawView: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
-            
-            // Confirmation overlay
-            if showConfirmation {
-                WithdrawConfirmView(
-                    usdAmount: usdAmount,
-                    destinationAmount: destinationAmount,
-                    destinationCurrency: destinationCurrency,
-                    destinationAccount: selectedAccount,
-                    isPresented: $showConfirmation,
-                    onComplete: {
-                        isPresented = false
-                    }
-                )
-                .transition(.fluidConfirm)
-            }
-        }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
-        .accountSelectorOverlay(
-            isPresented: $showAccountPicker,
-            selectedAccount: $selectedAccount
-        )
-        .onChange(of: amountString) { _, _ in
-            updateAmounts()
-        }
-        .onChange(of: selectedAccount.id) { _, _ in
-            // Reset to destination currency when account changes
-            showingDestinationCurrency = true
-            destinationAmount = amountValue
-            usdAmount = 0
-            updateAmounts()
-        }
-        .onAppear {
-            updateAmounts()
         }
     }
     
