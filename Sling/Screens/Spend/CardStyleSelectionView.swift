@@ -21,6 +21,7 @@ struct CardStyleSelectionView: View {
     @ObservedObject private var themeService = ThemeService.shared
     @AppStorage("hasCard") private var hasCard = false
     @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
+    @State private var currentSelection: String = "orange"
     
     var body: some View {
         ZStack {
@@ -66,12 +67,9 @@ struct CardStyleSelectionView: View {
                                     CardStyleOption(
                                         color: option.color,
                                         onTap: {
-                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                            let generator = UIImpactFeedbackGenerator(style: .light)
                                             generator.impactOccurred()
-                                            selectedCardStyle = option.id
-                                            hasCard = true
-                                            isPresented = false
-                                            NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                                            currentSelection = option.id
                                         }
                                     )
                                     .scaleEffect(scale)
@@ -85,6 +83,26 @@ struct CardStyleSelectionView: View {
                     }
                 }
                 .frame(maxHeight: .infinity)
+                
+                // Select card button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    selectedCardStyle = currentSelection
+                    hasCard = true
+                    isPresented = false
+                    NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                }) {
+                    Text("Select card")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color(hex: "FF5113"))
+                        .cornerRadius(20)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 50)
             }
         }
     }
