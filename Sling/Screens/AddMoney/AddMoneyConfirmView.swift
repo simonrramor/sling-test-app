@@ -64,17 +64,21 @@ struct AddMoneyConfirmView: View {
         return amountAfterFee.asUSD
     }
     
-    /// Display currency amount (what user typed) minus the fee
-    private var displayAmountAfterFee: Double {
-        if depositFee.isFree {
-            return sourceAmount
-        }
-        // Subtract the $0.50 fee converted to display currency
+    /// Convert linked account amount (minus fee) directly to display currency
+    private var youReceiveAmount: Double {
         let displayCurrency = displayCurrencyService.displayCurrency
-        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
-            let feeInDisplayCurrency = 0.50 * rate
-            return max(0, sourceAmount - feeInDisplayCurrency)
+        
+        // If display currency matches linked account currency, just return amount minus fee
+        if displayCurrency == sourceCurrency {
+            return amountExchangedAfterFee
         }
+        
+        // Convert from linked account currency (e.g., GBP) directly to display currency (e.g., EUR)
+        if let rate = ExchangeRateService.shared.getCachedRate(from: sourceCurrency, to: displayCurrency) {
+            return amountExchangedAfterFee * rate
+        }
+        
+        // Fallback to sourceAmount if no rate available
         return sourceAmount
     }
     
@@ -82,7 +86,7 @@ struct AddMoneyConfirmView: View {
     var formattedAmountAfterFeeInDisplayCurrency: String {
         let displayCurrency = displayCurrencyService.displayCurrency
         let symbol = ExchangeRateService.symbol(for: displayCurrency)
-        return displayAmountAfterFee.asCurrency(symbol)
+        return youReceiveAmount.asCurrency(symbol)
     }
     
     /// Formatted linked account amount (what will be taken from bank)
@@ -109,8 +113,23 @@ struct AddMoneyConfirmView: View {
         return amountExchangedAfterFee.asCurrency(symbol)
     }
     
+    /// Exchange rate from linked account currency to display currency
     var formattedExchangeRate: String {
+        let displayCurrency = displayCurrencyService.displayCurrency
         let sourceSymbol = ExchangeRateService.symbol(for: sourceCurrency)
+        let destSymbol = ExchangeRateService.symbol(for: displayCurrency)
+        
+        // If same currency, show 1:1
+        if displayCurrency == sourceCurrency {
+            return "\(sourceSymbol)1 = \(destSymbol)1"
+        }
+        
+        // Get direct rate from linked account to display currency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: sourceCurrency, to: displayCurrency) {
+            return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", rate))"
+        }
+        
+        // Fallback to passed exchange rate (which may be to USD)
         return "\(sourceSymbol)1 = \(exchangeRate.asUSD)"
     }
     
