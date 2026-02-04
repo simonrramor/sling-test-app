@@ -83,14 +83,14 @@ struct PaymentAccount: Identifiable, Equatable {
         name: "Brazilian Bank",
         accountNumber: "•••• 4521",
         currency: "BRL",
-        iconType: .asset("AccountBankDefault")
+        iconType: .asset("AccountNubank")
     )
     
     static let kenyanMobileMoney = PaymentAccount(
         name: "Kenyan Mobile Money",
         accountNumber: "+254 •••• 89",
         currency: "KES",
-        iconType: .asset("AccountBankDefault")
+        iconType: .asset("AccountMPesa")
     )
     
     static let addNewAccount = PaymentAccount(
