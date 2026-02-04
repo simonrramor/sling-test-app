@@ -7,10 +7,10 @@ struct FeeRow: View {
     let fee: FeeResult
     var onTap: (() -> Void)? = nil
     
-    /// Fixed fee based on storage currency ($0.50 or €0.50)
+    /// Fixed fee based on storage currency (-$0.50 or -€0.50)
     private var fixedFeeDisplay: String {
         let symbol = displayCurrencyService.storageCurrency == "EUR" ? "€" : "$"
-        return "\(symbol)0.50"
+        return "-\(symbol)0.50"
     }
     
     var body: some View {
