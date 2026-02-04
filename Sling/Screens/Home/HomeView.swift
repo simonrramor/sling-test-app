@@ -61,15 +61,9 @@ struct HomeView: View {
                         // See more button (only show if there are more than 3 activities)
                         if activityService.activities.count > 3 {
                             Button(action: { showAllActivity = true }) {
-                                HStack(spacing: 4) {
-                                    Text("See more")
-                                        .font(.custom("Inter-SemiBold", size: 14))
-                                        .foregroundColor(Color(hex: "FF5113"))
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(Color(hex: "FF5113"))
-                                }
+                                Text("See more")
+                                    .font(.custom("Inter-SemiBold", size: 14))
+                                    .foregroundColor(Color(hex: "FF5113"))
                             }
                         }
                     }
