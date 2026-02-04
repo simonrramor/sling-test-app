@@ -642,7 +642,7 @@ struct SavingsHowItWorksSheet: View {
                 .padding(.bottom, 8)
                 .scaleEffect(x: 1.0, y: stretchScale, anchor: .bottom)
                 .offset(y: min(0, -dragOffset))
-                .transition(.move(edge: .bottom))
+                .transition(.opacity)
                 .gesture(
                     DragGesture(minimumDistance: 5)
                         .onChanged { value in
@@ -679,12 +679,9 @@ struct SavingsHowItWorksSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
         .onAppear {
-            // Fade in background separately
+            // Fade in background and card together
             withAnimation(.easeOut(duration: 0.25)) {
                 backgroundOpacity = 0.4
-            }
-            // Slide in card with spring
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                 showCard = true
             }
         }
