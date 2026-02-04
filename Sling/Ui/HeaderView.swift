@@ -5,33 +5,18 @@ struct HeaderView: View {
     var currentTab: Tab = .home
     var previousTab: Tab? = nil
     var onProfileTap: () -> Void = {}
-    var onChatTap: () -> Void = {}
-    var onQRCodeTap: () -> Void = {}
     var onSearchTap: () -> Void = {}
     var onInviteTap: () -> Void = {}
     
     @ObservedObject private var themeService = ThemeService.shared
     
     // Determine which buttons to show based on current tab
-    // Home: Invite, QR, Help
-    // Card: Invite, Help
-    // Transfer: Invite, QR, Help
-    // Invest: Search, Invite, Help
-    
     private var showInvite: Bool {
         true // Always show invite
     }
     
-    private var showQR: Bool {
-        currentTab == .home
-    }
-    
     private var showSearch: Bool {
         currentTab == .home || currentTab == .invest
-    }
-    
-    private var showHelp: Bool {
-        true // Always show help
     }
     
     // Determine direction for animations
@@ -103,25 +88,7 @@ struct HeaderView: View {
                     .transition(buttonTransition)
                 }
                 
-                // QR Code Button - Home, Transfer
-                if showQR {
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        onQRCodeTap()
-                    }) {
-                        Image(systemName: "qrcode")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
-                            .frame(width: 36, height: 36)
-                            .background(Color("BackgroundTertiary"))
-                            .cornerRadius(12)
-                    }
-                    .accessibilityLabel("QR Code")
-                    .transition(buttonTransition)
-                }
-                
-                // Search Button - Invest, Activity
+                // Search Button - Home, Invest
                 if showSearch {
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
@@ -138,42 +105,8 @@ struct HeaderView: View {
                     .accessibilityLabel("Search")
                     .transition(buttonTransition)
                 }
-                
-                // Chat/Help Button - always shown
-                if showHelp {
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        onChatTap()
-                    }) {
-                        Image(systemName: "questionmark")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
-                            .frame(width: 36, height: 36)
-                            .background(Color("BackgroundTertiary"))
-                            .cornerRadius(12)
-                    }
-                    .accessibilityLabel("Help")
-                    .transition(buttonTransition)
-                }
-                
-                // Theme Switcher Button
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    themeService.toggleTheme()
-                }) {
-                    Image(systemName: themeService.currentTheme.iconName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color("TextPrimary"))
-                        .frame(width: 36, height: 36)
-                        .background(Color("BackgroundTertiary"))
-                        .cornerRadius(12)
-                }
-                .accessibilityLabel("Theme: \(themeService.currentTheme.displayName)")
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: currentTab)
-            .animation(.easeInOut(duration: 0.2), value: themeService.currentTheme)
         }
         .padding(.vertical, 16)
     }

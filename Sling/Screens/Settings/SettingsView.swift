@@ -4,8 +4,10 @@ import UIKit
 struct SettingsView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var savingsService = SavingsService.shared
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     @State private var showResetConfirmation = false
     @State private var showLogoutConfirmation = false
@@ -16,15 +18,20 @@ struct SettingsView: View {
     @State private var showPrivacy = false
     @State private var showPassport = false
     @State private var showParticleTest = false
-    @State private var showHomeTest = false
+    @State private var showBlobsTest = false
+    @State private var showMorseBot = false
+    @State private var showBotComparison = false
+    @State private var showSwapTest = false
     @State private var showCurrencyPicker = false
     @State private var showFees = false
-    
-    private let availableCurrencies = ["GBP", "USD", "EUR", "JPY", "CHF", "CAD", "AUD"]
+    @State private var showInvestments = false
+    @State private var showQRScanner = false
+    @State private var showHelpChat = false
+    @State private var showTransfer = false
     
     var body: some View {
         ZStack {
-            Color.white
+            themeService.backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -70,11 +77,11 @@ struct SettingsView: View {
                             Text("Brendon Arnold")
                                 .font(.custom("Inter-Bold", size: 32))
                                 .tracking(-0.64)
-                                .foregroundColor(.black)
+                                .foregroundColor(themeService.textPrimaryColor)
                             
                             Text("@brendon")
                                 .font(.custom("Inter-Regular", size: 16))
-                                .foregroundColor(Color.black.opacity(0.6))
+                                .foregroundColor(themeService.textSecondaryColor)
                         }
                     }
                     .padding(.top, 16)
@@ -109,8 +116,22 @@ struct SettingsView: View {
                             SettingsRow(
                                 iconAsset: "IconMoney",
                                 title: "Fees",
-                                position: .bottom,
+                                position: .middle,
                                 onTap: { showFees = true }
+                            )
+                            
+                            SettingsRow(
+                                iconAsset: "NavInvest",
+                                title: "Investments",
+                                position: .middle,
+                                onTap: { showInvestments = true }
+                            )
+                            
+                            SettingsRow(
+                                iconSystem: "arrow.left.arrow.right",
+                                title: "Transfer between accounts",
+                                position: .bottom,
+                                onTap: { showTransfer = true }
                             )
                         }
                         
@@ -119,22 +140,54 @@ struct SettingsView: View {
                             SettingsRow(
                                 iconAsset: "IconMoney",
                                 title: "Display currency",
-                                rightText: portfolioService.displayCurrency,
-                                position: .standalone,
+                                rightText: displayCurrencyService.displayCurrency,
+                                position: .top,
                                 onTap: { showCurrencyPicker = true }
                             )
                             
                             SettingsRow(
+                                iconSystem: themeService.currentTheme.iconName,
+                                title: "Theme",
+                                rightText: themeService.currentTheme.displayName,
+                                position: .bottom,
+                                onTap: { 
+                                    let generator = UIImpactFeedbackGenerator(style: .light)
+                                    generator.impactOccurred()
+                                    themeService.toggleTheme() 
+                                }
+                            )
+                        }
+                        
+                        // Tools section
+                        VStack(spacing: 0) {
+                            SettingsRow(
+                                iconSystem: "qrcode",
+                                title: "QR Scanner",
+                                position: .top,
+                                onTap: { showQRScanner = true }
+                            )
+                            
+                            SettingsRow(
+                                iconSystem: "questionmark.circle",
+                                title: "Help & Support",
+                                position: .bottom,
+                                onTap: { showHelpChat = true }
+                            )
+                        }
+                        
+                        // Profile section
+                        VStack(spacing: 0) {
+                            SettingsRow(
                                 iconAsset: "IconUser",
                                 title: "Your Profile",
-                                position: .standalone,
+                                position: .top,
                                 onTap: { showProfile = true }
                             )
                             
                             SettingsRow(
                                 iconAsset: "IconEye",
                                 title: "Privacy",
-                                position: .standalone,
+                                position: .bottom,
                                 onTap: { showPrivacy = true }
                             )
                         }
@@ -161,9 +214,16 @@ struct SettingsView: View {
                         // Developer section
                         VStack(spacing: 0) {
                             SettingsRow(
+                                iconSystem: "arrow.up.arrow.down",
+                                title: "Swap Animation",
+                                position: .top,
+                                onTap: { showSwapTest = true }
+                            )
+                            
+                            SettingsRow(
                                 iconSystem: "book.closed.fill",
                                 title: "Passport",
-                                position: .top,
+                                position: .middle,
                                 onTap: { showPassport = true }
                             )
                             
@@ -175,10 +235,24 @@ struct SettingsView: View {
                             )
                             
                             SettingsRow(
-                                iconSystem: "house",
-                                title: "Home test",
+                                iconAsset: "IconMorseBot",
+                                title: "Morse Bot",
+                                position: .middle,
+                                onTap: { showMorseBot = true }
+                            )
+                            
+                            SettingsRow(
+                                iconAsset: "IconMorseBot",
+                                title: "Bot Comparison",
+                                position: .middle,
+                                onTap: { showBotComparison = true }
+                            )
+                            
+                            SettingsRow(
+                                iconSystem: "circle.grid.2x2",
+                                title: "Blobs",
                                 position: .bottom,
-                                onTap: { showHomeTest = true }
+                                onTap: { showBlobsTest = true }
                             )
                         }
                         
@@ -199,13 +273,13 @@ struct SettingsView: View {
                             .foregroundColor(.red)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.white)
-                            .cornerRadius(16)
+                            .background(themeService.cardBackgroundColor)
+                            .cornerRadius(24)
                         }
                         
                         Spacer().frame(height: 40)
                     }
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 16)
                 }
             }
         }
@@ -247,26 +321,45 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showParticleTest) {
             ParticleTestView()
         }
-        .fullScreenCover(isPresented: $showHomeTest) {
-            HomeTestView()
+        .fullScreenCover(isPresented: $showBlobsTest) {
+            BlobsTestView()
+        }
+        .fullScreenCover(isPresented: $showMorseBot) {
+            MorseBotView(isPresented: $showMorseBot)
+        }
+        .fullScreenCover(isPresented: $showBotComparison) {
+            NavigationView {
+                BotComparisonView()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Close") {
+                                showBotComparison = false
+                            }
+                        }
+                    }
+            }
+        }
+        .fullScreenCover(isPresented: $showSwapTest) {
+            SwapAnimationTestView()
         }
         .fullScreenCover(isPresented: $showFees) {
             FeesSettingsView(isPresented: $showFees)
         }
-        .confirmationDialog("Display Currency", isPresented: $showCurrencyPicker, titleVisibility: .visible) {
-            ForEach(availableCurrencies, id: \.self) { currency in
-                Button(action: {
-                    portfolioService.displayCurrency = currency
-                }) {
-                    HStack {
-                        Text("\(ExchangeRateService.symbol(for: currency)) \(currency)")
-                        if currency == portfolioService.displayCurrency {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-            Button("Cancel", role: .cancel) {}
+        .fullScreenCover(isPresented: $showCurrencyPicker) {
+            CurrencySelectionView(isPresented: $showCurrencyPicker)
+        }
+        .fullScreenCover(isPresented: $showInvestments) {
+            InvestView(isPresented: $showInvestments)
+        }
+        .fullScreenCover(isPresented: $showQRScanner) {
+            QRScannerView(isPresented: $showQRScanner)
+        }
+        .fullScreenCover(isPresented: $showHelpChat) {
+            ChatView()
+        }
+        .fullScreenCover(isPresented: $showTransfer) {
+            TransferBetweenAccountsView(isPresented: $showTransfer)
         }
     }
     
@@ -279,6 +372,9 @@ struct SettingsView: View {
     private func resetAppData() {
         // Reset portfolio
         portfolioService.reset()
+        
+        // Reset savings
+        savingsService.reset()
         
         // Reset activities
         activityService.clearLocalActivities()
@@ -368,7 +464,7 @@ struct SettingsRow: View {
                 Text(title)
                     .font(.custom("Inter-Bold", size: 16))
                     .tracking(-0.32)
-                    .foregroundColor(.black)
+                    .foregroundColor(themeService.textPrimaryColor)
                 
                 Spacer()
                 
@@ -385,12 +481,12 @@ struct SettingsRow: View {
             // Divider
             if showDivider {
                 Rectangle()
-                    .fill(Color.black.opacity(0.06))
+                    .fill(themeService.textPrimaryColor.opacity(0.06))
                     .frame(height: 0.5)
                     .padding(.leading, 52)
             }
         }
-        .background(isPressed ? Color(hex: "F7F7F7") : Color.white)
+        .background(isPressed ? (themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7")) : themeService.cardBackgroundColor)
         .clipShape(RoundedCornerShape(corners: corners, radius: cornerRadius))
         .contentShape(Rectangle())
         .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
@@ -423,19 +519,21 @@ struct RoundedCornerShape: Shape {
 // MARK: - Deposit Details Sheet
 
 struct DepositDetailsSheet: View {
+    @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 0) {
             // Handle
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
+                .fill(themeService.textPrimaryColor.opacity(0.2))
                 .frame(width: 32, height: 6)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
             
             Text("Deposit Account Details")
                 .font(.custom("Inter-Bold", size: 20))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 24)
             
             VStack(spacing: 16) {
@@ -444,11 +542,11 @@ struct DepositDetailsSheet: View {
                 DepositDetailRow(label: "Account Number", value: "12345678")
                 DepositDetailRow(label: "IBAN", value: "GB29 NWBK 6016 1331 9268 19")
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             Spacer()
         }
-        .background(Color.white)
+        .background(themeService.backgroundColor)
         .presentationDetents([.medium])
     }
 }
@@ -485,11 +583,11 @@ struct DepositDetailRow: View {
             }) {
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
                     .font(.system(size: 16))
-                    .foregroundColor(copied ? Color(hex: "57CE43") : Color(hex: "7B7B7B"))
+                    .foregroundColor(copied ? Color.appPositiveGreen : themeService.textSecondaryColor)
             }
         }
         .padding(16)
-        .background(Color(hex: "F7F7F7"))
+        .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
         .cornerRadius(12)
     }
 }
@@ -510,13 +608,14 @@ struct LinkedAccountsSheet: View {
         VStack(spacing: 0) {
             // Handle
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
+                .fill(themeService.textPrimaryColor.opacity(0.2))
                 .frame(width: 32, height: 6)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
             
             Text("Linked Accounts")
                 .font(.custom("Inter-Bold", size: 20))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 24)
             
             VStack(spacing: 0) {
@@ -543,7 +642,7 @@ struct LinkedAccountsSheet: View {
                         
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(Color(hex: "57CE43"))
+                            .foregroundColor(Color.appPositiveGreen)
                     }
                     .padding(16)
                 }
@@ -569,7 +668,7 @@ struct LinkedAccountsSheet: View {
             
             Spacer()
         }
-        .background(Color.white)
+        .background(themeService.backgroundColor)
         .presentationDetents([.medium, .large])
     }
 }
@@ -584,13 +683,14 @@ struct ProfileSheet: View {
         VStack(spacing: 0) {
             // Handle
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
+                .fill(themeService.textPrimaryColor.opacity(0.2))
                 .frame(width: 32, height: 6)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
             
             Text("Your Profile")
                 .font(.custom("Inter-Bold", size: 20))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 24)
             
             // Profile image
@@ -604,7 +704,7 @@ struct ProfileSheet: View {
             Button(action: {}) {
                 Text("Change Photo")
                     .font(.custom("Inter-Bold", size: 14))
-                    .foregroundColor(Color(hex: "FF5113"))
+                    .foregroundColor(Color.appPrimary)
             }
             .padding(.bottom, 24)
             
@@ -614,11 +714,11 @@ struct ProfileSheet: View {
                 ProfileField(label: "Email", value: "brendon@example.com")
                 ProfileField(label: "Phone", value: "+44 7700 900123")
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
             
             Spacer()
         }
-        .background(Color.white)
+        .background(themeService.backgroundColor)
         .presentationDetents([.large])
     }
 }
@@ -647,7 +747,7 @@ struct ProfileField: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "F7F7F7"))
+        .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
         .cornerRadius(12)
     }
 }
@@ -665,13 +765,14 @@ struct PrivacySheet: View {
         VStack(spacing: 0) {
             // Handle
             RoundedRectangle(cornerRadius: 3)
-                .fill(Color.black.opacity(0.2))
+                .fill(themeService.textPrimaryColor.opacity(0.2))
                 .frame(width: 32, height: 6)
                 .padding(.top, 8)
                 .padding(.bottom, 16)
             
             Text("Privacy")
                 .font(.custom("Inter-Bold", size: 20))
+                .foregroundColor(themeService.textPrimaryColor)
                 .padding(.bottom, 24)
             
             VStack(spacing: 0) {
@@ -686,7 +787,7 @@ struct PrivacySheet: View {
                             .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
-                .tint(Color(hex: "FF5113"))
+                .tint(Color.appPrimary)
                 .padding(16)
                 
                 Divider()
@@ -702,7 +803,7 @@ struct PrivacySheet: View {
                             .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
-                .tint(Color(hex: "FF5113"))
+                .tint(Color.appPrimary)
                 .padding(16)
                 
                 Divider()
@@ -718,16 +819,16 @@ struct PrivacySheet: View {
                             .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
-                .tint(Color(hex: "FF5113"))
+                .tint(Color.appPrimary)
                 .padding(16)
             }
-            .background(Color(hex: "F7F7F7"))
-            .cornerRadius(16)
+            .background(themeService.currentTheme == .dark ? Color(hex: "2C2C2E") : Color(hex: "F7F7F7"))
+            .cornerRadius(24)
             .padding(.horizontal, 16)
             
             Spacer()
         }
-        .background(Color.white)
+        .background(themeService.backgroundColor)
         .presentationDetents([.medium])
     }
 }
@@ -758,7 +859,7 @@ struct PassportView: View {
     
     var body: some View {
         ZStack {
-            Color.white
+            themeService.backgroundColor
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -869,7 +970,7 @@ struct PassportCardView: View {
     var body: some View {
         ZStack {
             // Passport background
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 24)
                 .fill(passportColor)
                 .frame(width: 280, height: 400)
                 .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
@@ -999,7 +1100,7 @@ struct CountryPickerSheet: View {
                             if selectedPassport?.code == passport.code {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(Color(hex: "FF5113"))
+                                    .foregroundColor(Color.appPrimary)
                             }
                         }
                         .padding(.vertical, 4)
@@ -1016,7 +1117,7 @@ struct CountryPickerSheet: View {
                         isPresented = false
                     }
                     .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(Color(hex: "FF5113"))
+                    .foregroundColor(Color.appPrimary)
                 }
             }
         }
