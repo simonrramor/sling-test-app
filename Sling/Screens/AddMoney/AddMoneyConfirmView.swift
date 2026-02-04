@@ -406,7 +406,7 @@ struct AddMoneyConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
             
