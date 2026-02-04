@@ -1336,7 +1336,7 @@ struct TransactionDetailView: View {
         TransactionDetailDrawer(
             activity: ActivityItem(
                 avatar: "AccountMonzo",
-                titleLeft: "UK Bank",
+                titleLeft: "UK debit card",
                 subtitleLeft: "",
                 titleRight: "+£100.00",
                 subtitleRight: "",
@@ -1354,7 +1354,7 @@ struct TransactionDetailView: View {
         TransactionDetailDrawer(
             activity: ActivityItem(
                 avatar: "AccountMonzo",
-                titleLeft: "UK Bank",
+                titleLeft: "UK debit card",
                 subtitleLeft: "Withdrawal",
                 titleRight: "-£100.00",
                 subtitleRight: "",
@@ -1372,7 +1372,7 @@ struct TransactionDetailView: View {
         TransactionDetailDrawer(
             activity: ActivityItem(
                 avatar: "AccountWise",
-                titleLeft: "UK Bank",
+                titleLeft: "UK debit card",
                 subtitleLeft: "from UK Bank to EU Bank",
                 titleRight: "-£100.00",
                 subtitleRight: "",

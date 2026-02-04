@@ -45,7 +45,7 @@ struct PaymentAccount: Identifiable, Equatable {
     )
     
     static let ukBank = PaymentAccount(
-        name: "UK Bank",
+        name: "UK debit card",
         accountNumber: "•••• 4567",
         currency: "GBP",
         iconType: .asset("AccountMonzoCard")
