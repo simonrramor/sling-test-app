@@ -67,6 +67,7 @@ struct CardStyleSelectionView: View {
                         }
                     }
                     .padding(.horizontal, 24)
+                    .padding(.vertical, 40)
                 }
                 
                 Spacer()
