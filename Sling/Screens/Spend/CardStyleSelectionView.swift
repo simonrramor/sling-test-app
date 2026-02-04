@@ -124,13 +124,13 @@ struct CardStyleSelectionView: View {
     }
 }
 
-// MARK: - Card Style Option
+// MARK: - Card Style Option (uses same styling as SwiftUICardView)
 
 struct CardStyleOption: View {
     let color: Color
     let onTap: () -> Void
     
-    // Card dimensions
+    // Card dimensions (same ratio as SwiftUICardView: 690x432 = 1.597:1)
     private let cardWidth: CGFloat = 311
     private let cardHeight: CGFloat = 195
     private let cornerRadius: CGFloat = 24
@@ -140,48 +140,53 @@ struct CardStyleOption: View {
             ZStack {
                 ZStack {
                     // Base color
-                    color
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .fill(color)
                     
-                    // Background watermark logo (SlingLogoBg asset - 8% opacity filled logo)
-                    Image("SlingLogoBg")
+                    // Sling logo watermark - centered (same as SwiftUICardView)
+                    Image("SlingLogo")
                         .resizable()
+                        .renderingMode(.template)
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 200, height: 200)
+                        .frame(width: cardWidth * 0.73)
+                        .foregroundColor(Color.white.opacity(0.08))
                     
-                    // Sling logo in top left, Visa logo in bottom right
+                    // Small Sling logo - top left, 16px from edges
                     VStack {
                         HStack {
                             Image("SlingLogo")
                                 .resizable()
+                                .renderingMode(.template)
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 32, height: 32)
-                                .padding(.top, 16)
+                                .foregroundColor(.white)
                                 .padding(.leading, 16)
+                                .padding(.top, 16)
                             Spacer()
                         }
+                        Spacer()
+                    }
+                    
+                    // VISA logo - bottom right, 16px from edges (no card number)
+                    VStack {
                         Spacer()
                         HStack {
                             Spacer()
                             Image("VisaLogo")
-                                .renderingMode(.template)
                                 .resizable()
+                                .renderingMode(.template)
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 58, height: 19)
+                                .frame(width: 72, height: 24)
                                 .foregroundColor(.white.opacity(0.8))
-                                .padding(.bottom, 16)
                                 .padding(.trailing, 16)
+                                .padding(.bottom, 16)
                         }
                     }
-                    
-                    // Border stroke
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .rotationEffect(.degrees(90))
-                .shadow(color: Color.black.opacity(0.25), radius: 22, x: 0, y: 24)
-                .shadow(color: Color.black.opacity(0.15), radius: 11, x: 0, y: 12)
+                .shadow(color: Color.black.opacity(0.12), radius: 24, x: 0, y: 8)
             }
             // Account for rotated dimensions in layout
             .frame(width: cardHeight, height: cardWidth)

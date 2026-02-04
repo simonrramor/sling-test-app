@@ -22,6 +22,7 @@ struct SettingsView: View {
     @State private var showMorseBot = false
     @State private var showBotComparison = false
     @State private var showSwapTest = false
+    @State private var showCardTest = false
     @State private var showCurrencyPicker = false
     @State private var showFees = false
     @State private var showInvestments = false
@@ -214,9 +215,16 @@ struct SettingsView: View {
                         // Developer section
                         VStack(spacing: 0) {
                             SettingsRow(
+                                iconSystem: "creditcard.fill",
+                                title: "Card Test",
+                                position: .top,
+                                onTap: { showCardTest = true }
+                            )
+                            
+                            SettingsRow(
                                 iconSystem: "arrow.up.arrow.down",
                                 title: "Swap Animation",
-                                position: .top,
+                                position: .middle,
                                 onTap: { showSwapTest = true }
                             )
                             
@@ -342,6 +350,9 @@ struct SettingsView: View {
         }
         .fullScreenCover(isPresented: $showSwapTest) {
             SwapAnimationTestView()
+        }
+        .fullScreenCover(isPresented: $showCardTest) {
+            CardTestView(isPresented: $showCardTest)
         }
         .fullScreenCover(isPresented: $showFees) {
             FeesSettingsView(isPresented: $showFees)

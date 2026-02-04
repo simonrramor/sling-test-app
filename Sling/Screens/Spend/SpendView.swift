@@ -43,12 +43,6 @@ struct SpendView: View {
         }
     }
     
-    // Shadow control sliders
-    @State private var shadowOpacity: Double = 0.25
-    @State private var shadowRadius: Double = 20
-    @State private var shadowOffsetX: Double = 0
-    @State private var shadowOffsetY: Double = 10
-    @State private var showShadowControls = false
     
     // Category spending in USD
     private let categoriesUSD: [(name: String, amountUSD: Double, iconName: String, iconColor: Color)] = [
@@ -118,12 +112,16 @@ struct SpendView: View {
                 } else {
                     // Empty state
                     VStack(spacing: 0) {
-                        // Card illustration from Figma
-                        Image("CardEmptyIllustration")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 24)
+                        // 3D Card preview (orange, no card number)
+                        SwiftUICardView(
+                            isLocked: .constant(false),
+                            cardColor: Color(hex: "FF5113"),
+                            cardStyle: "orange",
+                            showCardNumber: false
+                        )
+                        .frame(height: 240)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
                         
                         CardEmptyStateCard(onGetCard: {
                             showCardStyleSelection = true
@@ -175,15 +173,10 @@ struct SpendView: View {
     
     private var cardContent: some View {
         VStack(spacing: 0) {
-            // 3D Interactive Card
-            Card3DView(isLocked: $isCardLocked, cameraFOV: 40.1, backgroundColor: themeService.backgroundColor, cardColor: cardColor, onTap: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showShadowControls.toggle()
-                }
-            })
+            // 3D Interactive Card (SwiftUI)
+            SwiftUICardView(isLocked: $isCardLocked, cardColor: cardColor, cardStyle: selectedCardStyle)
             .frame(height: 240)
             .frame(maxWidth: .infinity)
-            .frame(height: 240)
             .overlay(
                 Group {
                     if isCardLocked {
@@ -198,34 +191,7 @@ struct SpendView: View {
                 }
             )
             .padding(.top, 16)
-            
-            // Shadow Controls
-            if showShadowControls {
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Shadow Controls")
-                            .font(.custom("Inter-Bold", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        Spacer()
-                        Button(action: {
-                            withAnimation { showShadowControls = false }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(themeService.textTertiaryColor)
-                        }
-                    }
-                    
-                    ShadowSlider(label: "Opacity", value: $shadowOpacity, range: 0...1, format: "%.2f")
-                    ShadowSlider(label: "Radius", value: $shadowRadius, range: 0...50, format: "%.0f")
-                    ShadowSlider(label: "Offset X", value: $shadowOffsetX, range: -30...30, format: "%.0f")
-                    ShadowSlider(label: "Offset Y", value: $shadowOffsetY, range: -30...30, format: "%.0f")
-                }
-                .padding(16)
-                .background(themeService.backgroundSecondaryColor)
-                .cornerRadius(24)
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-            }
+            .padding(.bottom, 24)
             
             HStack(spacing: 8) {
                 TertiaryButton(title: "Show details") {
@@ -574,32 +540,6 @@ struct CardDetailField: View {
     }
 }
 
-// MARK: - Shadow Slider
-
-struct ShadowSlider: View {
-    @ObservedObject private var themeService = ThemeService.shared
-    let label: String
-    @Binding var value: Double
-    let range: ClosedRange<Double>
-    let format: String
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack {
-                Text(label)
-                    .font(.custom("Inter-Medium", size: 12))
-                    .foregroundColor(themeService.textSecondaryColor)
-                Spacer()
-                Text(String(format: format, value))
-                    .font(.custom("Inter-Medium", size: 12))
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .frame(width: 50, alignment: .trailing)
-            }
-            Slider(value: $value, in: range)
-                .tint(Color(hex: "FF5113"))
-        }
-    }
-}
 
 // MARK: - Subscription Model
 

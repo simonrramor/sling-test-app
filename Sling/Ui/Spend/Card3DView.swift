@@ -10,6 +10,7 @@ struct Card3DView: UIViewRepresentable {
     var contentBlur: Double = 8.0  // Blur radius for locked state
     var backgroundColor: Color = Color(red: 0.949, green: 0.949, blue: 0.949)  // Default to grey theme
     var cardColor: Color = Color(hex: "FF5113")  // Card color (default orange)
+    var cardStyle: String = "orange"  // Card style string for reliable asset loading
     var onTap: (() -> Void)? = nil  // Callback for tap events
     
     func makeUIView(context: Context) -> SCNView {
@@ -220,57 +221,101 @@ struct Card3DView: UIViewRepresentable {
     }
     
     private func createCardFrontImage(color: UIColor) -> UIImage {
-        // Use the actual Figma-exported card image and colorize it
-        guard let originalImage = UIImage(named: "SlingCardFront") else { return UIImage() }
-        
-        // If color is orange (default), just return the original
-        let orangeColor = UIColor(hex: "FF5113")!
-        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-        color.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
-        orangeColor.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
-        
-        if abs(r1 - r2) < 0.01 && abs(g1 - g2) < 0.01 && abs(b1 - b2) < 0.01 {
-            return originalImage
+        // For orange, use the complete original asset
+        if cardStyle == "orange" {
+            return UIImage(named: "SlingCardFront") ?? UIImage()
         }
         
-        // Calculate hue shift from orange to target color
-        var orangeHue: CGFloat = 0, orangeSat: CGFloat = 0, orangeBri: CGFloat = 0
-        var targetHue: CGFloat = 0, targetSat: CGFloat = 0, targetBri: CGFloat = 0
-        orangeColor.getHue(&orangeHue, saturation: &orangeSat, brightness: &orangeBri, alpha: nil)
-        color.getHue(&targetHue, saturation: &targetSat, brightness: &targetBri, alpha: nil)
+        // Use cardStyle string directly for reliable asset lookup
+        let assetName = cardAssetName(for: cardStyle)
         
-        // Hue shift in radians (CIHueAdjust uses radians)
-        let hueShift = (targetHue - orangeHue) * 2 * .pi
+        // Try to load the color-specific background asset
+        guard let backgroundAsset = UIImage(named: assetName) else {
+            // Fallback to original if no colored asset
+            return UIImage(named: "SlingCardFront") ?? UIImage()
+        }
         
-        guard let ciImage = CIImage(image: originalImage) else { return originalImage }
+        // Composite the logos and card details onto the colored background
+        // All positions measured from the original 690x432 SlingCardFront orange card
+        let size = backgroundAsset.size
+        let renderer = UIGraphicsImageRenderer(size: size)
         
-        // Apply hue rotation
-        let hueFilter = CIFilter(name: "CIHueAdjust")
-        hueFilter?.setValue(ciImage, forKey: kCIInputImageKey)
-        hueFilter?.setValue(hueShift, forKey: kCIInputAngleKey)
-        
-        guard let hueOutput = hueFilter?.outputImage else { return originalImage }
-        
-        let ciContext = CIContext()
-        guard let cgImage = ciContext.createCGImage(hueOutput, from: hueOutput.extent) else { return originalImage }
-        
-        return UIImage(cgImage: cgImage)
+        return renderer.image { context in
+            // Draw the colored background (includes watermark)
+            backgroundAsset.draw(in: CGRect(origin: .zero, size: size))
+            
+            // Scale factor (base image is 690x432)
+            let scale = size.width / 690.0
+            
+            // === LOGO: top-left, measured from orange card ===
+            // Position: x=32, y=32, size=55x55
+            if let slingLogo = UIImage(named: "SlingLogo")?.withRenderingMode(.alwaysTemplate) {
+                let logoSize: CGFloat = 55 * scale
+                let logoX: CGFloat = 32 * scale
+                let logoY: CGFloat = 32 * scale
+                let logoRect = CGRect(x: logoX, y: logoY, width: logoSize, height: logoSize)
+                slingLogo.withTintColor(.white).draw(in: logoRect)
+            }
+            
+            // === BOTTOM CONTENT: measured from orange card ===
+            // Bottom padding: 35px, left/right padding: 32px
+            let bottomPadding: CGFloat = 35 * scale
+            let sidePadding: CGFloat = 32 * scale
+            
+            // Draw 4 dots (circles) - each dot is ~6px diameter with ~8px spacing
+            let dotDiameter: CGFloat = 6 * scale
+            let dotSpacing: CGFloat = 8 * scale
+            let dotY: CGFloat = size.height - bottomPadding - dotDiameter
+            
+            UIColor.white.withAlphaComponent(0.8).setFill()
+            for i in 0..<4 {
+                let dotX = sidePadding + CGFloat(i) * dotSpacing
+                let dotRect = CGRect(x: dotX, y: dotY, width: dotDiameter, height: dotDiameter)
+                UIBezierPath(ovalIn: dotRect).fill()
+            }
+            
+            // Draw "9543" after the dots - gap of ~12px after last dot
+            let cardNumber = "9543"
+            let fontSize: CGFloat = 24 * scale
+            let font = UIFont.systemFont(ofSize: fontSize, weight: .medium)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: UIColor.white.withAlphaComponent(0.8)
+            ]
+            let numberX = sidePadding + (4 * dotSpacing) + (12 * scale)
+            let numberY = size.height - bottomPadding - fontSize + (2 * scale)  // Slight offset to align with dots
+            cardNumber.draw(at: CGPoint(x: numberX, y: numberY), withAttributes: attributes)
+            
+            // === VISA LOGO: bottom-right, measured from orange card ===
+            // Height ~30px, right padding 32px, aligned with dots vertically
+            if let visaLogo = UIImage(named: "VisaLogo") {
+                let visaHeight: CGFloat = 30 * scale
+                let visaWidth = visaHeight * (visaLogo.size.width / visaLogo.size.height)
+                let visaX = size.width - visaWidth - sidePadding
+                let visaY = size.height - bottomPadding - visaHeight
+                let visaRect = CGRect(x: visaX, y: visaY, width: visaWidth, height: visaHeight)
+                visaLogo.withTintColor(.white, renderingMode: .alwaysTemplate).draw(in: visaRect)
+            }
+        }
+    }
+    
+    /// Maps card style string to the corresponding asset name
+    private func cardAssetName(for style: String) -> String {
+        switch style {
+        case "orange": return "SlingCardFront"
+        case "blue": return "SlingCardFrontBlue"
+        case "green": return "SlingCardFrontGreen"
+        case "purple": return "SlingCardFrontPurple"
+        case "pink": return "SlingCardFrontPink"
+        case "teal": return "SlingCardFrontTeal"
+        case "indigo": return "SlingCardFrontIndigo"
+        case "black": return "SlingCardFrontBlack"
+        default: return "SlingCardFront"
+        }
     }
     
     private func createLockedCardImage(color: UIColor, blurRadius: Double) -> UIImage {
-        // Use pre-made blurred asset if orange, otherwise blur the colorized version
-        let orangeColor = UIColor(hex: "FF5113")!
-        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-        color.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
-        orangeColor.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
-        
-        if abs(r1 - r2) < 0.01 && abs(g1 - g2) < 0.01 && abs(b1 - b2) < 0.01 {
-            return UIImage(named: "SlingCardFrontLocked") ?? UIImage(named: "SlingCardFront") ?? UIImage()
-        }
-        
-        // For other colors, blur the colorized front image
+        // Create the front image and blur it
         let frontImage = createCardFrontImage(color: color)
         
         guard let ciImage = CIImage(image: frontImage) else { return frontImage }
