@@ -600,7 +600,7 @@ struct LinkedAccountsSheet: View {
     
     let accounts = [
         (name: "Monzo Bank", icon: "AccountMonzo", lastFour: "•••• 4829"),
-        (name: "Wise", icon: "AccountWise", lastFour: "•••• 1234"),
+        (name: "EU Bank", icon: "AccountWise", lastFour: "•••• 1234"),
         (name: "Apple Pay", icon: "AccountApplePay", lastFour: "")
     ]
     

@@ -431,7 +431,7 @@ struct AddMoneyConfirmView: View {
 #Preview {
     AddMoneyConfirmView(
         isPresented: .constant(true),
-        sourceAccount: .monzoBankLimited,
+        sourceAccount: .ukBank,
         sourceAmount: 100,  // Display currency amount
         sourceCurrency: "GBP",
         linkedAccountAmount: 86.23,  // Linked account amount

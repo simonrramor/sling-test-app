@@ -7,7 +7,7 @@ struct WithdrawView: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @State private var amountString = ""
-    @State private var selectedAccount: PaymentAccount = .monzoBankLimited
+    @State private var selectedAccount: PaymentAccount = .ukBank
     @State private var showAccountPicker = false
     @State private var showConfirmation = false
     @State private var showingDestinationCurrency = true // true = destination currency primary, false = USD primary

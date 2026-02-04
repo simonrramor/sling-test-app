@@ -229,7 +229,7 @@ struct TransactionDetailDrawer: View {
             "Facebook": "META",
             "Netflix": "NFLX",
             "Nvidia": "NVDA",
-            "Bank of America": "BAC",
+            "US Bank": "USB",
             "McDonald's": "MCD",
             "Visa": "V",
             "Coinbase": "COIN",
@@ -1336,7 +1336,7 @@ struct TransactionDetailView: View {
         TransactionDetailDrawer(
             activity: ActivityItem(
                 avatar: "AccountMonzo",
-                titleLeft: "Monzo Bank Limited",
+                titleLeft: "UK Bank",
                 subtitleLeft: "",
                 titleRight: "+£100.00",
                 subtitleRight: "",
@@ -1354,7 +1354,7 @@ struct TransactionDetailView: View {
         TransactionDetailDrawer(
             activity: ActivityItem(
                 avatar: "AccountMonzo",
-                titleLeft: "Monzo Bank Limited",
+                titleLeft: "UK Bank",
                 subtitleLeft: "Withdrawal",
                 titleRight: "-£100.00",
                 subtitleRight: "",
@@ -1372,8 +1372,8 @@ struct TransactionDetailView: View {
         TransactionDetailDrawer(
             activity: ActivityItem(
                 avatar: "AccountWise",
-                titleLeft: "Monzo Bank Limited",
-                subtitleLeft: "from Monzo Bank Limited to Wise",
+                titleLeft: "UK Bank",
+                subtitleLeft: "from UK Bank to EU Bank",
                 titleRight: "-£100.00",
                 subtitleRight: "",
                 date: Date()

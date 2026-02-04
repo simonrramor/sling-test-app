@@ -276,7 +276,7 @@ struct PaymentInstrumentRowButtonStyle: ButtonStyle {
         // Account example (tappable)
         TappablePaymentInstrumentRow(
             iconName: "AccountMonzo",
-            title: "Monzo Bank Limited",
+            title: "UK Bank",
             subtitleParts: ["•••• 4567"],
             trailingText: "GBP",
             onTap: {}

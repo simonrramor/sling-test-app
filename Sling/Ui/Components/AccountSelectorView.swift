@@ -44,36 +44,29 @@ struct PaymentAccount: Identifiable, Equatable {
         iconType: .asset("AccountApplePay")
     )
     
-    static let monzoBankLimited = PaymentAccount(
-        name: "Monzo Bank Limited",
+    static let ukBank = PaymentAccount(
+        name: "UK Bank",
         accountNumber: "•••• 4567",
         currency: "GBP",
         iconType: .asset("AccountMonzoCard")
     )
     
-    static let bankOfAmerica = PaymentAccount(
-        name: "Bank of America",
+    static let usBank = PaymentAccount(
+        name: "US Bank",
         accountNumber: "•••• 5678",
         currency: "USD",
         iconType: .asset("AccountBankDefault")
     )
     
-    static let monzo = PaymentAccount(
-        name: "Monzo",
-        accountNumber: "•••• 5678",
-        currency: "GBP",
-        iconType: .asset("AccountMonzo")
-    )
-    
-    static let wise = PaymentAccount(
-        name: "Wise",
+    static let euBank = PaymentAccount(
+        name: "EU Bank",
         accountNumber: "NL91 •••• 00",
         currency: "EUR",
         iconType: .asset("AccountWise")
     )
     
-    static let coinbaseWallet = PaymentAccount(
-        name: "Simon's Coinbase wallet",
+    static let cryptoWallet = PaymentAccount(
+        name: "Crypto wallet",
         accountNumber: "Ae2l •••• b3Yl",
         currency: "USDC",
         iconType: .asset("AccountCoinbase")
@@ -87,13 +80,11 @@ struct PaymentAccount: Identifiable, Equatable {
     )
     
     static let allAccounts: [PaymentAccount] = [
-        .slingWallet,
         .applePay,
-        .monzoBankLimited,
-        .bankOfAmerica,
-        .monzo,
-        .wise,
-        .coinbaseWallet,
+        .ukBank,
+        .usBank,
+        .euBank,
+        .cryptoWallet,
         .addNewAccount
     ]
 }
@@ -288,7 +279,7 @@ struct AccountRowButtonStyle: ButtonStyle {
 
 #Preview {
     AccountSelectorView(
-        selectedAccount: .constant(.monzoBankLimited),
+        selectedAccount: .constant(.ukBank),
         isPresented: .constant(true)
     )
 }

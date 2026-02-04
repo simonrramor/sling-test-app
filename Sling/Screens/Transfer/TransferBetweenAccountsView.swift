@@ -5,8 +5,8 @@ struct TransferBetweenAccountsView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
     @State private var amountString = ""
-    @State private var fromAccount: PaymentAccount = .slingWallet
-    @State private var toAccount: PaymentAccount = .monzoBankLimited
+    @State private var fromAccount: PaymentAccount = .ukBank
+    @State private var toAccount: PaymentAccount = .usBank
     @State private var showFromAccountPicker = false
     @State private var showToAccountPicker = false
     @State private var showConfirmation = false

@@ -8,7 +8,7 @@ struct AddMoneyView: View {
     @State private var amountString: String = ""
     @State private var showConfirmation = false
     @State private var showAccountSelector = false
-    @State private var selectedAccount: PaymentAccount = .monzoBankLimited
+    @State private var selectedAccount: PaymentAccount = .ukBank
     @State private var showingSourceCurrency = true // true = source account currency is primary, false = USD is primary
     @State private var sourceAmount: Double = 0 // Amount in source account currency (GBP, EUR, etc.)
     @State private var usdAmount: Double = 0 // Amount in USD (what gets added to Sling balance)
