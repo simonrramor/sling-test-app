@@ -396,8 +396,8 @@ struct SavingsWithdrawConfirmView: View {
                 
                 Spacer()
                 
-                // Amount display (USDY tokens - fixed)
-                Text(formattedUSDY)
+                // Amount display (display currency - what user receives)
+                Text(formattedDisplayAmount)
                     .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
