@@ -210,8 +210,10 @@ struct SavingsView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 24)
                 
+                // MARK: - Savings Activity Feed (temporarily hidden - set showSavingsActivity to true to re-enable)
                 // Transaction history
-                if !savingsService.transactions.isEmpty {
+                let showSavingsActivity = false
+                if showSavingsActivity && !savingsService.transactions.isEmpty {
                     let displayedTransactions = Array(savingsService.transactions.prefix(3))
                     let hasMore = savingsService.transactions.count > 3
                     
