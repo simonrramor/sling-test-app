@@ -177,7 +177,7 @@ struct AccountSelectorView: View {
             }
             .frame(maxWidth: .infinity)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 47))
+            .clipShape(RoundedRectangle(cornerRadius: 40))
             .padding(.horizontal, 8)
             .padding(.top, 8)
             .padding(.bottom, 16)
