@@ -101,36 +101,37 @@ struct CardStyleOption: View {
     let isSelected: Bool
     let onTap: () -> Void
     
-    // Card dimensions - landscape orientation matching Figma and new reference
-    // Figma width: 345, height: 196 (ratio 1.76)
-    // We'll scale slightly for mobile screens
+    // Card dimensions - landscape orientation
     private let cardWidth: CGFloat = 320
-    private let cardHeight: CGFloat = 182 // 320 / 1.76
+    private let cardHeight: CGFloat = 182
     private let cornerRadius: CGFloat = 24
     
     var body: some View {
         Button(action: onTap) {
             ZStack {
-                // Card background with watermark
+                // Card content container
                 ZStack {
                     // Base color
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(color)
                     
                     // Sling Logo Watermark
-                    // Figma: 218x218 on 345x196 card. Centered horizontally, slightly up vertically.
-                    // Scale factor: 320/345 = 0.927 -> Watermark size ~202
                     GeometryReader { geo in
                         SlingLogoMark(size: 202)
-                            .opacity(0.08) // 8% white opacity from Figma
+                            .opacity(0.08)
                             .position(x: geo.size.width / 2, y: geo.size.height / 2 - 8)
                     }
                     .clipped()
+                    
+                    // Subtle border stroke (from Figma)
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
                 }
                 .frame(width: cardWidth, height: cardHeight)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                .shadow(color: Color.black.opacity(0.2), radius: 24, x: 0, y: 16)
-                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 8)
+                // Enhanced shadow to match "debit card shadow" style
+                .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 24)
+                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 12)
                 
                 // Card content overlay
                 VStack(alignment: .leading) {
@@ -145,12 +146,12 @@ struct CardStyleOption: View {
                     HStack(alignment: .center) {
                         // Card number
                         HStack(spacing: 6) {
-                            // Dots (custom drawing to match Figma "Card number dots")
+                            // Dots
                             HStack(spacing: 4) {
                                 ForEach(0..<4) { _ in
                                     Circle()
                                         .fill(Color.white.opacity(0.8))
-                                        .frame(width: 4, height: 4)
+                                        .frame(width: 5, height: 5) // Slightly larger dots
                                 }
                             }
                             
@@ -167,19 +168,19 @@ struct CardStyleOption: View {
                             .renderingMode(.template)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 58, height: 19) // Approx scale from 72x24
+                            .frame(width: 58, height: 19)
                             .foregroundColor(.white.opacity(0.8))
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
+                    .padding(.horizontal, 24) // Increased padding
+                    .padding(.bottom, 24) // Increased padding
                 }
                 .frame(width: cardWidth, height: cardHeight, alignment: .topLeading)
                 
                 // Selection indicator
                 if isSelected {
-                    RoundedRectangle(cornerRadius: cornerRadius + 4)
-                        .stroke(Color(hex: "FF5113"), lineWidth: 3)
-                        .frame(width: cardWidth + 10, height: cardHeight + 10)
+                    RoundedRectangle(cornerRadius: cornerRadius + 5)
+                        .stroke(color, lineWidth: 3) // Match card color
+                        .frame(width: cardWidth + 12, height: cardHeight + 12)
                 }
             }
         }
@@ -196,13 +197,13 @@ struct SlingLogoMark: View {
         ZStack {
             // Outer ring
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.12)
+                .stroke(Color.white, lineWidth: size * 0.11)
                 .frame(width: size, height: size)
             
             // Inner ring
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.12)
-                .frame(width: size * 0.62, height: size * 0.62)
+                .stroke(Color.white, lineWidth: size * 0.11)
+                .frame(width: size * 0.60, height: size * 0.60)
         }
         .frame(width: size, height: size)
     }
