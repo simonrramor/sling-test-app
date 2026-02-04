@@ -15,6 +15,7 @@ struct SpendView: View {
     
     @State private var isCardLocked = false
     @State private var showCardDetails = false
+    @State private var showCardStyleSelection = false
     @AppStorage("hasCard") private var hasCard = false
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
@@ -109,9 +110,7 @@ struct SpendView: View {
                             .padding(.horizontal, 24)
                         
                         CardEmptyStateCard(onGetCard: {
-                            withAnimation {
-                                hasCard = true
-                            }
+                            showCardStyleSelection = true
                         })
                         .padding(.horizontal, 24)
                     }
@@ -128,6 +127,9 @@ struct SpendView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.white)
+        }
+        .fullScreenCover(isPresented: $showCardStyleSelection) {
+            CardStyleSelectionView(isPresented: $showCardStyleSelection)
         }
         .onAppear {
             fetchExchangeRate()
