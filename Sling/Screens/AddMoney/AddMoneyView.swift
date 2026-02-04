@@ -260,9 +260,10 @@ struct AddMoneyView: View {
                 AddMoneyConfirmView(
                     isPresented: $showConfirmation,
                     sourceAccount: selectedAccount,
-                    sourceAmount: sourceAmount,
-                    sourceCurrency: sourceCurrency,
-                    destinationAmount: usdAmount,
+                    sourceAmount: sourceAmount,  // Display currency amount (what user typed)
+                    sourceCurrency: sourceCurrency,  // Linked account currency code
+                    linkedAccountAmount: usdAmount,  // Amount in linked account currency
+                    destinationAmount: usdAmount,  // Amount for storage (same as linked for now)
                     exchangeRate: currentExchangeRate,
                     onComplete: {
                         isPresented = false

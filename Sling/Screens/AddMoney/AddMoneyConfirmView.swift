@@ -7,9 +7,10 @@ struct AddMoneyConfirmView: View {
     @ObservedObject private var feeService = FeeService.shared
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @AppStorage("hasAddedMoney") private var hasAddedMoney = false
-    let sourceAccount: PaymentAccount // The selected payment account
-    let sourceAmount: Double // Amount in source currency (e.g., GBP)
-    let sourceCurrency: String // Source currency code (e.g., "GBP")
+    let sourceAccount: PaymentAccount // The selected payment account (bank)
+    let sourceAmount: Double // Amount in display currency (what user typed, e.g., EUR)
+    let sourceCurrency: String // Bank account currency code (e.g., "GBP")
+    let linkedAccountAmount: Double // Amount in linked account currency (what will be taken from bank)
     let destinationAmount: Double // Amount in USD (Sling balance currency)
     let exchangeRate: Double // Rate from source to USD
     var onComplete: () -> Void = {}
@@ -63,30 +64,44 @@ struct AddMoneyConfirmView: View {
         return amountAfterFee.asUSD
     }
     
-    /// Amount after fee in display currency
-    var formattedAmountAfterFeeInDisplayCurrency: String {
-        let displayCurrency = displayCurrencyService.displayCurrency
-        if displayCurrency == "USD" {
-            return amountAfterFee.asUSD
-        }
-        // Convert from USD to display currency
-        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
-            let displayAmount = amountAfterFee * rate
-            let symbol = ExchangeRateService.symbol(for: displayCurrency)
-            return displayAmount.asCurrency(symbol)
-        }
-        // Fallback to USD if no rate available
-        return amountAfterFee.asUSD
-    }
-    
-    /// Amount exchanged after fee deduction (in source currency)
-    private var amountExchangedAfterFee: Double {
+    /// Display currency amount (what user typed) minus the fee
+    private var displayAmountAfterFee: Double {
         if depositFee.isFree {
             return sourceAmount
         }
-        // Convert the $0.50 fee to source currency and subtract
-        let feeInSourceCurrency = 0.50 / exchangeRate // Convert USD fee to source currency
-        return max(0, sourceAmount - feeInSourceCurrency)
+        // Subtract the $0.50 fee converted to display currency
+        let displayCurrency = displayCurrencyService.displayCurrency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
+            let feeInDisplayCurrency = 0.50 * rate
+            return max(0, sourceAmount - feeInDisplayCurrency)
+        }
+        return sourceAmount
+    }
+    
+    /// Amount after fee formatted in display currency
+    var formattedAmountAfterFeeInDisplayCurrency: String {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        let symbol = ExchangeRateService.symbol(for: displayCurrency)
+        return displayAmountAfterFee.asCurrency(symbol)
+    }
+    
+    /// Formatted linked account amount (what will be taken from bank)
+    var formattedLinkedAccountAmount: String {
+        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
+        return linkedAccountAmount.asCurrency(symbol)
+    }
+    
+    /// Amount exchanged after fee deduction (in linked account/bank currency)
+    private var amountExchangedAfterFee: Double {
+        if depositFee.isFree {
+            return linkedAccountAmount
+        }
+        // Convert the $0.50 fee to linked account currency and subtract
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) {
+            let feeInLinkedCurrency = 0.50 * rate
+            return max(0, linkedAccountAmount - feeInLinkedCurrency)
+        }
+        return linkedAccountAmount
     }
     
     var formattedAmountExchanged: String {
@@ -210,7 +225,7 @@ struct AddMoneyConfirmView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 4)
                     
-                    // Total withdrawn row (in source currency)
+                    // Total withdrawn row (in linked account/bank currency)
                     HStack {
                         Text("Total withdrawn")
                             .font(.custom("Inter-Regular", size: 16))
@@ -218,7 +233,7 @@ struct AddMoneyConfirmView: View {
                         
                         Spacer()
                         
-                        Text(formattedSourceAmount)
+                        Text(formattedLinkedAccountAmount)
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textPrimaryColor)
                     }
@@ -332,8 +347,9 @@ struct AddMoneyConfirmView: View {
     AddMoneyConfirmView(
         isPresented: .constant(true),
         sourceAccount: .monzoBankLimited,
-        sourceAmount: 100,
+        sourceAmount: 100,  // Display currency amount
         sourceCurrency: "GBP",
+        linkedAccountAmount: 86.23,  // Linked account amount
         destinationAmount: 126.50,
         exchangeRate: 1.265
     )
