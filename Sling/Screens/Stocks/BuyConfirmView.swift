@@ -190,7 +190,7 @@ struct BuyConfirmView: View {
                         isButtonLoading = false
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
             

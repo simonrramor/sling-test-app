@@ -198,7 +198,7 @@ struct SavingsWithdrawSheet: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
             
@@ -413,7 +413,7 @@ struct SavingsWithdrawConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToSavings, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
         }

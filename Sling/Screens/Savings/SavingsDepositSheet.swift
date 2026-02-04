@@ -241,7 +241,7 @@ struct SavingsDepositSheet: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
             
@@ -482,7 +482,7 @@ struct SavingsDepositConfirmView: View {
                     NotificationCenter.default.post(name: .navigateToSavings, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
         }

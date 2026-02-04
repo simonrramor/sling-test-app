@@ -166,7 +166,7 @@ struct TransferBetweenAccountsView: View {
                         .cornerRadius(24)
                 }
                 .disabled(amountValue <= 0)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
             }
             .padding(.bottom, 24)
             }

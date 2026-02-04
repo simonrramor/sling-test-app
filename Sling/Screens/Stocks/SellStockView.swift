@@ -218,7 +218,7 @@ struct SellStockView: View {
                 ) {
                     showConfirmation = true
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
         }
@@ -421,7 +421,7 @@ struct SellConfirmView: View {
                     isSellFlowPresented = false
                     onComplete()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
             
