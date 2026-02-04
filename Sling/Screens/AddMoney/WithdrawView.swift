@@ -200,7 +200,7 @@ struct WithdrawView: View {
                             .padding(.vertical, 16)
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(PlainButtonStyle())
+                        .buttonStyle(AccountRowButtonStyle())
                     }
                     
                     // Divider before Add new account
@@ -245,7 +245,7 @@ struct WithdrawView: View {
                         .padding(.vertical, 16)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(AccountRowButtonStyle())
                 }
             }
             
