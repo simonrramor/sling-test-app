@@ -49,14 +49,32 @@ struct HomeView: View {
                 
                 // Activity Section
                 VStack(spacing: 0) {
-                    // Activity title
-                    Text("Activity")
-                        .font(.custom("Inter-Bold", size: 24))
-                        .tracking(-0.48) // -2% of 24px
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                    // Activity title with See more button
+                    HStack {
+                        Text("Activity")
+                            .font(.custom("Inter-Bold", size: 24))
+                            .tracking(-0.48) // -2% of 24px
+                            .foregroundColor(themeService.textPrimaryColor)
+                        
+                        Spacer()
+                        
+                        // See more button (only show if there are more than 3 activities)
+                        if activityService.activities.count > 3 {
+                            Button(action: { showAllActivity = true }) {
+                                HStack(spacing: 4) {
+                                    Text("See more")
+                                        .font(.custom("Inter-SemiBold", size: 14))
+                                        .foregroundColor(Color(hex: "FF5113"))
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Color(hex: "FF5113"))
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                     
                     if activityService.activities.isEmpty && !activityService.isLoading {
                         // Empty state
@@ -73,10 +91,9 @@ struct HomeView: View {
                         .padding(.top, 8)
                         .padding(.horizontal, 32)
                     } else {
-                        // Transaction list - show only 3 on home
+                        // Transaction list - show only 3 on home (no See more at bottom)
                         TransactionListContent(
                             limit: 3,
-                            onSeeMore: { showAllActivity = true },
                             onTransactionSelected: { activity in
                                 NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
                             }
