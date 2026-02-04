@@ -3,30 +3,45 @@ import SwiftUI
 /// Reusable component for displaying fee information in transaction confirmations
 struct FeeRow: View {
     @ObservedObject private var themeService = ThemeService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     let fee: FeeResult
+    var onTap: (() -> Void)? = nil
+    
+    /// Fixed fee based on storage currency ($0.50 or €0.50)
+    private var fixedFeeDisplay: String {
+        let symbol = displayCurrencyService.storageCurrency == "EUR" ? "€" : "$"
+        return "\(symbol)0.50"
+    }
     
     var body: some View {
-        HStack {
-            Text("Fees")
-                .font(.custom("Inter-Regular", size: 16))
-                .foregroundColor(themeService.textSecondaryColor)
-            
-            Spacer()
-            
-            if fee.isFree {
-                // Free fee
-                Text("No fee")
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
-            } else {
-                // Fee applies
-                Text(fee.formattedCombined)
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            onTap?()
+        }) {
+            HStack {
+                Text("Fees")
+                    .font(.custom("Inter-Regular", size: 16))
+                    .foregroundColor(themeService.textSecondaryColor)
+                
+                Spacer()
+                
+                if fee.isFree {
+                    // Free fee
+                    Text("No fee")
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(themeService.textPrimaryColor)
+                } else {
+                    // Fee applies - always show fixed $0.50 or €0.50 in orange
+                    Text(fixedFeeDisplay)
+                        .font(.custom("Inter-Medium", size: 16))
+                        .foregroundColor(Color(hex: "FF5113"))
+                }
             }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 16)
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 16)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

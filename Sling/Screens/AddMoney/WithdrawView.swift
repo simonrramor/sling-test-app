@@ -14,6 +14,7 @@ struct WithdrawView: View {
     @State private var destinationAmount: Double = 0 // Amount in destination account currency
     @State private var usdAmount: Double = 0 // Amount in USD (storage currency)
     @State private var exchangeRate: Double = 1.0 // Rate from destination currency to USD
+    @State private var showFeesSheet = false
     
     private let exchangeService = ExchangeRateService.shared
     
@@ -446,7 +447,7 @@ struct WithdrawConfirmView: View {
                     }
                     
                     // Fee row
-                    FeeRow(fee: withdrawalFee)
+                    FeeRow(fee: withdrawalFee, onTap: { showFeesSheet = true })
                     
                     // Total deducted (if fee applies)
                     if !withdrawalFee.isFree {
@@ -485,6 +486,9 @@ struct WithdrawConfirmView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .fullScreenCover(isPresented: $showFeesSheet) {
+            FeesSettingsView(isPresented: $showFeesSheet)
+        }
     }
 }
 

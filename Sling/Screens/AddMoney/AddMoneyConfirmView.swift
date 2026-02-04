@@ -14,6 +14,7 @@ struct AddMoneyConfirmView: View {
     var onComplete: () -> Void = {}
     
     @State private var isButtonLoading = false
+    @State private var showFeesSheet = false
     
     private let portfolioService = PortfolioService.shared
     private let activityService = ActivityService.shared
@@ -193,7 +194,7 @@ struct AddMoneyConfirmView: View {
                     .padding(.horizontal, 16)
                     
                     // Fees row
-                    FeeRow(fee: depositFee)
+                    FeeRow(fee: depositFee, onTap: { showFeesSheet = true })
                     
                     // Amount exchanged row (only show when there's a fee)
                     if !depositFee.isFree {
@@ -289,6 +290,9 @@ struct AddMoneyConfirmView: View {
             
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .fullScreenCover(isPresented: $showFeesSheet) {
+            FeesSettingsView(isPresented: $showFeesSheet)
+        }
     }
 }
 
