@@ -39,6 +39,20 @@ struct PaymentInstrumentRow: View {
                     .frame(width: 44, height: 44)
                     .background(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F7F7F7"))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
+            } else if iconName == "NavSavings" || iconName == "IconSavings" {
+                // Savings icon - black background with white plant icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(hex: "000000"))
+                        .frame(width: 44, height: 44)
+                    
+                    Image("NavSavings")
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 24, height: 24)
+                        .foregroundColor(.white)
+                }
             } else {
                 Image(iconName)
                     .resizable()
