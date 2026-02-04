@@ -150,6 +150,7 @@ struct GetStartedSection: View {
     let onSetup: () -> Void
     
     @State private var showAccountDetails = false
+    @State private var showCardStyleSelection = false
     
     // Check if any cards should be shown
     private var hasAnyCards: Bool {
@@ -247,7 +248,7 @@ struct GetStartedSection: View {
                             subtitle: "Get your new virtual debit card, and start spending around the world.",
                             buttonTitle: "Create Sling Card",
                             action: {
-                                NotificationCenter.default.post(name: .navigateToCard, object: nil)
+                                showCardStyleSelection = true
                             }
                         )
                     }
@@ -263,6 +264,9 @@ struct GetStartedSection: View {
                 HomeAccountDetailsSheet()
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
+            }
+            .fullScreenCover(isPresented: $showCardStyleSelection) {
+                CardStyleSelectionView(isPresented: $showCardStyleSelection)
             }
         }
     }
