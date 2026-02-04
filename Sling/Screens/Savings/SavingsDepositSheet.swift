@@ -213,34 +213,19 @@ struct SavingsDepositSheet: View {
                 Spacer()
                 
                 // Payment source row (From) with Max button
-                HStack {
-                    PaymentInstrumentRow(
-                        iconName: "SlingBalanceLogo",
-                        title: "Sling balance",
-                        subtitleParts: [formattedAvailableBalance],
-                        showMenu: true
-                    )
-                    
-                    Spacer()
-                    
-                    // Max button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                PaymentInstrumentRow(
+                    iconName: "SlingBalanceLogo",
+                    title: "Sling balance",
+                    subtitleParts: [formattedAvailableBalance],
+                    actionButtonTitle: "Max",
+                    onActionTap: {
                         // Set to max available balance in display currency
                         let maxInDisplayCurrency = exchangeRate > 0 ? availableBalance / exchangeRate : availableBalance
                         amountString = formatForInput(maxInDisplayCurrency)
                         updateAmounts()
-                    }) {
-                        Text("Max")
-                            .font(.custom("Inter-SemiBold", size: 14))
-                            .foregroundColor(Color(hex: "FF5113"))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color(hex: "FF5113").opacity(0.1))
-                            .cornerRadius(16)
-                    }
-                }
+                    },
+                    showMenu: true
+                )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 

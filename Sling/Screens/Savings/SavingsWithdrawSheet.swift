@@ -170,55 +170,19 @@ struct SavingsWithdrawSheet: View {
                 Spacer()
                 
                 // Payment source row (Savings - where money comes FROM) with Max button
-                HStack(spacing: 12) {
-                    // Black square background with savings icon
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(hex: "000000"))
-                            .frame(width: 44, height: 44)
-                        
-                        Image("NavSavings")
-                            .renderingMode(.template)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 24, height: 24)
-                            .foregroundColor(.white)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Savings")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                        
-                        Text(formattedAvailableBalance)
-                            .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                    }
-                    
-                    Spacer()
-                    
-                    // Max button
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
+                PaymentInstrumentRow(
+                    iconName: "NavSavings",
+                    title: "Savings",
+                    subtitleParts: [formattedAvailableBalance],
+                    actionButtonTitle: "Max",
+                    onActionTap: {
                         // Set to max available balance in display currency
                         let maxInDisplayCurrency = exchangeRate > 0 ? availableUSD / exchangeRate : availableUSD
                         amountString = formatForInput(maxInDisplayCurrency)
                         updateAmounts()
-                    }) {
-                        Text("Max")
-                            .font(.custom("Inter-SemiBold", size: 14))
-                            .foregroundColor(Color(hex: "FF5113"))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color(hex: "FF5113").opacity(0.1))
-                            .cornerRadius(16)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color(hex: "F7F7F7"))
-                .cornerRadius(24)
+                    },
+                    showMenu: false
+                )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
