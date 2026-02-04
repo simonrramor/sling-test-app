@@ -438,10 +438,10 @@ struct SavingsDepositConfirmView: View {
                     // Amount (fiat amount user inputted)
                     DetailRow(label: "Amount", value: formattedDisplayAmount)
                     
-                    // Price
+                    // Price (live USDY price)
                     DetailRow(
                         label: "Price",
-                        value: "1 USDY = \(savingsService.formatPrice(savingsService.baseUsdyPrice))",
+                        value: "1 USDY = \(savingsService.formatPrice(savingsService.currentUsdyPrice))",
                         isHighlighted: true
                     )
                     
