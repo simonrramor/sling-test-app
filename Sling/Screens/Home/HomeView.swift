@@ -868,7 +868,7 @@ struct AllActivityView: View {
     
     var body: some View {
         ZStack {
-            themeService.backgroundColor
+            Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
