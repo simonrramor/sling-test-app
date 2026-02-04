@@ -243,7 +243,7 @@ struct SavingsView: View {
                 .background(themeService.cardBackgroundColor)
                 .cornerRadius(24)
                 .padding(.horizontal, 16)
-                .padding(.top, 24)
+                .padding(.top, 16)
                 
                 // MARK: - Savings Activity Feed (temporarily hidden - set showSavingsActivity to true to re-enable)
                 // Transaction history
@@ -300,7 +300,7 @@ struct SavingsView: View {
                     .background(themeService.cardBackgroundColor)
                     .cornerRadius(24)
                     .padding(.horizontal, 16)
-                    .padding(.top, 24)
+                    .padding(.top, 16)
                 }
                 
                 // How it works row
