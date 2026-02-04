@@ -167,9 +167,6 @@ struct sling_test_app_2App: App {
                         if isScreenshotMode {
                             showScreenshotMode = true
                         }
-                        
-                        // Initialize recurring purchases demo data
-                        RecurringPurchaseInitializer.shared.initializeForDemo()
                     }
             } else {
                 LoginView(isLoggedIn: $isLoggedIn)
