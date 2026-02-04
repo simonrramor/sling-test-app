@@ -299,6 +299,41 @@ struct SavingsView: View {
                 .cornerRadius(24)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
+                
+                // Set a savings goal row
+                PressableRow(onTap: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    // TODO: Navigate to savings goal screen
+                }) {
+                    HStack(spacing: 16) {
+                        // Icon in rounded square background
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(themeService.currentTheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "F7F7F7"))
+                                .frame(width: 44, height: 44)
+                            
+                            Image("IconSavingsGoal")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 22, height: 22)
+                                .foregroundColor(Color(hex: "888888"))
+                        }
+                        
+                        Text("Set a savings goal")
+                            .font(.custom("Inter-Bold", size: 16))
+                            .tracking(-0.32)
+                            .foregroundColor(themeService.textPrimaryColor)
+                        
+                        Spacer()
+                    }
+                    .padding(16)
+                }
+                .background(themeService.cardBackgroundColor)
+                .cornerRadius(24)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
             }
             .padding(.top, 16)
             .padding(.bottom, 120)
