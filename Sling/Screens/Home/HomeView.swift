@@ -62,7 +62,7 @@ struct HomeView: View {
                         if activityService.activities.count > 3 {
                             Button(action: { showAllActivity = true }) {
                                 Text("See all")
-                                    .font(.custom("Inter-SemiBold", size: 14))
+                                    .font(.custom("Inter-Bold", size: 14))
                                     .foregroundColor(themeService.textPrimaryColor)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
