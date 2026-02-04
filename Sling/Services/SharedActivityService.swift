@@ -120,7 +120,7 @@ class SharedActivityService: ObservableObject {
         contactAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         addActivity(
             avatar: contactAvatar,
             titleLeft: contactName,
@@ -134,7 +134,7 @@ class SharedActivityService: ObservableObject {
         contactAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "+£%.2f", amount)
+        let formattedAmount = "+" + amount.asGBP
         addActivity(
             avatar: contactAvatar,
             titleLeft: contactName,
@@ -148,7 +148,7 @@ class SharedActivityService: ObservableObject {
         merchantAvatar: String,
         amount: Double
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         addActivity(
             avatar: merchantAvatar,
             titleLeft: merchantName,
@@ -164,7 +164,7 @@ class SharedActivityService: ObservableObject {
         currency: String = "GBP"
     ) {
         let symbol = currency == "GBP" ? "£" : (currency == "USD" ? "$" : (currency == "EUR" ? "€" : currency))
-        let formattedAmount = String(format: "+%@%.2f", symbol, amount)
+        let formattedAmount = "+\(amount.asCurrency(symbol))"
         addActivity(
             avatar: fromAccountAvatar,
             titleLeft: fromAccountName,
@@ -177,7 +177,7 @@ class SharedActivityService: ObservableObject {
         amount: Double,
         method: String = "ATM"
     ) {
-        let formattedAmount = String(format: "-£%.2f", amount)
+        let formattedAmount = "-" + amount.asGBP
         addActivity(
             avatar: "💳",
             titleLeft: "Withdrawal",

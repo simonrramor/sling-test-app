@@ -74,7 +74,7 @@ struct StockPriceData {
     let timestamps: [Date]
     
     var formattedPrice: String {
-        return String(format: "$%.2f", currentPrice)
+        return currentPrice.asUSD
     }
     
     var formattedChange: String {

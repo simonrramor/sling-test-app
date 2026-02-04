@@ -192,11 +192,11 @@ struct InvestView: View {
     }
     
     var changeText: String {
-        return String(format: "%@%.2f", currencySymbol, abs(displayPortfolioChangeConverted))
+        return abs(displayPortfolioChangeConverted).asCurrency(currencySymbol)
     }
     
     var portfolioTotalText: String {
-        return String(format: "%@%.2f", currencySymbol, displayPortfolioTotalConverted)
+        return displayPortfolioTotalConverted.asCurrency(currencySymbol)
     }
     
     var zeroBalanceText: String {

@@ -151,8 +151,8 @@ struct SavingsView: View {
         let title = transaction.isDeposit ? "Savings" : "Savings"
         let subtitle = transaction.isDeposit ? "Deposit" : "Withdrawal"
         let prefix = transaction.isDeposit ? "+" : "-"
-        let formattedAmount = String(format: "%@%@%.2f", prefix, displayCurrencyService.currencySymbol, transaction.usdAmount)
-        let formattedUSDY = String(format: "%.2f USDY", transaction.usdyAmount)
+        let formattedAmount = "\(prefix)\(transaction.usdAmount.asCurrency(displayCurrencyService.currencySymbol))"
+        let formattedUSDY = "\(NumberFormatService.shared.formatNumber(transaction.usdyAmount)) USDY"
         
         return ActivityItem(
             avatar: "IconSavings",
@@ -663,11 +663,11 @@ struct SavingsTransactionRow: View {
     
     private var formattedAmount: String {
         let prefix = transaction.isDeposit ? "+" : "-"
-        return String(format: "%@%@%.2f", prefix, displayCurrencyService.currencySymbol, transaction.usdAmount)
+        return "\(prefix)\(transaction.usdAmount.asCurrency(displayCurrencyService.currencySymbol))"
     }
     
     private var formattedUSDY: String {
-        return String(format: "%.2f USDY", transaction.usdyAmount)
+        return "\(NumberFormatService.shared.formatNumber(transaction.usdyAmount)) USDY"
     }
     
     // Badge color based on transaction type
@@ -798,7 +798,7 @@ struct SavingsAllActivityView: View {
             titleLeft: isDeposit ? "Savings deposit" : "Savings withdrawal",
             subtitleLeft: transaction.formattedDate,
             titleRight: formattedAmount,
-            subtitleRight: String(format: "%.2f USDY", transaction.usdyAmount),
+            subtitleRight: "\(NumberFormatService.shared.formatNumber(transaction.usdyAmount)) USDY",
             date: transaction.date
         )
     }

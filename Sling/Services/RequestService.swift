@@ -32,7 +32,7 @@ struct PaymentRequest: Identifiable, Codable {
     }
     
     var formattedAmount: String {
-        String(format: "£%.2f", amount)
+        amount.asGBP
     }
     
     var formattedDate: String {

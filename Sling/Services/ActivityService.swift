@@ -181,7 +181,7 @@ class ActivityService: ObservableObject {
         currency: String = "GBP"
     ) {
         let symbol = currency == "GBP" ? "£" : (currency == "USD" ? "$" : (currency == "EUR" ? "€" : currency))
-        let formattedAmount = String(format: "+%@%.2f", symbol, amount)
+        let formattedAmount = "+\(amount.asCurrency(symbol))"
         
         addActivity(
             avatar: fromAccountAvatar,

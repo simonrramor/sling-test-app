@@ -211,7 +211,7 @@ class SavingsService: ObservableObject {
     var earningsDisplay: String {
         switch displayMode {
         case .accumulating:
-            return String(format: "+$%.2f", totalEarnings)
+            return "+" + totalEarnings.asUSD
         case .rebasing:
             let earnedTokens = displayTokens - usdyBalance
             return String(format: "+%.4f USDY", earnedTokens)
@@ -310,6 +310,6 @@ class SavingsService: ObservableObject {
     }
     
     func formatUSD(_ amount: Double) -> String {
-        return String(format: "$%.2f", amount)
+        return amount.asUSD
     }
 }

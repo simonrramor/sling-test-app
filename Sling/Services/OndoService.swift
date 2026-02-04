@@ -44,7 +44,7 @@ struct OndoTokenPriceData {
     let isOndo: Bool = true        // Flag to identify Ondo tokens
     
     var formattedPrice: String {
-        return String(format: "$%.2f", currentPrice)
+        return currentPrice.asUSD
     }
     
     var formattedChange: String {

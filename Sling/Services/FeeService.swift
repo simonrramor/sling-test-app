@@ -28,13 +28,13 @@ struct FeeResult {
     /// Formatted fee string in stablecoin (e.g., "$0.50")
     var formattedStablecoinAmount: String {
         let symbol = stablecoin == "EURC" ? "€" : "$"
-        return "\(symbol)\(String(format: "%.2f", amount))"
+        return amount.asCurrency(symbol)
     }
     
     /// Formatted fee string in display currency (e.g., "£0.38")
     var formattedDisplayAmount: String {
         let symbol = ExchangeRateService.symbol(for: displayCurrency)
-        return "\(symbol)\(String(format: "%.2f", displayAmount))"
+        return displayAmount.asCurrency(symbol)
     }
     
     /// Combined display (e.g., "$0.50 (£0.38)")

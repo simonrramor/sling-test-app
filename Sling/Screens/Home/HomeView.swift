@@ -632,10 +632,10 @@ struct HomeSavingsCard: View {
     private var formattedBalance: String {
         let usdValue = savingsService.totalValueUSD
         if displayCurrencyService.displayCurrency == "USD" {
-            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, usdValue)
+            return usdValue.asCurrency(displayCurrencyService.currencySymbol)
         } else {
             let convertedValue = usdValue * exchangeRate
-            return String(format: "%@%.2f", displayCurrencyService.currencySymbol, convertedValue)
+            return convertedValue.asCurrency(displayCurrencyService.currencySymbol)
         }
     }
     
@@ -719,7 +719,7 @@ struct HomePortfolioCard: View {
     
     private var formattedBalance: String {
         let symbol = ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
-        return String(format: "%@%.2f", symbol, portfolioValueDisplay)
+        return portfolioValueDisplay.asCurrency(symbol)
     }
     
     private var totalGainLossUSD: Double {
@@ -737,7 +737,7 @@ struct HomePortfolioCard: View {
     
     private var formattedGainLoss: String {
         let symbol = ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
-        return String(format: "%@%.2f", symbol, abs(totalGainLossDisplay))
+        return abs(totalGainLossDisplay).asCurrency(symbol)
     }
     
     var body: some View {

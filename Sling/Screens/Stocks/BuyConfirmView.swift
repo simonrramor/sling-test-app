@@ -100,7 +100,7 @@ struct BuyConfirmView: View {
                 Spacer()
                 
                 // Amount display - centered between header and details
-                Text(String(format: "$%.0f", amount))
+                Text("$\(NumberFormatService.shared.formatWholeNumber(amount))")
                     .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(themeService.textPrimaryColor)
                 
@@ -128,13 +128,13 @@ struct BuyConfirmView: View {
                     // Amount
                     DetailRow(
                         label: "Amount",
-                        value: String(format: "$%.2f", amount)
+                        value: amount.asUSD
                     )
                     
                     // Platform fee
                     DetailRow(
                         label: "Platform fee",
-                        value: String(format: "-$%.2f", platformFee),
+                        value: "-" + platformFee.asUSD,
                         isHighlighted: true
                     )
                     

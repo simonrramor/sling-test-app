@@ -307,7 +307,7 @@ struct NumberFlowInputDisplay: View {
         @State private var isPositive = true
         
         var formattedValue: String {
-            String(format: "$%.2f", value)
+            value.asUSD
         }
         
         var body: some View {
