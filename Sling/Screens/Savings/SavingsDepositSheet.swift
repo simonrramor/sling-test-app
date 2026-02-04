@@ -172,10 +172,16 @@ struct SavingsDepositSheet: View {
                     
                     Spacer()
                     
-                    // USDY indicator
+                    // USDY indicator - styled like currency badge
                     Text("USDY")
-                        .font(.custom("Inter-SemiBold", size: 14))
+                        .font(.custom("Inter-Medium", size: 14))
                         .foregroundColor(themeService.textSecondaryColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: "F7F7F7"))
+                        )
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 64)
