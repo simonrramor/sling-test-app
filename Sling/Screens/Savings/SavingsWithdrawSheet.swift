@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Combine
 
 struct SavingsWithdrawSheet: View {
     @Binding var isPresented: Bool
@@ -271,12 +272,20 @@ struct SavingsWithdrawConfirmView: View {
     @ObservedObject private var themeService = ThemeService.shared
     @ObservedObject private var savingsService = SavingsService.shared
     @ObservedObject private var portfolioService = PortfolioService.shared
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
-    let usdyAmount: Double
-    let usdcToReceive: Double
+    let usdyAmount: Double  // Fixed USDY amount to withdraw
+    let usdcToReceive: Double  // Fixed USD amount to receive (locked at entry)
     var onComplete: () -> Void = {}
     
     @State private var isButtonLoading = false
+    @State private var quoteTimeRemaining: Int = 30
+    
+    // Timer for quote countdown
+    let quoteTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    
+    // Locked price at entry (captured from live price)
+    @State private var lockedUsdyPrice: Double = 1.0
     
     private var formattedUSDY: String {
         "\(savingsService.formatTokens(usdyAmount)) USDY"
@@ -284,6 +293,34 @@ struct SavingsWithdrawConfirmView: View {
     
     private var formattedUSDC: String {
         savingsService.formatUSD(usdcToReceive)
+    }
+    
+    /// Formatted amount in display currency
+    private var formattedDisplayAmount: String {
+        let displayCurrency = displayCurrencyService.displayCurrency
+        let symbol = ExchangeRateService.symbol(for: displayCurrency)
+        
+        if displayCurrency == "USD" {
+            return usdcToReceive.asCurrency(symbol)
+        }
+        
+        // Convert USD to display currency
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
+            return (usdcToReceive * rate).asCurrency(symbol)
+        }
+        
+        // Fallback rates
+        let fallbackRates: [String: Double] = ["EUR": 0.92, "GBP": 0.79]
+        if let rate = fallbackRates[displayCurrency] {
+            return (usdcToReceive * rate).asCurrency(symbol)
+        }
+        
+        return usdcToReceive.asCurrency(symbol)
+    }
+    
+    /// Price formatted as "1 USDY = $X.XX"
+    private var formattedPrice: String {
+        "$\(String(format: "%.4f", lockedUsdyPrice))"
     }
     
     var body: some View {
@@ -359,42 +396,58 @@ struct SavingsWithdrawConfirmView: View {
                 
                 Spacer()
                 
-                // Amount display
+                // Amount display (USDY tokens - fixed)
                 Text(formattedUSDY)
-                    .font(.custom("Inter-Bold", size: 48))
+                    .font(.custom("Inter-Bold", size: 62))
                     .foregroundColor(themeService.textPrimaryColor)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
                 
                 Spacer()
                 
-                // Details section
+                // Details section - styled like deposit confirm
                 VStack(spacing: 0) {
-                    DetailRow(label: "From", value: "Savings")
-                    DetailRow(label: "To", value: "Sling Balance")
+                    // Timer row
+                    HStack {
+                        Text("Quote updates in")
+                            .font(.custom("Inter-Regular", size: 14))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        
+                        Spacer()
+                        
+                        Text("\(quoteTimeRemaining)s")
+                            .font(.custom("Inter-Bold", size: 14))
+                            .foregroundColor(themeService.textPrimaryColor)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                     
-                    Rectangle()
-                        .fill(Color.black.opacity(0.06))
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    
+                    // Amount row
                     DetailRow(label: "Amount", value: formattedUSDY)
-                    DetailRow(label: "USDY price", value: savingsService.formatPrice(savingsService.currentUsdyPrice))
-                    DetailRow(label: "You receive", value: formattedUSDC)
+                    
+                    // Price row (highlighted in orange)
+                    DetailRow(
+                        label: "Price",
+                        value: "1 USDY = \(formattedPrice)",
+                        isHighlighted: true
+                    )
+                    
+                    // You receive row
+                    DetailRow(label: "You receive", value: "~\(formattedDisplayAmount)")
                 }
-                .padding(.vertical, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
                 .padding(.horizontal, 16)
                 .opacity(isButtonLoading ? 0 : 1)
                 .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 // Withdraw button
                 LoadingButton(
-                    title: "Withdraw \(formattedUSDC)",
+                    title: "Confirm",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Withdraw from savings
+                    // Withdraw from savings (use locked amounts)
                     savingsService.withdraw(usdyAmount: usdyAmount)
                     
                     // Add to Sling balance
@@ -405,8 +458,8 @@ struct SavingsWithdrawConfirmView: View {
                         avatar: "IconSavings",
                         titleLeft: "Savings",
                         subtitleLeft: "Withdrawal",
-                        titleRight: "-\(formattedUSDC)",
-                        subtitleRight: ""
+                        titleRight: "-\(formattedUSDY)",
+                        subtitleRight: formattedDisplayAmount
                     )
                     
                     // Navigate back to savings and complete
@@ -418,6 +471,20 @@ struct SavingsWithdrawConfirmView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .onAppear {
+            // Lock the USDY price at entry
+            lockedUsdyPrice = savingsService.liveUsdyPrice
+        }
+        .onReceive(quoteTimer) { _ in
+            if quoteTimeRemaining > 0 {
+                quoteTimeRemaining -= 1
+            } else {
+                // Reset timer and refresh price
+                quoteTimeRemaining = 30
+                savingsService.fetchLiveUsdyPrice()
+                lockedUsdyPrice = savingsService.liveUsdyPrice
+            }
+        }
     }
 }
 
