@@ -49,32 +49,34 @@ struct HomeView: View {
                 
                 // Activity Section
                 VStack(spacing: 0) {
-                    // Activity title with See more button
-                    HStack {
-                        Text("Activity")
-                            .font(.custom("Inter-Bold", size: 24))
-                            .tracking(-0.48) // -2% of 24px
-                            .foregroundColor(themeService.textPrimaryColor)
-                        
-                        Spacer()
-                        
-                        // See all button (only show if there are more than 3 activities)
-                        if activityService.activities.count > 3 {
-                            Button(action: { showAllActivity = true }) {
-                                Text("See all")
-                                    .font(.custom("Inter-Bold", size: 14))
-                                    .foregroundColor(themeService.textPrimaryColor)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
-                                    )
+                    // Activity title with See more button (only show when there are activities)
+                    if !activityService.activities.isEmpty || activityService.isLoading {
+                        HStack {
+                            Text("Activity")
+                                .font(.custom("Inter-Bold", size: 24))
+                                .tracking(-0.48) // -2% of 24px
+                                .foregroundColor(themeService.textPrimaryColor)
+                            
+                            Spacer()
+                            
+                            // See all button (only show if there are more than 3 activities)
+                            if activityService.activities.count > 3 {
+                                Button(action: { showAllActivity = true }) {
+                                    Text("See all")
+                                        .font(.custom("Inter-Bold", size: 14))
+                                        .foregroundColor(themeService.textPrimaryColor)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
+                                        )
+                                }
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
                     
                     if activityService.activities.isEmpty && !activityService.isLoading {
                         // Empty state
@@ -632,6 +634,11 @@ struct HomeSavingsCard: View {
         }
     }
     
+    private var formattedBalanceUSD: String {
+        let usdValue = savingsService.totalValueUSD
+        return usdValue.asCurrency("$")
+    }
+    
     private func fetchExchangeRate() {
         let currency = displayCurrencyService.displayCurrency
         guard currency != "USD" else {
@@ -655,23 +662,26 @@ struct HomeSavingsCard: View {
             NotificationCenter.default.post(name: .navigateToSavings, object: nil)
         }) {
             VStack(alignment: .leading, spacing: 4) {
-                // Label with APY
+                // Label with APY and display currency
                 HStack(spacing: 4) {
-                    Text("Savings")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
-                    
-                    Text("·")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
-                    
                     Text("3.50% APY")
                         .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(Color(hex: "57CE43"))
+                    
+                    // Show display currency amount if not USD
+                    if displayCurrencyService.displayCurrency != "USD" {
+                        Text("·")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
+                        
+                        Text(formattedBalance)
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
+                    }
                 }
                 
-                // Balance
-                Text(formattedBalance)
+                // Balance in USD
+                Text(formattedBalanceUSD)
                     .font(.custom("Inter-Bold", size: 32))
                     .foregroundColor(themeService.textPrimaryColor)
             }

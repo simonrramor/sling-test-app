@@ -11,6 +11,169 @@ extension Notification.Name {
     static let showTransactionDetail = Notification.Name("showTransactionDetail")
 }
 
+// MARK: - Hero Card Animation Support
+
+// PreferenceKey to capture the source card frame from SpendView
+struct SourceCardFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+// PreferenceKey to capture the target card frame from CardStyleSelectionOverlay
+struct TargetCardFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+enum HeroAnimationState {
+    case idle
+    case animatingToOverlay
+    case inOverlay
+    case animatingBack
+}
+
+// #region agent log
+private func debugLogContentView(_ location: String, _ message: String, _ data: [String: Any] = [:]) {
+    let logPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
+    let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+    let logData: [String: Any] = [
+        "timestamp": timestamp,
+        "location": location,
+        "message": message,
+        "data": data,
+        "sessionId": "debug-session",
+        "hypothesisId": "H5-H8"
+    ]
+    if let jsonData = try? JSONSerialization.data(withJSONObject: logData),
+       let jsonString = String(data: jsonData, encoding: .utf8) {
+        if let fileHandle = FileHandle(forWritingAtPath: logPath) {
+            fileHandle.seekToEndOfFile()
+            fileHandle.write((jsonString + "\n").data(using: .utf8)!)
+            fileHandle.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: logPath, contents: (jsonString + "\n").data(using: .utf8))
+        }
+    }
+}
+// #endregion
+
+// Floating hero card that animates between source and target positions
+struct FloatingHeroCard: View {
+    let animationState: HeroAnimationState
+    let screenSize: CGSize
+    
+    // Internal state to trigger animation after view appears
+    @State private var hasAppeared = false
+    
+    // Safe screen width (avoid negative values)
+    private var safeWidth: CGFloat {
+        max(screenSize.width, 100)
+    }
+    
+    // Source card: horizontal, in SpendView position
+    private var sourcePosition: CGPoint {
+        CGPoint(
+            x: safeWidth / 2,
+            y: 100 + 120 // header + half card height
+        )
+    }
+    
+    // Target card: vertical (rotated 90°), in CardStyleSelectionOverlay position
+    private var targetPosition: CGPoint {
+        CGPoint(
+            x: safeWidth / 2,
+            y: 44 + 16 + 155 // header(44) + padding(16) + half card height(311/2)
+        )
+    }
+    
+    // Determine if we should be at target position
+    private var isAtTarget: Bool {
+        switch animationState {
+        case .animatingToOverlay:
+            return hasAppeared // Animate to target after appearing
+        case .inOverlay:
+            return true
+        case .animatingBack:
+            return !hasAppeared // Animate back to source
+        case .idle:
+            return false
+        }
+    }
+    
+    private var currentPosition: CGPoint {
+        isAtTarget ? targetPosition : sourcePosition
+    }
+    
+    private var rotation: Double {
+        isAtTarget ? 90 : 0
+    }
+    
+    private var cardWidth: CGFloat {
+        isAtTarget ? 195 : max(safeWidth - 48, 100)
+    }
+    
+    private var cardHeight: CGFloat {
+        isAtTarget ? 311 : 240
+    }
+    
+    var body: some View {
+        // Only render if we have valid screen size
+        if screenSize.width > 0 && screenSize.height > 0 {
+            SwiftUICardView(
+                isLocked: .constant(false),
+                cardColor: Color(hex: "FF5113"),
+                cardStyle: "orange",
+                showCardNumber: false,
+                fixedWidth: isAtTarget ? 311 : nil
+            )
+            .frame(width: cardWidth, height: cardHeight)
+            .rotationEffect(.degrees(rotation))
+            .position(currentPosition)
+            .animation(.spring(response: 0.5, dampingFraction: 0.85), value: hasAppeared)
+            .onAppear {
+                // #region agent log
+                debugLogContentView("FloatingHeroCard:onAppear", "Card appeared, triggering animation", [
+                    "hasAppeared": hasAppeared,
+                    "animationState": String(describing: animationState),
+                    "sourcePos": "\(sourcePosition)",
+                    "targetPos": "\(targetPosition)"
+                ])
+                // #endregion
+                // Trigger animation on next frame
+                DispatchQueue.main.async {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        hasAppeared = true
+                        // #region agent log
+                        debugLogContentView("FloatingHeroCard:animate", "Set hasAppeared to true", [:])
+                        // #endregion
+                    }
+                }
+            }
+            .onChange(of: animationState) { _, newState in
+                // #region agent log
+                debugLogContentView("FloatingHeroCard:stateChange", "Animation state changed", [
+                    "newState": String(describing: newState),
+                    "hasAppeared": hasAppeared
+                ])
+                // #endregion
+                // Reset hasAppeared for reverse animation
+                if newState == .animatingBack {
+                    hasAppeared = true // Start at target
+                    DispatchQueue.main.async {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                            hasAppeared = false // Animate back to source
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .home
@@ -34,6 +197,10 @@ struct ContentView: View {
     @ObservedObject private var feedbackManager = FeedbackModeManager.shared
     @State private var showSubscriptionsOverlay = false
     @State private var showBalanceSheet = false
+    @State private var showCardStyleSelection = false
+    
+    // Hero card animation state
+    @State private var heroAnimationState: HeroAnimationState = .idle
     
     var backgroundGradient: LinearGradient {
         themeService.backgroundGradient
@@ -62,7 +229,49 @@ struct ContentView: View {
         )
     }
     
+    // Handle hero animation state transitions
+    private func handleHeroAnimationStateChange(from oldState: HeroAnimationState, to newState: HeroAnimationState) {
+        // #region agent log
+        debugLogContentView("ContentView:heroStateChange", "State changed", [
+            "from": String(describing: oldState),
+            "to": String(describing: newState)
+        ])
+        // #endregion
+        
+        switch newState {
+        case .animatingToOverlay:
+            // Animation started - after animation completes, transition to inOverlay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                // #region agent log
+                debugLogContentView("ContentView:animationComplete", "Transitioning to inOverlay", [:])
+                // #endregion
+                withAnimation {
+                    heroAnimationState = .inOverlay
+                    showCardStyleSelection = true
+                }
+            }
+        case .inOverlay:
+            // Card is now in the overlay - nothing more to do
+            break
+        case .animatingBack:
+            // Animation back to source - after animation completes, reset to idle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                // #region agent log
+                debugLogContentView("ContentView:animationBackComplete", "Transitioning to idle", [:])
+                // #endregion
+                withAnimation {
+                    heroAnimationState = .idle
+                    showCardStyleSelection = false
+                }
+            }
+        case .idle:
+            // Reset complete
+            break
+        }
+    }
+    
     var body: some View {
+        GeometryReader { geometry in
         ZStack {
             backgroundGradient
                 .ignoresSafeArea()
@@ -80,9 +289,14 @@ struct ContentView: View {
                     },
                     onInviteTap: {
                         showInviteSheet = true
+                    },
+                    onQRScannerTap: {
+                        showQRScanner = true
                     }
                 )
                     .padding(.horizontal, 16)
+                    .opacity(showCardStyleSelection ? 0 : 1)
+                    .animation(.easeInOut(duration: 0.2), value: showCardStyleSelection)
                 
                 // Tab Content with directional transitions
                 ZStack {
@@ -91,11 +305,14 @@ struct ContentView: View {
                         HomeView()
                             .transition(tabTransition)
                     case .card:
-                        SpendView(showSubscriptionsOverlay: $showSubscriptionsOverlay)
-                            .transition(tabTransition)
+                        SpendView(
+                            showSubscriptionsOverlay: $showSubscriptionsOverlay,
+                            showCardStyleSelection: $showCardStyleSelection,
+                            heroAnimationState: $heroAnimationState
+                        )
+                        .transition(tabTransition)
                     case .invest:
-                        // Investments removed from nav - redirect to home
-                        HomeView()
+                        InvestView(isPresented: .constant(true))
                             .transition(tabTransition)
                     case .savings:
                         SavingsView()
@@ -116,6 +333,8 @@ struct ContentView: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
+                .opacity(showCardStyleSelection ? 0 : 1)
+                .animation(.easeInOut(duration: 0.2), value: showCardStyleSelection)
             
             // Bottom Navigation - overlaid at bottom
             VStack(spacing: 0) {
@@ -128,6 +347,9 @@ struct ContentView: View {
                     }
                 )
             }
+            .opacity(showCardStyleSelection ? 0 : 1)
+            .allowsHitTesting(!showCardStyleSelection)
+            .animation(.easeInOut(duration: 0.2), value: showCardStyleSelection)
             
             // Transfer menu overlay
             ZoomTransitionView(onAction: { option in
@@ -142,6 +364,9 @@ struct ContentView: View {
                     showReceiveSalary = true
                 }
             })
+            .opacity(showCardStyleSelection ? 0 : 1)
+            .allowsHitTesting(!showCardStyleSelection)
+            .animation(.easeInOut(duration: 0.2), value: showCardStyleSelection)
             
             // In-app notification overlay
             NotificationOverlay()
@@ -164,6 +389,31 @@ struct ContentView: View {
                 BalanceSheet(isPresented: $showBalanceSheet)
                     .zIndex(100)
             }
+            
+            // Card style selection overlay (covers entire screen)
+            if showCardStyleSelection || heroAnimationState != .idle {
+                CardStyleSelectionOverlay(
+                    isPresented: $showCardStyleSelection,
+                    heroAnimationState: $heroAnimationState
+                )
+                .zIndex(200)
+            }
+            
+            // Floating hero card for seamless animation
+            // Show during animation AND briefly during inOverlay for crossfade
+            if heroAnimationState == .animatingToOverlay || heroAnimationState == .animatingBack || heroAnimationState == .inOverlay {
+                FloatingHeroCard(
+                    animationState: heroAnimationState,
+                    screenSize: geometry.size
+                )
+                .opacity(heroAnimationState == .inOverlay ? 0 : 1)
+                .allowsHitTesting(heroAnimationState != .inOverlay) // Don't block taps when invisible
+                .animation(.easeOut(duration: 0.15), value: heroAnimationState)
+                .zIndex(300)
+            }
+        }
+        .onChange(of: heroAnimationState) { oldState, newState in
+            handleHeroAnimationStateChange(from: oldState, to: newState)
         }
         .animation(.easeInOut(duration: 0.2), value: feedbackManager.isActive)
         .fullScreenCover(isPresented: $showFABMenu) {
@@ -248,6 +498,7 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(themeService.colorScheme)
+        } // End GeometryReader
     }
 }
 

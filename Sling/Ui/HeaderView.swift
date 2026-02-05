@@ -7,6 +7,7 @@ struct HeaderView: View {
     var onProfileTap: () -> Void = {}
     var onSearchTap: () -> Void = {}
     var onInviteTap: () -> Void = {}
+    var onQRScannerTap: () -> Void = {}
     
     @ObservedObject private var themeService = ThemeService.shared
     
@@ -105,6 +106,25 @@ struct HeaderView: View {
                     .accessibilityLabel("Search")
                     .transition(buttonTransition)
                 }
+                
+                // QR Scanner Button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    onQRScannerTap()
+                }) {
+                    Image("QRCode")
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 20, height: 20)
+                        .foregroundColor(Color("TextPrimary"))
+                        .frame(width: 36, height: 36)
+                        .background(Color("BackgroundTertiary"))
+                        .cornerRadius(12)
+                }
+                .accessibilityLabel("Scan QR Code")
+                .transition(buttonTransition)
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: currentTab)
         }

@@ -47,8 +47,15 @@ struct SavingsView: View {
         return formatter
     }
     
-    /// Formatted savings balance in display currency
-    private var formattedSavingsBalance: String {
+    /// Formatted savings balance in USD (always dollars for main display)
+    private var formattedSavingsBalanceUSD: String {
+        let usdValue = savingsService.totalValueUSD
+        let formatted = currencyFormatter.string(from: NSNumber(value: usdValue)) ?? String(format: "%.2f", usdValue)
+        return "$\(formatted)"
+    }
+    
+    /// Formatted savings balance in display currency (for subtitle)
+    private var formattedSavingsBalanceDisplayCurrency: String {
         let usdValue = savingsService.totalValueUSD
         let value = displayCurrencyService.displayCurrency == "USD" ? usdValue : usdValue * exchangeRate
         let formatted = currencyFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
@@ -65,15 +72,14 @@ struct SavingsView: View {
         return "\(formatted) USDY"
     }
     
-    /// Formatted total earnings in display currency
+    /// Formatted total earnings in USD
     private var formattedTotalEarnings: String {
         let usdEarnings = savingsService.totalEarnings
-        let value = displayCurrencyService.displayCurrency == "USD" ? usdEarnings : usdEarnings * exchangeRate
-        let formatted = currencyFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
-        return "+\(displayCurrencyService.currencySymbol)\(formatted)"
+        let formatted = currencyFormatter.string(from: NSNumber(value: usdEarnings)) ?? String(format: "%.2f", usdEarnings)
+        return "+$\(formatted)"
     }
     
-    /// Formatted monthly earnings in display currency
+    /// Formatted monthly earnings in USD
     /// For now, we calculate earnings since the start of current month
     private var formattedMonthlyEarnings: String {
         // Get the start of the current month
@@ -85,7 +91,7 @@ struct SavingsView: View {
         
         // Calculate earnings since start of month (approximation based on time elapsed)
         guard let depositTimestamp = savingsService.depositTimestamp else {
-            return "+\(displayCurrencyService.currencySymbol)0.00"
+            return "+$0.00"
         }
         
         // If deposit was after start of month, use full earnings
@@ -98,14 +104,13 @@ struct SavingsView: View {
         let monthSecondsElapsed = now.timeIntervalSince(startOfMonth)
         
         guard totalSecondsElapsed > 0 else {
-            return "+\(displayCurrencyService.currencySymbol)0.00"
+            return "+$0.00"
         }
         
         let monthlyProportion = monthSecondsElapsed / totalSecondsElapsed
         let usdMonthlyEarnings = savingsService.totalEarnings * monthlyProportion
-        let value = displayCurrencyService.displayCurrency == "USD" ? usdMonthlyEarnings : usdMonthlyEarnings * exchangeRate
-        let formatted = currencyFormatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
-        return "+\(displayCurrencyService.currencySymbol)\(formatted)"
+        let formatted = currencyFormatter.string(from: NSNumber(value: usdMonthlyEarnings)) ?? String(format: "%.2f", usdMonthlyEarnings)
+        return "+$\(formatted)"
     }
     
     /// Subtitle for monthly earnings showing date range
@@ -185,45 +190,6 @@ struct SavingsView: View {
                         showWithdrawSheet = true
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                
-                // Set a savings goal row
-                PressableRow(onTap: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    // TODO: Navigate to savings goal screen
-                }) {
-                    HStack(spacing: 16) {
-                        // Icon in rounded square background
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(themeService.currentTheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "F7F7F7"))
-                                .frame(width: 44, height: 44)
-                            
-                            Image("IconSavingsGoal")
-                                .renderingMode(.template)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 22, height: 22)
-                                .foregroundColor(Color(hex: "888888"))
-                        }
-                        
-                        Text("Set a savings goal")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .tracking(-0.32)
-                            .foregroundColor(themeService.textPrimaryColor)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(themeService.textSecondaryColor)
-                    }
-                    .padding(16)
-                }
-                .background(themeService.cardBackgroundColor)
-                .cornerRadius(24)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 
@@ -307,42 +273,6 @@ struct SavingsView: View {
                     .padding(.top, 16)
                 }
                 
-                // How it works row
-                PressableRow(onTap: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    showHowItWorks = true
-                }) {
-                    HStack(spacing: 16) {
-                        // Icon in rounded square background
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(themeService.currentTheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "F7F7F7"))
-                                .frame(width: 44, height: 44)
-                            
-                            Image(systemName: "questionmark.circle.fill")
-                                .font(.system(size: 22, weight: .medium))
-                                .foregroundColor(Color(hex: "888888"))
-                        }
-                        
-                        Text("How it works")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .tracking(-0.32)
-                            .foregroundColor(themeService.textPrimaryColor)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(themeService.textSecondaryColor)
-                    }
-                    .padding(16)
-                }
-                .background(themeService.cardBackgroundColor)
-                .cornerRadius(24)
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                
                 // Demo speed-up notice
                 Text("Accumulation is sped up \(NumberFormatService.shared.formatWholeNumber(savingsService.demoTimeMultiplier))x for demo")
                     .font(.custom("Inter-Regular", size: 12))
@@ -374,30 +304,27 @@ struct SavingsView: View {
     private var savingsBalanceHeader: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
-                // Label with USDY amount - matches home balance subtitle style
+                // APY and display currency amount
                 HStack(spacing: 0) {
-                    Text("Savings")
+                    Text("3.50% APY")
                         .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
+                        .foregroundColor(Color(hex: "57CE43"))
                     
-                    Text("・")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(themeService.textSecondaryColor)
-                    
-                    if savingsService.usdyBalance > 0 {
-                        Text(formattedUSDYAmount)
+                    // Show display currency amount if not USD
+                    if displayCurrencyService.displayCurrency != "USD" {
+                        Text("・")
                             .font(.custom("Inter-Medium", size: 16))
                             .foregroundColor(themeService.textSecondaryColor)
-                    } else {
-                        Text("3.50% APY")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(Color(hex: "57CE43"))
+                        
+                        Text(formattedSavingsBalanceDisplayCurrency)
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(themeService.textSecondaryColor)
                     }
                 }
                 
-                // Balance in display currency - matches home balance H1 style
+                // Balance in USD - matches home balance H1 style
                 SlidingNumberText(
-                    text: formattedSavingsBalance,
+                    text: formattedSavingsBalanceUSD,
                     font: .custom("Inter-Bold", size: 48),
                     color: themeService.textPrimaryColor
                 )
