@@ -62,8 +62,8 @@ struct ZoomTransitionView: View {
         }
     }
     
-    // Animated properties (3 menu options: send, request, receive salary)
-    private var height: CGFloat { isExpanded ? 240 : DesignSystem.Button.height }
+    // Animated properties (4 menu options: send, request, transfer, receive salary)
+    private var height: CGFloat { isExpanded ? 320 : DesignSystem.Button.height }
     private var cornerRadius: CGFloat { isExpanded ? DesignSystem.CornerRadius.extraLarge : DesignSystem.CornerRadius.pill }
     
     // Scale for pressed state using DesignSystem constant
@@ -107,7 +107,7 @@ struct ZoomTransitionView: View {
                     ZStack(alignment: .bottomLeading) {
                         // Menu content - only visible when expanded
                         VStack(spacing: 0) {
-                            ForEach(ZoomMenuOption.allCases.filter { $0 != .transfer }) { option in
+                            ForEach(ZoomMenuOption.allCases) { option in
                                 ZoomMenuRow(option: option) {
                                     let generator = UIImpactFeedbackGenerator(style: .light)
                                     generator.impactOccurred()

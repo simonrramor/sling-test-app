@@ -10,6 +10,8 @@ struct HeaderView: View {
     var onQRScannerTap: () -> Void = {}
     
     @ObservedObject private var themeService = ThemeService.shared
+    @Environment(\.selectedAppVariant) private var selectedAppVariant
+    @AppStorage("cardAvailable") private var cardAvailable = true
     
     // Determine which buttons to show based on current tab
     private var showInvite: Bool {
@@ -26,7 +28,6 @@ struct HeaderView: View {
         case .home: return 0
         case .card: return 1
         case .invest: return 2
-        case .savings: return 3
         }
     }
     
@@ -125,6 +126,32 @@ struct HeaderView: View {
                 }
                 .accessibilityLabel("Scan QR Code")
                 .transition(buttonTransition)
+                
+                // Card availability toggle button - only on card tab
+                if currentTab == .card {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        cardAvailable.toggle()
+                    }) {
+                        ZStack {
+                            Image(systemName: "creditcard")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+                                .frame(width: 36, height: 36)
+                                .background(Color("BackgroundTertiary"))
+                                .cornerRadius(12)
+                            
+                            // Status dot indicator
+                            Circle()
+                                .fill(cardAvailable ? Color(hex: "57CE43") : Color(hex: "E30000"))
+                                .frame(width: 8, height: 8)
+                                .offset(x: 12, y: -12)
+                        }
+                    }
+                    .accessibilityLabel(cardAvailable ? "Card available" : "Card not available")
+                    .transition(buttonTransition)
+                }
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: currentTab)
         }

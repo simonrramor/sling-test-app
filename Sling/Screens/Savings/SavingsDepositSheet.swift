@@ -505,8 +505,7 @@ struct SavingsDepositConfirmView: View {
                         subtitleRight: formattedDisplayAmount
                     )
                     
-                    // Navigate back to savings and complete
-                    NotificationCenter.default.post(name: .navigateToSavings, object: nil)
+                    // Complete and dismiss
                     onComplete()
                 }
                 .padding(.horizontal, 24)

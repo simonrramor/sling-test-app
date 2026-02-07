@@ -55,7 +55,7 @@ struct ReceiveSalaryView: View {
                             CurrencyAccountRow(
                                 currencyName: "Brazilian real",
                                 transferType: "Pix transfer",
-                                currencyIcon: "CurrencyBRL",
+                                currencyIcon: "FlagBR",
                                 position: .top,
                                 onTap: { showBRLDetails = true }
                             )
@@ -64,7 +64,7 @@ struct ReceiveSalaryView: View {
                             CurrencyAccountRow(
                                 currencyName: "US dollar",
                                 transferType: "ACH or Wire transfer",
-                                currencyIcon: "CurrencyUSD",
+                                currencyIcon: "FlagUS",
                                 position: .middle,
                                 onTap: { showUSDDetails = true }
                             )
@@ -78,14 +78,13 @@ struct ReceiveSalaryView: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            .background(themeService.cardBackgroundColor)
                             
                             // Euro
                             CurrencyAccountRow(
                                 currencyName: "Euro",
                                 transferType: "IBAN",
                                 secondaryText: "SEPA transfer",
-                                currencyIcon: "CurrencyEUR",
+                                currencyIcon: "FlagEUR",
                                 position: .middle,
                                 onTap: { showEURDetails = true }
                             )
@@ -94,87 +93,76 @@ struct ReceiveSalaryView: View {
                             CurrencyAccountRow(
                                 currencyName: "British pound",
                                 transferType: "Sort code & Account number",
-                                currencyIcon: "CurrencyGBP",
+                                currencyIcon: "FlagGB",
                                 position: .bottom,
                                 onTap: { showGBPDetails = true }
                             )
                         }
-                        .background(themeService.cardBackgroundColor)
-                        .cornerRadius(24)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 24)
-                                .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
-                        )
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 8)
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 40)
                 }
             }
         }
-        .sheet(isPresented: $showBRLDetails) {
+        .fullScreenCover(isPresented: $showBRLDetails) {
             CurrencyAccountDetailsSheet(
-                currencyName: "Brazilian real",
-                currencyIcon: "CurrencyBRL",
+                isPresented: $showBRLDetails,
+                title: "BRL account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0% fee"), ("arrow.down", "R$10 min"), ("clock", "Instant")],
                 details: [
-                    ("Pix Key", "12345678900"),
-                    ("Bank", "Sling"),
-                    ("Account Holder", "Brendon Arnold")
+                    ("Pix Key", "12345678900", false),
+                    ("Bank", "Sling", false),
+                    ("Account Holder", "Brendon Arnold", false)
                 ]
             )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(24)
         }
-        .sheet(isPresented: $showUSDDetails) {
+        .fullScreenCover(isPresented: $showUSDDetails) {
             CurrencyAccountDetailsSheet(
-                currencyName: "US dollar",
-                currencyIcon: "CurrencyUSD",
+                isPresented: $showUSDDetails,
+                title: "US account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0.25% fee"), ("arrow.down", "$2 min"), ("clock", "1-3 business days")],
                 details: [
-                    ("Account Number", "123456789"),
-                    ("Routing Number (ACH)", "021000021"),
-                    ("Routing Number (Wire)", "026009593"),
-                    ("Account Holder", "Brendon Arnold"),
-                    ("Bank Name", "Sling Bank"),
-                    ("Bank Address", "123 Finance St, New York, NY 10001")
+                    ("Routing number", "123456789", false),
+                    ("Account number", "123456789123", true),
+                    ("Bank name", "Lead Bank", false),
+                    ("Beneficiary name", "Brendon Arnold", false),
+                    ("Bank address", "1801 Main St.\nKansas City\nMO 64108", true)
                 ]
             )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(24)
         }
-        .sheet(isPresented: $showEURDetails) {
+        .fullScreenCover(isPresented: $showEURDetails) {
             CurrencyAccountDetailsSheet(
-                currencyName: "Euro",
-                currencyIcon: "CurrencyEUR",
+                isPresented: $showEURDetails,
+                title: "EUR account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0.25% fee"), ("arrow.down", "€2 min"), ("clock", "1-2 business days")],
                 details: [
-                    ("IBAN", "DE89 3704 0044 0532 0130 00"),
-                    ("BIC/SWIFT", "COBADEFFXXX"),
-                    ("Account Holder", "Brendon Arnold"),
-                    ("Bank Name", "Sling EU"),
-                    ("Bank Address", "Finanzplatz 1, 60311 Frankfurt, Germany")
+                    ("IBAN", "DE89 3704 0044 0532 0130 00", true),
+                    ("BIC/SWIFT", "COBADEFFXXX", true),
+                    ("Account Holder", "Brendon Arnold", false),
+                    ("Bank name", "Sling EU", false),
+                    ("Bank address", "Finanzplatz 1\n60311 Frankfurt\nGermany", true)
                 ]
             )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(24)
         }
-        .sheet(isPresented: $showGBPDetails) {
+        .fullScreenCover(isPresented: $showGBPDetails) {
             CurrencyAccountDetailsSheet(
-                currencyName: "British pound",
-                currencyIcon: "CurrencyGBP",
+                isPresented: $showGBPDetails,
+                title: "GBP account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0.25% fee"), ("arrow.down", "£2 min"), ("clock", "Same day")],
                 details: [
-                    ("Account Number", "12345678"),
-                    ("Sort Code", "04-00-75"),
-                    ("IBAN", "GB29 NWBK 6016 1331 9268 19"),
-                    ("Account Holder", "Brendon Arnold"),
-                    ("Bank Name", "Sling UK"),
-                    ("Bank Address", "1 Bank Street, London E14 5JP")
+                    ("Account number", "12345678", true),
+                    ("Sort code", "04-00-75", true),
+                    ("IBAN", "GB29 NWBK 6016 1331 9268 19", true),
+                    ("Account Holder", "Brendon Arnold", false),
+                    ("Bank name", "Sling UK", false),
+                    ("Bank address", "1 Bank Street\nLondon E14 5JP", true)
                 ]
             )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(24)
         }
         .onAppear {
             hasSetupAccount = true
@@ -208,9 +196,9 @@ struct CurrencyAccountRow: View {
                             .fill(Color(hex: "000000"))
                             .frame(width: 44, height: 44)
                         
-                        Image(systemName: "building.columns.fill")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.white)
+                        Image("IconBankCurrency")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
                             .frame(width: 24, height: 24)
                     }
                     
@@ -258,86 +246,145 @@ struct CurrencyAccountRow: View {
                     .foregroundColor(themeService.textTertiaryColor)
             }
             .padding(16)
-            .background(themeService.cardBackgroundColor)
+            .cornerRadius(24)
         }
-        .buttonStyle(PressedButtonStyle())
-        
-        // Divider (except for bottom)
-        if position != .bottom {
-            Rectangle()
-                .fill(themeService.cardBorderColor ?? Color.gray.opacity(0.2))
-                .frame(height: 1)
-                .padding(.leading, 72)
-        }
+        .buttonStyle(CurrencyRowButtonStyle())
     }
 }
 
 // MARK: - Currency Account Details Sheet
 
 struct CurrencyAccountDetailsSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
-    let currencyName: String
-    let currencyIcon: String
-    let details: [(label: String, value: String)]
+    let title: String
+    let subtitle: String
+    let infoBadges: [(icon: String, text: String)]
+    let details: [(label: String, value: String, copyable: Bool)]
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
-            HStack(spacing: 12) {
-                Image(currencyIcon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 44, height: 44)
-                
-                Text("\(currencyName) account")
-                    .font(.custom("Inter-Bold", size: 20))
-                    .foregroundColor(themeService.textPrimaryColor)
-                
-                Spacer()
-            }
-            .padding(.top, 8)
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
             
-            // Details
             VStack(spacing: 0) {
-                ForEach(Array(details.enumerated()), id: \.offset) { index, detail in
-                    VStack(spacing: 0) {
-                        AccountDetailRow(
-                            label: detail.label,
-                            value: detail.value,
-                            copyable: true
-                        )
-                        
-                        if index < details.count - 1 {
-                            Rectangle()
-                                .fill(themeService.cardBorderColor ?? Color.gray.opacity(0.2))
-                                .frame(height: 1)
-                        }
+                // Header with back arrow and info icon
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "080808"))
+                            .frame(width: 44, height: 44)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {}) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundColor(Color(hex: "080808"))
+                            .frame(width: 44, height: 44)
                     }
                 }
-            }
-            .background(themeService.cardBackgroundColor)
-            .cornerRadius(24)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(themeService.cardBorderColor ?? Color.clear, lineWidth: 1)
-            )
-            
-            Spacer()
-            
-            // Share button
-            SecondaryButton(title: "Share Details") {
-                shareDetails()
+                .padding(.horizontal, 0)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 32) {
+                        // Title, subtitle, and info badges
+                        VStack(alignment: .leading, spacing: 24) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(title)
+                                    .font(.custom("Inter-Bold", size: 24))
+                                    .tracking(-0.48)
+                                    .foregroundColor(Color(hex: "080808"))
+                                
+                                Text(subtitle)
+                                    .font(.custom("Inter-Regular", size: 16))
+                                    .tracking(-0.32)
+                                    .lineSpacing(4)
+                                    .foregroundColor(Color.black.opacity(0.4))
+                            }
+                            
+                            // Info badges
+                            HStack(spacing: 8) {
+                                ForEach(infoBadges, id: \.text) { badge in
+                                    InfoBadge(icon: badge.icon, text: badge.text)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Detail cards
+                        VStack(spacing: 8) {
+                            ForEach(Array(details.enumerated()), id: \.offset) { _, detail in
+                                AccountDetailCard(
+                                    label: detail.label,
+                                    value: detail.value,
+                                    copyable: detail.copyable
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Buttons
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                copyAllDetails()
+                            }) {
+                                Text("Copy all")
+                                    .font(.custom("Inter-Bold", size: 16))
+                                    .tracking(-0.32)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(Color(hex: "000000"))
+                                    .cornerRadius(20)
+                            }
+                            .buttonStyle(PressedButtonStyle())
+                            
+                            Button(action: {
+                                shareDetails()
+                            }) {
+                                Text("Share")
+                                    .font(.custom("Inter-Bold", size: 16))
+                                    .tracking(-0.32)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(Color(hex: "000000"))
+                                    .cornerRadius(20)
+                            }
+                            .buttonStyle(PressedButtonStyle())
+                        }
+                        .padding(.horizontal, 24)
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 40)
+                }
             }
         }
-        .padding(24)
-        .background(Color.white)
+    }
+    
+    private func copyAllDetails() {
+        var text = ""
+        for detail in details {
+            let cleanValue = detail.value.replacingOccurrences(of: "\n", with: ", ")
+            text += "\(detail.label): \(cleanValue)\n"
+        }
+        UIPasteboard.general.string = text
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
     
     private func shareDetails() {
-        var shareText = "\(currencyName) Account Details\n\n"
+        var shareText = "\(title)\n\n"
         for detail in details {
-            shareText += "\(detail.label): \(detail.value)\n"
+            let cleanValue = detail.value.replacingOccurrences(of: "\n", with: ", ")
+            shareText += "\(detail.label): \(cleanValue)\n"
         }
         
         let activityVC = UIActivityViewController(activityItems: [shareText], applicationActivities: nil)
@@ -349,32 +396,57 @@ struct CurrencyAccountDetailsSheet: View {
     }
 }
 
-// MARK: - Account Detail Row (reused from before)
+// MARK: - Info Badge
 
-struct AccountDetailRow: View {
-    @ObservedObject private var themeService = ThemeService.shared
+struct InfoBadge: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(Color(hex: "7B7B7B"))
+                .frame(width: 12, height: 12)
+            
+            Text(text)
+                .font(.custom("Inter-Regular", size: 14))
+                .tracking(-0.28)
+                .foregroundColor(Color(hex: "7B7B7B"))
+        }
+        .padding(.leading, 6)
+        .padding(.trailing, 8)
+        .padding(.vertical, 4)
+        .background(Color(hex: "F7F7F7"))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - Account Detail Card
+
+struct AccountDetailCard: View {
     let label: String
     let value: String
     var copyable: Bool = false
     @State private var copied = false
     
     var body: some View {
-        HStack {
+        HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(label)
-                    .font(.custom("Inter-Regular", size: 12))
-                    .foregroundColor(themeService.textSecondaryColor)
+                    .font(.custom("Inter-Medium", size: 13))
+                    .foregroundColor(Color.black.opacity(0.4))
                 
                 Text(value)
-                    .font(.custom("Inter-Bold", size: 16))
-                    .foregroundColor(themeService.textPrimaryColor)
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(Color(hex: "080808"))
             }
             
             Spacer()
             
             if copyable {
                 Button(action: {
-                    UIPasteboard.general.string = value
+                    UIPasteboard.general.string = value.replacingOccurrences(of: "\n", with: ", ")
                     copied = true
                     let generator = UIImpactFeedbackGenerator(style: .light)
                     generator.impactOccurred()
@@ -383,13 +455,42 @@ struct AccountDetailRow: View {
                         copied = false
                     }
                 }) {
-                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(copied ? Color(hex: "57CE43") : themeService.textSecondaryColor)
+                    if copied {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "57CE43"))
+                    } else {
+                        Image("IconCopy")
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 20, height: 20)
+                            .foregroundColor(Color.black.opacity(0.4))
+                    }
                 }
+                .padding(.top, 4)
             }
         }
         .padding(16)
+        .background(Color(hex: "FCFCFC"))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(hex: "F7F7F7"), lineWidth: 1)
+        )
+        .cornerRadius(16)
+    }
+}
+
+// MARK: - Currency Row Button Style
+
+struct CurrencyRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(configuration.isPressed ? Color(hex: "EDEDED") : Color.clear)
+            )
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 

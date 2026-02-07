@@ -48,8 +48,6 @@ struct InvestView: View {
     @State private var dragProgress: CGFloat = 1.0
     @State private var selectedStock: Stock? = nil
     @State private var exchangeRate: Double = 1.0
-    @State private var showManageRecurringBuys = false
-    @ObservedObject private var recurringService = RecurringPurchaseService.shared
     
     private let exchangeRateService = ExchangeRateService.shared
     
@@ -223,24 +221,6 @@ struct InvestView: View {
         }()
         // #endregion
         VStack(spacing: 0) {
-            // Header with close button
-            HStack {
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    isPresented = false
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .frame(width: 44, height: 44)
-                }
-                
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 8)
-            
         ScrollView {
             VStack(spacing: 0) {
                 // Portfolio Header
@@ -270,28 +250,6 @@ struct InvestView: View {
                         }
                         
                         Spacer()
-                        
-                        // Recurring purchases button
-                        if !recurringService.activePurchases.isEmpty || !recurringService.pausedPurchases.isEmpty {
-                            Button(action: {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.impactOccurred()
-                                showManageRecurringBuys = true
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "repeat")
-                                        .font(.system(size: 12, weight: .medium))
-                                    
-                                    Text("\(recurringService.activePurchases.count)")
-                                        .font(.custom("Inter-Medium", size: 12))
-                                }
-                                .foregroundColor(Color(hex: DesignSystem.Colors.primary))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color(hex: "FFF5F0"))
-                                .cornerRadius(8)
-                            }
-                        }
                     }
                     
                     if isPortfolioEmpty {
@@ -313,12 +271,12 @@ struct InvestView: View {
                 .padding(.vertical, 16)
                 .animation(.easeInOut(duration: 0.1), value: dragProgress)
                 
-                // Promotional card for empty portfolio
-                if isPortfolioEmpty {
-                    StartInvestingCard()
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                }
+                // Promotional card for empty portfolio (hidden for now)
+                // if isPortfolioEmpty {
+                //     StartInvestingCard()
+                //         .padding(.horizontal, 16)
+                //         .padding(.top, 8)
+                // }
                 
                 // Chart Area with Time Period Selector (only show if has holdings)
                 if !isPortfolioEmpty {
@@ -423,9 +381,6 @@ struct InvestView: View {
         }
         .fullScreenCover(item: $selectedStock) { stock in
             StockDetailView(stock: stock)
-        }
-        .fullScreenCover(isPresented: $showManageRecurringBuys) {
-            ManageRecurringBuysView(isPresented: $showManageRecurringBuys)
         }
         .onAppear {
             Task {

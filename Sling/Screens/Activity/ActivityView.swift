@@ -112,7 +112,7 @@ struct ActivityEmptyStateCard: View {
                 Button("Cancel", role: .cancel) { }
             }
         }
-        .padding(.horizontal, 48)
+        .padding(.horizontal, 64)
     }
 }
 

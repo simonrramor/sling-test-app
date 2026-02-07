@@ -38,6 +38,12 @@ struct PaymentAccount: Identifiable, Equatable {
         iconType: .asset("AccountSlingWallet")
     )
     
+    static let slingBalance = PaymentAccount(
+        name: "Sling Balance",
+        currency: "USD",
+        iconType: .asset("AccountSlingWallet")
+    )
+    
     static let applePay = PaymentAccount(
         name: "Apple pay",
         currency: "GBP",

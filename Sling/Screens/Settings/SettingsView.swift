@@ -29,6 +29,10 @@ struct SettingsView: View {
     @State private var showQRScanner = false
     @State private var showHelpChat = false
     @State private var showTransfer = false
+    @State private var showSavings = false
+    @State private var showSignUpFlow = false
+    @State private var showPotentialFeatures = false
+    @State private var showTests = false
     
     var body: some View {
         ZStack {
@@ -88,6 +92,21 @@ struct SettingsView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 24)
                     VStack(spacing: 0) {
+                        // App launcher row (always visible)
+                        SettingsRow(
+                            iconSystem: "square.grid.2x2",
+                            title: "App launcher",
+                            position: .standalone,
+                            onTap: {
+                                isPresented = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    NotificationCenter.default.post(name: .returnToAppPicker, object: nil)
+                                }
+                            }
+                        )
+                        
+                        Spacer().frame(height: 16)
+                        
                         // Invite Friends Row (standalone top)
                         SettingsRow(
                             iconAsset: "IconUserAdd",
@@ -117,24 +136,12 @@ struct SettingsView: View {
                             SettingsRow(
                                 iconAsset: "IconMoney",
                                 title: "Fees",
-                                position: .middle,
+                                position: .bottom,
                                 onTap: { showFees = true }
                             )
-                            
-                            SettingsRow(
-                                iconAsset: "NavInvest",
-                                title: "Investments",
-                                position: .middle,
-                                onTap: { showInvestments = true }
-                            )
-                            
-                            SettingsRow(
-                                iconSystem: "arrow.left.arrow.right",
-                                title: "Transfer between accounts",
-                                position: .bottom,
-                                onTap: { showTransfer = true }
-                            )
                         }
+                        
+                        Spacer().frame(height: 16)
                         
                         // Preferences section
                         VStack(spacing: 0) {
@@ -159,22 +166,17 @@ struct SettingsView: View {
                             )
                         }
                         
-                        // Tools section
-                        VStack(spacing: 0) {
-                            SettingsRow(
-                                iconSystem: "qrcode",
-                                title: "QR Scanner",
-                                position: .top,
-                                onTap: { showQRScanner = true }
-                            )
-                            
-                            SettingsRow(
-                                iconSystem: "questionmark.circle",
-                                title: "Help & Support",
-                                position: .bottom,
-                                onTap: { showHelpChat = true }
-                            )
-                        }
+                        Spacer().frame(height: 16)
+                        
+                        // Help & Support row
+                        SettingsRow(
+                            iconSystem: "questionmark.circle",
+                            title: "Help & Support",
+                            position: .standalone,
+                            onTap: { showHelpChat = true }
+                        )
+                        
+                        Spacer().frame(height: 16)
                         
                         // Profile section
                         VStack(spacing: 0) {
@@ -193,6 +195,8 @@ struct SettingsView: View {
                             )
                         }
                         
+                        Spacer().frame(height: 16)
+                        
                         // Log out row
                         SettingsRow(
                             iconAsset: "IconLogout",
@@ -201,66 +205,22 @@ struct SettingsView: View {
                             onTap: { showLogoutConfirmation = true }
                         )
                         
-                        Spacer().frame(height: 24)
+                        Spacer().frame(height: 16)
                         
-                        // Test Area section header
-                        Text("Test Area")
-                            .font(.custom("Inter-Bold", size: 13))
-                            .foregroundColor(Color(hex: "8E8E93"))
-                            .textCase(.uppercase)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 8)
-                        
-                        // Developer section
+                        // Developer section - navigates to sub-screens
                         VStack(spacing: 0) {
                             SettingsRow(
-                                iconSystem: "creditcard.fill",
-                                title: "Card Test",
+                                iconSystem: "lightbulb.fill",
+                                title: "Potential Features",
                                 position: .top,
-                                onTap: { showCardTest = true }
+                                onTap: { showPotentialFeatures = true }
                             )
                             
                             SettingsRow(
-                                iconSystem: "arrow.up.arrow.down",
-                                title: "Swap Animation",
-                                position: .middle,
-                                onTap: { showSwapTest = true }
-                            )
-                            
-                            SettingsRow(
-                                iconSystem: "book.closed.fill",
-                                title: "Passport",
-                                position: .middle,
-                                onTap: { showPassport = true }
-                            )
-                            
-                            SettingsRow(
-                                iconSystem: "sparkles",
-                                title: "Particle Burst Test",
-                                position: .middle,
-                                onTap: { showParticleTest = true }
-                            )
-                            
-                            SettingsRow(
-                                iconAsset: "IconMorseBot",
-                                title: "Morse Bot",
-                                position: .middle,
-                                onTap: { showMorseBot = true }
-                            )
-                            
-                            SettingsRow(
-                                iconAsset: "IconMorseBot",
-                                title: "Bot Comparison",
-                                position: .middle,
-                                onTap: { showBotComparison = true }
-                            )
-                            
-                            SettingsRow(
-                                iconSystem: "circle.grid.2x2",
-                                title: "Blobs",
+                                iconSystem: "hammer.fill",
+                                title: "Tests",
                                 position: .bottom,
-                                onTap: { showBlobsTest = true }
+                                onTap: { showTests = true }
                             )
                         }
                         
@@ -372,6 +332,18 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showTransfer) {
             TransferBetweenAccountsView(isPresented: $showTransfer)
         }
+        .fullScreenCover(isPresented: $showSignUpFlow) {
+            SignUpFlowView(isComplete: .constant(false), startStep: .phone)
+        }
+        .fullScreenCover(isPresented: $showSavings) {
+            SavingsView()
+        }
+        .fullScreenCover(isPresented: $showPotentialFeatures) {
+            PotentialFeaturesSettingsView(isPresented: $showPotentialFeatures)
+        }
+        .fullScreenCover(isPresented: $showTests) {
+            TestsSettingsView(isPresented: $showTests)
+        }
     }
     
     private func logOut() {
@@ -398,6 +370,9 @@ struct SettingsView: View {
         UserDefaults.standard.removeObject(forKey: "hasSentMoney")
         UserDefaults.standard.removeObject(forKey: "hasSetupAccount")
         UserDefaults.standard.removeObject(forKey: "hasCard")
+        
+        // Reset card style to default orange
+        UserDefaults.standard.removeObject(forKey: "selectedCardStyle")
         
         // Log out user - this will show the login screen
         isLoggedIn = false
@@ -1133,6 +1108,240 @@ struct CountryPickerSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+}
+
+// MARK: - Potential Features Settings View
+
+struct PotentialFeaturesSettingsView: View {
+    @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
+    @State private var showSavings = false
+    @State private var showSignUpFlow = false
+    @State private var showTransfer = false
+    @State private var showIntroScreen = false
+    
+    var body: some View {
+        ZStack {
+            themeService.backgroundColor
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with back button
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .frame(width: 44, height: 44)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Potential Features")
+                        .font(.custom("Inter-Bold", size: 18))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    
+                    Spacer()
+                    
+                    // Empty space to balance
+                    Color.clear
+                        .frame(width: 44, height: 44)
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        SettingsRow(
+                            iconSystem: "hand.wave.fill",
+                            title: "Intro Screen",
+                            position: .top,
+                            onTap: { showIntroScreen = true }
+                        )
+                        
+                        SettingsRow(
+                            iconAsset: "NavSavings",
+                            title: "Savings",
+                            position: .middle,
+                            onTap: { showSavings = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "person.badge.plus",
+                            title: "Sign Up Flow",
+                            position: .middle,
+                            onTap: { showSignUpFlow = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "arrow.left.arrow.right",
+                            title: "Transfer between accounts",
+                            position: .bottom,
+                            onTap: { showTransfer = true }
+                        )
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showIntroScreen) {
+            OnboardingView(isComplete: Binding(
+                get: { false },
+                set: { _ in showIntroScreen = false }
+            ))
+        }
+        .fullScreenCover(isPresented: $showSavings) {
+            SavingsView()
+        }
+        .fullScreenCover(isPresented: $showSignUpFlow) {
+            SignUpFlowView(isComplete: .constant(false), startStep: .phone)
+        }
+        .fullScreenCover(isPresented: $showTransfer) {
+            TransferBetweenAccountsView(isPresented: $showTransfer)
+        }
+    }
+}
+
+// MARK: - Tests Settings View
+
+struct TestsSettingsView: View {
+    @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
+    @State private var showCardTest = false
+    @State private var showSwapTest = false
+    @State private var showPassport = false
+    @State private var showParticleTest = false
+    @State private var showMorseBot = false
+    @State private var showBotComparison = false
+    @State private var showBlobsTest = false
+    
+    var body: some View {
+        ZStack {
+            themeService.backgroundColor
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with back button
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .frame(width: 44, height: 44)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Tests")
+                        .font(.custom("Inter-Bold", size: 18))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    
+                    Spacer()
+                    
+                    // Empty space to balance
+                    Color.clear
+                        .frame(width: 44, height: 44)
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        SettingsRow(
+                            iconSystem: "creditcard.fill",
+                            title: "Card Test",
+                            position: .top,
+                            onTap: { showCardTest = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "arrow.up.arrow.down",
+                            title: "Swap Animation",
+                            position: .middle,
+                            onTap: { showSwapTest = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "book.closed.fill",
+                            title: "Passport",
+                            position: .middle,
+                            onTap: { showPassport = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "sparkles",
+                            title: "Particle Burst Test",
+                            position: .middle,
+                            onTap: { showParticleTest = true }
+                        )
+                        
+                        SettingsRow(
+                            iconAsset: "IconMorseBot",
+                            title: "Morse Bot",
+                            position: .middle,
+                            onTap: { showMorseBot = true }
+                        )
+                        
+                        SettingsRow(
+                            iconAsset: "IconMorseBot",
+                            title: "Bot Comparison",
+                            position: .middle,
+                            onTap: { showBotComparison = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "circle.grid.2x2",
+                            title: "Blobs",
+                            position: .bottom,
+                            onTap: { showBlobsTest = true }
+                        )
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showCardTest) {
+            CardTestView(isPresented: $showCardTest)
+        }
+        .fullScreenCover(isPresented: $showSwapTest) {
+            SwapAnimationTestView()
+        }
+        .fullScreenCover(isPresented: $showPassport) {
+            PassportView()
+        }
+        .fullScreenCover(isPresented: $showParticleTest) {
+            ParticleTestView()
+        }
+        .fullScreenCover(isPresented: $showMorseBot) {
+            MorseBotView(isPresented: $showMorseBot)
+        }
+        .fullScreenCover(isPresented: $showBotComparison) {
+            NavigationView {
+                BotComparisonView()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Close") {
+                                showBotComparison = false
+                            }
+                        }
+                    }
+            }
+        }
+        .fullScreenCover(isPresented: $showBlobsTest) {
+            BlobsTestView()
+        }
     }
 }
 

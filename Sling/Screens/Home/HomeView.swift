@@ -1,14 +1,20 @@
 import SwiftUI
 import UIKit
 
+extension String: @retroactive Identifiable {
+    public var id: String { self }
+}
+
 struct HomeView: View {
     @State private var showAddMoney = false
     @State private var showWithdraw = false
     @State private var showSendMoney = false
     @State private var showSetup = false
     @State private var showAllActivity = false
+    @State private var selectedAccountCurrency: String? = nil
     @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
+    @Environment(\.selectedAppVariant) private var selectedAppVariant
     
     var body: some View {
         ScrollView {
@@ -17,7 +23,7 @@ struct HomeView: View {
                 BalanceView(onBalanceTap: {
                     NotificationCenter.default.post(name: .showBalanceSheet, object: nil)
                 })
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                 
                 // Add money + Withdraw buttons
                 HStack(spacing: 8) {
@@ -31,7 +37,7 @@ struct HomeView: View {
                         showWithdraw = true
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 20)
                 .padding(.top, 16)
                 .padding(.bottom, 16)
                 
@@ -42,71 +48,92 @@ struct HomeView: View {
                     onSetup: { showSetup = true }
                 )
                 
-                // Savings Summary Card
-                HomeSavingsCard()
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                
-                // Activity Section
-                VStack(spacing: 0) {
-                    // Activity title with See more button (only show when there are activities)
-                    if !activityService.activities.isEmpty || activityService.isLoading {
-                        HStack {
-                            Text("Activity")
-                                .font(.custom("Inter-Bold", size: 24))
-                                .tracking(-0.48) // -2% of 24px
-                                .foregroundColor(themeService.textPrimaryColor)
-                            
-                            Spacer()
-                            
-                            // See all button (only show if there are more than 3 activities)
-                            if activityService.activities.count > 3 {
-                                Button(action: { showAllActivity = true }) {
-                                    Text("See all")
-                                        .font(.custom("Inter-Bold", size: 14))
-                                        .foregroundColor(themeService.textPrimaryColor)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
-                                        )
-                                }
-                            }
+                // Virtual accounts carousel
+                if selectedAppVariant == .newNavMVP || selectedAppVariant == .investmentsMVP {
+                    VirtualAccountsCarousel(
+                        onAccountTap: { currency in
+                            selectedAccountCurrency = currency
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    }
+                    )
+                    .padding(.top, 12)
                     
-                    if activityService.activities.isEmpty && !activityService.isLoading {
-                        // Empty state
-                        HomeEmptyStateCard()
-                            .padding(.vertical, 24)
-                            .padding(.horizontal, 32)
-                    } else if activityService.isLoading && activityService.activities.isEmpty {
-                        // Loading state with skeleton rows
-                        VStack(spacing: 0) {
-                            ForEach(0..<3, id: \.self) { _ in
-                                SkeletonTransactionRow()
-                            }
-                        }
-                        .padding(.top, 8)
-                        .padding(.horizontal, 32)
-                    } else {
-                        // Transaction list - show only 3 on home (no See more at bottom)
-                        TransactionListContent(
-                            limit: 3,
-                            onTransactionSelected: { activity in
-                                NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
-                            }
-                        )
+                    // Spent this month card
+                    SpentThisMonthCard()
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                    
+                    // Portfolio card (investments MVP only, shows after buying a stock)
+                    if selectedAppVariant == .investmentsMVP && !PortfolioService.shared.holdings.isEmpty {
+                        HomePortfolioCard()
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
                     }
                 }
-                .padding(.vertical, 8)
-                .background(themeService.currentTheme == .white ? Color.clear : themeService.backgroundSecondaryColor)
-                .cornerRadius(themeService.currentTheme == .white ? 0 : 24)
-                .padding(.horizontal, themeService.currentTheme == .white ? 0 : 16)
-                .padding(.top, 16)
+                
+                // Activity Section
+                if activityService.activities.isEmpty && !activityService.isLoading {
+                    // Empty state in a card
+                    HomeEmptyStateCard()
+                        .padding(.vertical, 40)
+                        .padding(.horizontal, 60)
+                        .frame(maxWidth: .infinity)
+                        .background(.white)
+                        .cornerRadius(24)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                } else {
+                    VStack(spacing: 0) {
+                        // Activity title with See more button
+                        if !activityService.activities.isEmpty || activityService.isLoading {
+                            HStack {
+                                Text("Activity")
+                                    .font(.custom("Inter-Bold", size: 24))
+                                    .tracking(-0.48)
+                                    .foregroundColor(themeService.textPrimaryColor)
+                                
+                                Spacer()
+                                
+                                if activityService.activities.count > 3 {
+                                    Button(action: { showAllActivity = true }) {
+                                        Text("See all")
+                                            .font(.custom("Inter-Bold", size: 14))
+                                            .foregroundColor(themeService.textPrimaryColor)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
+                                            )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                        }
+                        
+                        if activityService.isLoading && activityService.activities.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(0..<3, id: \.self) { _ in
+                                    SkeletonTransactionRow()
+                                }
+                            }
+                            .padding(.top, 8)
+                            .padding(.horizontal, 20)
+                        } else {
+                            TransactionListContent(
+                                limit: 3,
+                                onTransactionSelected: { activity in
+                                    NotificationCenter.default.post(name: .showTransactionDetail, object: activity)
+                                }
+                            )
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .background(themeService.backgroundSecondaryColor)
+                    .cornerRadius(24)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                }
                 
                 // Bottom padding for scroll content to clear nav bar
                 Spacer()
@@ -134,6 +161,77 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $showAllActivity) {
             AllActivityView(isPresented: $showAllActivity)
+        }
+        .fullScreenCover(item: $selectedAccountCurrency) { currency in
+            currencyAccountDetailsSheet(for: currency)
+        }
+    }
+    
+    @ViewBuilder
+    private func currencyAccountDetailsSheet(for currency: String) -> some View {
+        let dismissBinding = Binding<Bool>(
+            get: { selectedAccountCurrency != nil },
+            set: { if !$0 { selectedAccountCurrency = nil } }
+        )
+        
+        switch currency {
+        case "BRL":
+            CurrencyAccountDetailsSheet(
+                isPresented: dismissBinding,
+                title: "BRL account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0% fee"), ("arrow.down", "R$10 min"), ("clock", "Instant")],
+                details: [
+                    ("Pix Key", "12345678900", false),
+                    ("Bank", "Sling", false),
+                    ("Account Holder", "Brendon Arnold", false)
+                ]
+            )
+        case "USD":
+            CurrencyAccountDetailsSheet(
+                isPresented: dismissBinding,
+                title: "US account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0.25% fee"), ("arrow.down", "$2 min"), ("clock", "1-3 business days")],
+                details: [
+                    ("Routing number", "123456789", false),
+                    ("Account number", "123456789123", true),
+                    ("Bank name", "Lead Bank", false),
+                    ("Beneficiary name", "Brendon Arnold", false),
+                    ("Bank address", "1801 Main St.\nKansas City\nMO 64108", true)
+                ]
+            )
+        case "EUR":
+            CurrencyAccountDetailsSheet(
+                isPresented: dismissBinding,
+                title: "EUR account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0.25% fee"), ("arrow.down", "€2 min"), ("clock", "1-2 business days")],
+                details: [
+                    ("IBAN", "DE89 3704 0044 0532 0130 00", true),
+                    ("BIC/SWIFT", "COBADEFFXXX", true),
+                    ("Account Holder", "Brendon Arnold", false),
+                    ("Bank name", "Sling EU", false),
+                    ("Bank address", "Finanzplatz 1\n60311 Frankfurt\nGermany", true)
+                ]
+            )
+        case "GBP":
+            CurrencyAccountDetailsSheet(
+                isPresented: dismissBinding,
+                title: "GBP account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0.25% fee"), ("arrow.down", "£2 min"), ("clock", "Same day")],
+                details: [
+                    ("Account number", "12345678", true),
+                    ("Sort code", "04-00-75", true),
+                    ("IBAN", "GB29 NWBK 6016 1331 9268 19", true),
+                    ("Account Holder", "Brendon Arnold", false),
+                    ("Bank name", "Sling UK", false),
+                    ("Bank address", "1 Bank Street\nLondon E14 5JP", true)
+                ]
+            )
+        default:
+            EmptyView()
         }
     }
 }
@@ -166,12 +264,12 @@ struct GetStartedSection: View {
                 Text("Get started on Sling")
                     .font(.custom("Inter-Bold", size: 16))
                     .foregroundColor(Color("TextSecondary"))
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                     .padding(.vertical, 8)
                 
                 // Horizontal scrollable cards
                 ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     // Add money card
                     if !hasAddedMoney {
                         GetStartedCard(
@@ -255,7 +353,7 @@ struct GetStartedSection: View {
                         )
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 20)
                 .padding(.vertical, 8)
             }
             }
@@ -833,10 +931,14 @@ struct MiniPortfolioChart: View {
         isPositive ? Color(hex: "57CE43") : Color(hex: "E30000")
     }
     
+    private let inset: CGFloat = 4 // Keep stroke away from edges
+    
     var body: some View {
         if chartData.count >= 2 {
             Path { path in
-                let stepX = chartWidth / CGFloat(chartData.count - 1)
+                let drawWidth = chartWidth - inset * 2
+                let drawHeight = chartHeight - inset * 2
+                let stepX = drawWidth / CGFloat(chartData.count - 1)
                 
                 // Normalize data to fit in chart height
                 let minVal = chartData.min() ?? 0
@@ -844,13 +946,13 @@ struct MiniPortfolioChart: View {
                 let range = maxVal - minVal
                 
                 let normalizedData = chartData.map { value -> CGFloat in
-                    if range == 0 { return chartHeight / 2 }
-                    return chartHeight - ((value - minVal) / range * chartHeight * 0.8 + chartHeight * 0.1)
+                    if range == 0 { return inset + drawHeight / 2 }
+                    return inset + drawHeight - ((value - minVal) / range * drawHeight * 0.8 + drawHeight * 0.1)
                 }
                 
-                path.move(to: CGPoint(x: 0, y: normalizedData[0]))
+                path.move(to: CGPoint(x: inset, y: normalizedData[0]))
                 for (index, y) in normalizedData.enumerated().dropFirst() {
-                    path.addLine(to: CGPoint(x: CGFloat(index) * stepX, y: y))
+                    path.addLine(to: CGPoint(x: inset + CGFloat(index) * stepX, y: y))
                 }
             }
             .stroke(chartColor, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
@@ -858,12 +960,14 @@ struct MiniPortfolioChart: View {
         } else {
             // Fallback static chart
             Path { path in
+                let drawWidth = chartWidth - inset * 2
+                let drawHeight = chartHeight - inset * 2
                 let points: [(CGFloat, CGFloat)] = [
-                    (0, 45), (20, 35), (40, 40), (60, 25), (80, 30), (100, 15), (119, 5)
+                    (0, 0.82), (0.17, 0.55), (0.34, 0.64), (0.50, 0.36), (0.67, 0.45), (0.84, 0.18), (1.0, 0.0)
                 ]
-                path.move(to: CGPoint(x: points[0].0, y: points[0].1))
+                path.move(to: CGPoint(x: inset + points[0].0 * drawWidth, y: inset + points[0].1 * drawHeight))
                 for point in points.dropFirst() {
-                    path.addLine(to: CGPoint(x: point.0, y: point.1))
+                    path.addLine(to: CGPoint(x: inset + point.0 * drawWidth, y: inset + point.1 * drawHeight))
                 }
             }
             .stroke(chartColor, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
@@ -930,6 +1034,237 @@ struct AllActivityView: View {
             }
         }
         .transactionDetailDrawer(isPresented: $showTransactionDetail, activity: selectedActivity)
+    }
+}
+
+// MARK: - Virtual Accounts Carousel
+
+struct VirtualAccountsCarousel: View {
+    let onAccountTap: (String) -> Void
+    
+    // Virtual accounts data
+    private let accounts: [(currency: String, label: String, lastFour: String, flagAsset: String)] = [
+        ("BRL", "BRL account details", "8900", "FlagBR"),
+        ("USD", "USD account details", "6789", "FlagUS"),
+        ("EUR", "EUR account details", "0130", "FlagEUR"),
+        ("GBP", "GBP account details", "9268", "FlagGB")
+    ]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let cardWidth: CGFloat = 353
+            let horizontalInset = (geometry.size.width - cardWidth) / 2
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(accounts, id: \.currency) { account in
+                        Button(action: {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            onAccountTap(account.currency)
+                        }) {
+                            VirtualAccountCard(
+                                label: account.label,
+                                lastFour: account.lastFour
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    // Add new account card
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        // TODO: Open add new account flow
+                    }) {
+                        AddNewAccountCard()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal, horizontalInset)
+            }
+            .scrollTargetBehavior(.viewAligned)
+        }
+        .frame(height: 88)
+    }
+}
+
+// MARK: - Virtual Account Card
+
+struct VirtualAccountCard: View {
+    let label: String
+    let lastFour: String
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 4) {
+                    Image("IconBankSmall")
+                        .renderingMode(.template)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 16, height: 16)
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                    
+                    Text(label)
+                        .font(.custom("Inter-Medium", size: 16))
+                        .tracking(-0.32)
+                        .foregroundColor(Color(hex: "7B7B7B"))
+                }
+                
+                HStack(spacing: 12) {
+                    Text(lastFour)
+                        .font(.custom("Inter-Bold", size: 32))
+                        .tracking(-0.64)
+                        .foregroundColor(Color(hex: "080808"))
+                    
+                    Text("••••")
+                        .font(.custom("Inter-Bold", size: 32))
+                        .tracking(-0.64)
+                        .foregroundColor(Color(hex: "080808"))
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(16)
+        .frame(width: 353)
+        .background(.white)
+        .cornerRadius(24)
+    }
+}
+
+// MARK: - Add New Account Card
+
+struct AddNewAccountCard: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Add new account")
+                    .font(.custom("Inter-Bold", size: 16))
+                    .foregroundColor(Color(hex: "080808"))
+                
+                Text("Get new account details")
+                    .font(.custom("Inter-Regular", size: 14))
+                    .foregroundColor(Color(hex: "7B7B7B"))
+            }
+            
+            Spacer()
+            
+            // Plus icon in circle
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(hex: "F7F7F7"))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(Color(hex: "080808"))
+            }
+        }
+        .padding(16)
+        .frame(width: 353)
+        .frame(maxHeight: .infinity)
+        .background(.white)
+        .cornerRadius(24)
+    }
+}
+
+// MARK: - Spent This Month Card
+
+struct SpentThisMonthCard: View {
+    @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
+    @AppStorage("hasCard") private var hasCard = false
+    
+    // Mock spending data in USD
+    private let spentThisMonthUSD: Double = 3430
+    
+    private var currencySymbol: String {
+        ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+    }
+    
+    private var formattedAmount: String {
+        if displayCurrencyService.displayCurrency == "USD" {
+            return spentThisMonthUSD.asCurrency("$")
+        }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrencyService.displayCurrency) {
+            return (spentThisMonthUSD * rate).asCurrency(currencySymbol)
+        }
+        return spentThisMonthUSD.asCurrency("$")
+    }
+    
+    var body: some View {
+        if hasCard {
+            Button(action: {
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                NotificationCenter.default.post(name: .navigateToCard, object: nil)
+            }) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Spent this month")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .tracking(-0.32)
+                            .foregroundColor(Color(hex: "7B7B7B"))
+                        
+                        Text(formattedAmount)
+                            .font(.custom("Inter-Bold", size: 32))
+                            .tracking(-0.64)
+                            .foregroundColor(Color(hex: "080808"))
+                    }
+                    
+                    Spacer()
+                    
+                    // Mini card thumbnail
+                    MiniCardThumbnail()
+                        .frame(width: 56, height: 36)
+                }
+                .padding(16)
+                .background(.white)
+                .cornerRadius(24)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+    }
+}
+
+// MARK: - Mini Card Thumbnail
+
+struct MiniCardThumbnail: View {
+    var body: some View {
+        ZStack {
+            // Orange background
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(hex: "FF5113"))
+            
+            // Sling logo watermark
+            Image("SlingLogo")
+                .resizable()
+                .renderingMode(.template)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 36)
+                .foregroundColor(Color.white.opacity(0.08))
+            
+            // Visa logo bottom-right
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Image("VisaLogo")
+                        .resizable()
+                        .renderingMode(.template)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 20)
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.trailing, 4)
+                        .padding(.bottom, 4)
+                }
+            }
+        }
+        .shadow(color: Color.black.opacity(0.12), radius: 4, x: 0, y: 2)
     }
 }
 

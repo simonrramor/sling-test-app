@@ -9,6 +9,7 @@ extension Notification.Name {
     static let navigateToSavings = Notification.Name("navigateToSavings")
     static let showBalanceSheet = Notification.Name("showBalanceSheet")
     static let showTransactionDetail = Notification.Name("showTransactionDetail")
+    static let returnToAppPicker = Notification.Name("returnToAppPicker")
 }
 
 // MARK: - Hero Card Animation Support
@@ -62,67 +63,54 @@ private func debugLogContentView(_ location: String, _ message: String, _ data: 
 // #endregion
 
 // Floating hero card that animates between source and target positions
+// Positioned in ContentView's root ZStack so it's not clipped by any ScrollView
 struct FloatingHeroCard: View {
-    let animationState: HeroAnimationState
-    let screenSize: CGSize
+    let sourceFrame: CGRect    // Global frame of source card in SpendView
+    let targetCenter: CGPoint  // Center point of target card slot in overlay
+    let isAnimatingForward: Bool
     
-    // Internal state to trigger animation after view appears
-    @State private var hasAppeared = false
+    @State private var isAtTarget = false
     
-    // Safe screen width (avoid negative values)
-    private var safeWidth: CGFloat {
-        max(screenSize.width, 100)
+    private let springAnim = Animation.spring(response: 0.55, dampingFraction: 0.82)
+    
+    // Source dimensions (horizontal card)
+    private var sourceWidth: CGFloat { sourceFrame.width }
+    private var sourceHeight: CGFloat { sourceFrame.height }
+    
+    // Target dimensions (vertical card = 195 x 311, drawn as 311x195 landscape rotated 90°)
+    private let targetWidth: CGFloat = 195
+    private let targetHeight: CGFloat = 311
+    
+    private var currentCenter: CGPoint {
+        isAtTarget
+            ? targetCenter
+            : CGPoint(x: sourceFrame.midX, y: sourceFrame.midY)
     }
     
-    // Source card: horizontal, in SpendView position
-    private var sourcePosition: CGPoint {
-        CGPoint(
-            x: safeWidth / 2,
-            y: 100 + 120 // header + half card height
-        )
+    private var currentWidth: CGFloat {
+        isAtTarget ? targetWidth : sourceWidth
     }
     
-    // Target card: vertical (rotated 90°), in CardStyleSelectionOverlay position
-    private var targetPosition: CGPoint {
-        CGPoint(
-            x: safeWidth / 2,
-            y: 44 + 16 + 155 // header(44) + padding(16) + half card height(311/2)
-        )
-    }
-    
-    // Determine if we should be at target position
-    private var isAtTarget: Bool {
-        switch animationState {
-        case .animatingToOverlay:
-            return hasAppeared // Animate to target after appearing
-        case .inOverlay:
-            return true
-        case .animatingBack:
-            return !hasAppeared // Animate back to source
-        case .idle:
-            return false
-        }
-    }
-    
-    private var currentPosition: CGPoint {
-        isAtTarget ? targetPosition : sourcePosition
+    private var currentHeight: CGFloat {
+        isAtTarget ? targetHeight : sourceHeight
     }
     
     private var rotation: Double {
         isAtTarget ? 90 : 0
     }
     
-    private var cardWidth: CGFloat {
-        isAtTarget ? 195 : max(safeWidth - 48, 100)
-    }
-    
-    private var cardHeight: CGFloat {
-        isAtTarget ? 311 : 240
-    }
-    
     var body: some View {
-        // Only render if we have valid screen size
-        if screenSize.width > 0 && screenSize.height > 0 {
+        // #region agent log
+        let _ = debugLogContentView("FloatingHeroCard:body", "Rendering", [
+            "sourceFrame": "\(sourceFrame)",
+            "targetCenter": "\(targetCenter)",
+            "isAtTarget": isAtTarget,
+            "currentCenter": "\(currentCenter)",
+            "currentWidth": currentWidth,
+            "sourceIsZero": sourceFrame == .zero
+        ])
+        // #endregion
+        if sourceFrame.width > 0 {
             SwiftUICardView(
                 isLocked: .constant(false),
                 cardColor: Color(hex: "FF5113"),
@@ -130,44 +118,19 @@ struct FloatingHeroCard: View {
                 showCardNumber: false,
                 fixedWidth: isAtTarget ? 311 : nil
             )
-            .frame(width: cardWidth, height: cardHeight)
+            .frame(width: currentWidth, height: currentHeight)
             .rotationEffect(.degrees(rotation))
-            .position(currentPosition)
-            .animation(.spring(response: 0.5, dampingFraction: 0.85), value: hasAppeared)
+            .position(currentCenter)
+            .animation(springAnim, value: isAtTarget)
             .onAppear {
                 // #region agent log
-                debugLogContentView("FloatingHeroCard:onAppear", "Card appeared, triggering animation", [
-                    "hasAppeared": hasAppeared,
-                    "animationState": String(describing: animationState),
-                    "sourcePos": "\(sourcePosition)",
-                    "targetPos": "\(targetPosition)"
+                debugLogContentView("FloatingHeroCard:onAppear", "Appeared", [
+                    "sourceFrame": "\(sourceFrame)",
+                    "targetCenter": "\(targetCenter)"
                 ])
                 // #endregion
-                // Trigger animation on next frame
                 DispatchQueue.main.async {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                        hasAppeared = true
-                        // #region agent log
-                        debugLogContentView("FloatingHeroCard:animate", "Set hasAppeared to true", [:])
-                        // #endregion
-                    }
-                }
-            }
-            .onChange(of: animationState) { _, newState in
-                // #region agent log
-                debugLogContentView("FloatingHeroCard:stateChange", "Animation state changed", [
-                    "newState": String(describing: newState),
-                    "hasAppeared": hasAppeared
-                ])
-                // #endregion
-                // Reset hasAppeared for reverse animation
-                if newState == .animatingBack {
-                    hasAppeared = true // Start at target
-                    DispatchQueue.main.async {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                            hasAppeared = false // Animate back to source
-                        }
-                    }
+                    isAtTarget = isAnimatingForward
                 }
             }
         }
@@ -201,6 +164,7 @@ struct ContentView: View {
     
     // Hero card animation state
     @State private var heroAnimationState: HeroAnimationState = .idle
+    @State private var sourceCardFrame: CGRect = .zero
     
     var backgroundGradient: LinearGradient {
         themeService.backgroundGradient
@@ -212,7 +176,6 @@ struct ContentView: View {
         case .home: return 0
         case .card: return 1
         case .invest: return 2
-        case .savings: return 3
         }
     }
     
@@ -240,32 +203,21 @@ struct ContentView: View {
         
         switch newState {
         case .animatingToOverlay:
-            // Animation started - after animation completes, transition to inOverlay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                // #region agent log
-                debugLogContentView("ContentView:animationComplete", "Transitioning to inOverlay", [:])
-                // #endregion
-                withAnimation {
-                    heroAnimationState = .inOverlay
-                    showCardStyleSelection = true
-                }
+            // Show overlay (first card hidden), floating card will animate
+            showCardStyleSelection = true
+            // After animation completes, swap floating card for overlay card
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                heroAnimationState = .inOverlay
             }
         case .inOverlay:
-            // Card is now in the overlay - nothing more to do
             break
         case .animatingBack:
-            // Animation back to source - after animation completes, reset to idle
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                // #region agent log
-                debugLogContentView("ContentView:animationBackComplete", "Transitioning to idle", [:])
-                // #endregion
-                withAnimation {
-                    heroAnimationState = .idle
-                    showCardStyleSelection = false
-                }
+            // After animation completes, hide overlay and reset
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                heroAnimationState = .idle
+                showCardStyleSelection = false
             }
         case .idle:
-            // Reset complete
             break
         }
     }
@@ -294,7 +246,7 @@ struct ContentView: View {
                         showQRScanner = true
                     }
                 )
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                     .opacity(showCardStyleSelection ? 0 : 1)
                     .animation(.easeInOut(duration: 0.2), value: showCardStyleSelection)
                 
@@ -308,14 +260,15 @@ struct ContentView: View {
                         SpendView(
                             showSubscriptionsOverlay: $showSubscriptionsOverlay,
                             showCardStyleSelection: $showCardStyleSelection,
-                            heroAnimationState: $heroAnimationState
+                            heroAnimationState: $heroAnimationState,
+                            onHeroTap: { frame in
+                                sourceCardFrame = frame
+                                heroAnimationState = .animatingToOverlay
+                            }
                         )
                         .transition(tabTransition)
                     case .invest:
                         InvestView(isPresented: .constant(true))
-                            .transition(tabTransition)
-                    case .savings:
-                        SavingsView()
                             .transition(tabTransition)
                     }
                 }
@@ -399,22 +352,24 @@ struct ContentView: View {
                 .zIndex(200)
             }
             
-            // Floating hero card for seamless animation
-            // Show during animation AND briefly during inOverlay for crossfade
-            if heroAnimationState == .animatingToOverlay || heroAnimationState == .animatingBack || heroAnimationState == .inOverlay {
+            // Floating hero card - in root ZStack, not clipped by any ScrollView
+            if heroAnimationState == .animatingToOverlay || heroAnimationState == .animatingBack {
+                let targetY = geometry.size.height * 0.42 // Card sits in upper-center of overlay
+                let targetCenter = CGPoint(x: geometry.size.width / 2, y: targetY)
+                
                 FloatingHeroCard(
-                    animationState: heroAnimationState,
-                    screenSize: geometry.size
+                    sourceFrame: sourceCardFrame,
+                    targetCenter: targetCenter,
+                    isAnimatingForward: heroAnimationState == .animatingToOverlay
                 )
-                .opacity(heroAnimationState == .inOverlay ? 0 : 1)
-                .allowsHitTesting(heroAnimationState != .inOverlay) // Don't block taps when invisible
-                .animation(.easeOut(duration: 0.15), value: heroAnimationState)
+                .ignoresSafeArea()
                 .zIndex(300)
             }
         }
         .onChange(of: heroAnimationState) { oldState, newState in
             handleHeroAnimationStateChange(from: oldState, to: newState)
         }
+        // PreferenceKey handlers removed - using callback-based frame capture now
         .animation(.easeInOut(duration: 0.2), value: feedbackManager.isActive)
         .fullScreenCover(isPresented: $showFABMenu) {
             FABMenuSheet(
@@ -474,10 +429,6 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .navigateToCard)) { _ in
             previousTab = selectedTab
             selectedTab = .card
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .navigateToSavings)) { _ in
-            previousTab = selectedTab
-            selectedTab = .savings
         }
         .onReceive(NotificationCenter.default.publisher(for: .showBalanceSheet)) { _ in
             showBalanceSheet = true

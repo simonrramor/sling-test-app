@@ -2,6 +2,31 @@ import SwiftUI
 import UIKit
 import LocalAuthentication
 
+// #region agent log
+private func debugLog(_ location: String, _ message: String, _ data: [String: Any] = [:]) {
+    let logPath = "/Users/simonamor/Desktop/sling-test-app-2/.cursor/debug.log"
+    let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+    let logData: [String: Any] = [
+        "timestamp": timestamp,
+        "location": location,
+        "message": message,
+        "data": data,
+        "sessionId": "debug-session",
+        "hypothesisId": "H1-H4"
+    ]
+    if let jsonData = try? JSONSerialization.data(withJSONObject: logData),
+       let jsonString = String(data: jsonData, encoding: .utf8) {
+        if let fileHandle = FileHandle(forWritingAtPath: logPath) {
+            fileHandle.seekToEndOfFile()
+            fileHandle.write((jsonString + "\n").data(using: .utf8)!)
+            fileHandle.closeFile()
+        } else {
+            FileManager.default.createFile(atPath: logPath, contents: (jsonString + "\n").data(using: .utf8))
+        }
+    }
+}
+// #endregion
+
 struct SpendCategory: Identifiable {
     let id = UUID()
     let name: String
@@ -12,13 +37,18 @@ struct SpendCategory: Identifiable {
 
 struct SpendView: View {
     @Binding var showSubscriptionsOverlay: Bool
+    @Binding var showCardStyleSelection: Bool
+    @Binding var heroAnimationState: HeroAnimationState
+    var onHeroTap: ((CGRect) -> Void)?
     
     @State private var isCardLocked = false
     @State private var showCardDetails = false
-    @State private var showCardStyleSelection = false
+    @State private var _cardFrame: CGRect = .zero
     @AppStorage("hasCard") private var hasCard = false
+    @AppStorage("cardAvailable") private var cardAvailable = true
     @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
     @ObservedObject private var themeService = ThemeService.shared
+    @Environment(\.selectedAppVariant) private var selectedAppVariant
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
     // Spending data in USD (base currency)
@@ -28,19 +58,20 @@ struct SpendView: View {
     
     private let exchangeRateService = ExchangeRateService.shared
     
-    // Card color based on selected style
+    // Get the current card background option
+    private var cardBackgroundOption: CardBackgroundOption? {
+        CardBackgroundOption.option(for: selectedCardStyle)
+    }
+    
+    // Card color based on selected style (for solid color backgrounds)
     private var cardColor: Color {
-        switch selectedCardStyle {
-        case "orange": return Color(hex: "FF5113")
-        case "blue": return Color(hex: "0887DC")
-        case "green": return Color(hex: "34C759")
-        case "purple": return Color(hex: "AF52DE")
-        case "pink": return Color(hex: "FF2D55")
-        case "teal": return Color(hex: "5AC8FA")
-        case "indigo": return Color(hex: "5856D6")
-        case "black": return Color(hex: "1C1C1E")
-        default: return Color(hex: "FF5113")
-        }
+        cardBackgroundOption?.accentColor ?? Color(hex: "FF5113")
+    }
+    
+    // Card background image (for image backgrounds, nil for solid colors)
+    // Use horizontal image since cards are displayed in landscape orientation here
+    private var cardBackgroundImage: String? {
+        cardBackgroundOption?.horizontalImageName
     }
     
     
@@ -104,46 +135,76 @@ struct SpendView: View {
     }
     
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                if hasCard {
-                    // Card content
-                    cardContent
-                } else {
-                    // Empty state
-                    VStack(spacing: 0) {
-                        // 3D Card preview (orange, no card number)
-                        SwiftUICardView(
-                            isLocked: .constant(false),
-                            cardColor: Color(hex: "FF5113"),
-                            cardStyle: "orange",
-                            showCardNumber: false
-                        )
-                        .frame(height: 240)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 16)
-                        
-                        CardEmptyStateCard(onGetCard: {
-                            showCardStyleSelection = true
-                        })
-                        .padding(.horizontal, 24)
+        ZStack {
+            // Main spend view content
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    if !cardAvailable {
+                        // Waitlist state - card not available
+                        CardWaitlistView()
+                    } else if hasCard {
+                        // Card content
+                        cardContent
+                    } else {
+                        // Empty state - card available but not yet created
+                        VStack(spacing: 0) {
+                            // 3D Card preview (orange, no card number)
+                            // Hide when hero animation is active (floating card takes over)
+                            SwiftUICardView(
+                                isLocked: .constant(false),
+                                cardColor: Color(hex: "FF5113"),
+                                cardStyle: "orange",
+                                showCardNumber: false
+                            )
+                            .frame(height: 240)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 16)
+                            .overlay(
+                                GeometryReader { geo in
+                                    Color.clear
+                                        .onAppear {
+                                            _cardFrame = geo.frame(in: .global)
+                                        }
+                                        .onChange(of: geo.size) { _, _ in
+                                            _cardFrame = geo.frame(in: .global)
+                                        }
+                                }
+                            )
+                            .opacity(heroAnimationState == .idle ? 1 : 0)
+                            
+                            CardEmptyStateCard(onGetCard: {
+                                if selectedAppVariant == .newNavMVP {
+                                    // MVP: skip card selection, create card directly
+                                    let generator = UINotificationFeedbackGenerator()
+                                    generator.notificationOccurred(.success)
+                                    hasCard = true
+                                } else {
+                                    // #region agent log
+                                    debugLog("SpendView:onGetCard", "Triggering hero animation", ["currentState": String(describing: heroAnimationState), "cardFrame": "\(_cardFrame)"])
+                                    // #endregion
+                                    onHeroTap?(_cardFrame)
+                                }
+                            })
+                            .padding(.horizontal, 24)
+                            .opacity(heroAnimationState == .idle ? 1 : 0)
+                        }
                     }
+                    
+                    // Bottom padding for scroll content to clear nav bar
+                    Spacer()
+                        .frame(height: 120)
                 }
-                
-                // Bottom padding for scroll content to clear nav bar
-                Spacer()
-                    .frame(height: 120)
             }
+            .background(themeService.backgroundColor)
         }
-        .background(themeService.backgroundColor)
-        .sheet(isPresented: $showCardDetails) {
+        .sheet(isPresented: Binding(
+            get: { showCardDetails && selectedAppVariant != .newNavMVP },
+            set: { showCardDetails = $0 }
+        )) {
             CardDetailsSheet()
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(Color.white)
-        }
-        .fullScreenCover(isPresented: $showCardStyleSelection) {
-            CardStyleSelectionView(isPresented: $showCardStyleSelection)
         }
         .onAppear {
             fetchExchangeRate()
@@ -174,7 +235,12 @@ struct SpendView: View {
     private var cardContent: some View {
         VStack(spacing: 0) {
             // 3D Interactive Card (SwiftUI)
-            SwiftUICardView(isLocked: $isCardLocked, cardColor: cardColor, cardStyle: selectedCardStyle)
+            SwiftUICardView(
+                isLocked: $isCardLocked,
+                cardColor: cardColor,
+                cardStyle: selectedCardStyle,
+                backgroundImage: cardBackgroundImage
+            )
             .frame(height: 240)
             .frame(maxWidth: .infinity)
             .overlay(
@@ -193,128 +259,212 @@ struct SpendView: View {
             .padding(.top, 16)
             .padding(.bottom, 24)
             
-            HStack(spacing: 8) {
-                TertiaryButton(title: "Show details") {
-                    authenticateAndShowDetails()
-                }
-                
-                TertiaryButton(title: isCardLocked ? "Unlock" : "Lock") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isCardLocked.toggle()
-                    }
-                } icon: {
-                    ZStack {
-                        Image("LockIcon")
-                            .renderingMode(.template)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 20, height: 20)
-                            .opacity(isCardLocked ? 0 : 1)
-                            .scaleEffect(isCardLocked ? 0.8 : 1)
-                        
-                        Image("LockLockedIcon")
-                            .renderingMode(.template)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 20, height: 20)
-                            .opacity(isCardLocked ? 1 : 0)
-                            .scaleEffect(isCardLocked ? 1 : 0.8)
-                    }
-                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isCardLocked)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(spentThisMonthSubtitle)
-                    .font(.custom("Inter-Medium", size: 16))
-                    .foregroundColor(themeService.textSecondaryColor)
-                
-                SlidingNumberText(
-                    text: formattedSpentThisMonth,
-                    font: .custom("Inter-Bold", size: 48),
-                    color: themeService.textPrimaryColor
-                )
-                .tracking(-0.96)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
+            if selectedAppVariant == .newNavMVP {
+                // MVP: Show details + Lock buttons
                 HStack(spacing: 8) {
-                    ForEach(categories) { category in
-                        CategoryCard(category: category)
+                    TertiaryButton(title: showCardDetails ? "Hide details" : "Show details") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showCardDetails.toggle()
+                        }
+                    }
+                    
+                    TertiaryButton(title: isCardLocked ? "Unlock" : "Lock") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isCardLocked.toggle()
+                        }
+                    } icon: {
+                        ZStack {
+                            Image("LockIcon")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 20, height: 20)
+                                .opacity(isCardLocked ? 0 : 1)
+                                .scaleEffect(isCardLocked ? 0.8 : 1)
+                            
+                            Image("LockLockedIcon")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 20, height: 20)
+                                .opacity(isCardLocked ? 1 : 0)
+                                .scaleEffect(isCardLocked ? 1 : 0.8)
+                        }
+                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isCardLocked)
                     }
                 }
                 .padding(.horizontal, 24)
-            }
-            .padding(.bottom, 8)
-            
-            // Subscriptions card - tappable
-            Button(action: {
-                showSubscriptionsOverlay = true
-            }) {
-                HStack(spacing: 16) {
-                    // Single subscription avatar
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(hex: "F7F7F7"))
-                            .frame(width: 44, height: 44)
+                .padding(.bottom, 16)
+                
+                // MVP: Inline card details
+                VStack(spacing: 8) {
+                    CardDetailInlineCard(label: "Name on card", value: "John Taylor", copyable: true)
+                    CardDetailInlineCard(
+                        label: "Card Number",
+                        value: showCardDetails ? "4532 1234 5678 9012" : "•••• •••• ••••  9012",
+                        copyable: true
+                    )
+                    CardDetailInlineCard(
+                        label: "Expiry date",
+                        value: showCardDetails ? "10/29" : "••/••",
+                        copyable: true
+                    )
+                    CardDetailInlineCard(
+                        label: "CVV",
+                        value: showCardDetails ? "123" : "•••",
+                        copyable: true
+                    )
+                    CardDetailInlineCard(label: "Billing address", value: "1801 Main St.\nKansas City\nMO 64108", copyable: true)
+                }
+                .padding(.horizontal, 24)
+                .animation(.easeInOut(duration: 0.2), value: showCardDetails)
+                
+                // Delete card button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    hasCard = false
+                }) {
+                    HStack {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(hex: "E30000"))
                         
-                        Image(systemName: "calendar")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(Color(hex: "74CDFF"))
+                        Text("Delete card")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(Color(hex: "E30000"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+            } else {
+                // Non-MVP: Full budget section
+                HStack(spacing: 8) {
+                    TertiaryButton(title: "Show details") {
+                        authenticateAndShowDetails()
                     }
                     
-                    Text("Track your subscriptions")
-                        .font(.custom("Inter-Bold", size: 16))
-                        .tracking(-0.32) // -2% of 16px
-                        .foregroundColor(themeService.textPrimaryColor)
-                    
-                    Spacer()
-                    
-                    Text("12")
-                        .font(.custom("Inter-Regular", size: 16))
-                        .tracking(-0.32) // -2% of 16px
+                    TertiaryButton(title: isCardLocked ? "Unlock" : "Lock") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isCardLocked.toggle()
+                        }
+                    } icon: {
+                        ZStack {
+                            Image("LockIcon")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 20, height: 20)
+                                .opacity(isCardLocked ? 0 : 1)
+                                .scaleEffect(isCardLocked ? 0.8 : 1)
+                            
+                            Image("LockLockedIcon")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 20, height: 20)
+                                .opacity(isCardLocked ? 1 : 0)
+                                .scaleEffect(isCardLocked ? 1 : 0.8)
+                        }
+                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isCardLocked)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 8)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(spentThisMonthSubtitle)
+                        .font(.custom("Inter-Medium", size: 16))
                         .foregroundColor(themeService.textSecondaryColor)
                     
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(themeService.textTertiaryColor)
+                    SlidingNumberText(
+                        text: formattedSpentThisMonth,
+                        font: .custom("Inter-Bold", size: 48),
+                        color: themeService.textPrimaryColor
+                    )
+                    .tracking(-0.96)
                 }
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(themeService.cardBackgroundColor)
-                )
-            }
-            .buttonStyle(PlainButtonStyle())
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            
-            // Delete card button
-            Button(action: {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
-                hasCard = false
-            }) {
-                HStack {
-                    Image(systemName: "trash")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(hex: "E30000"))
-                    
-                    Text("Delete card")
-                        .font(.custom("Inter-Medium", size: 16))
-                        .foregroundColor(Color(hex: "E30000"))
-                }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
                 .padding(.vertical, 16)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(categories) { category in
+                            CategoryCard(category: category)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 8)
+                
+                // Subscriptions card - tappable
+                Button(action: {
+                    showSubscriptionsOverlay = true
+                }) {
+                    HStack(spacing: 16) {
+                        // Single subscription avatar
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(hex: "F7F7F7"))
+                                .frame(width: 44, height: 44)
+                            
+                            Image(systemName: "calendar")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(Color(hex: "74CDFF"))
+                        }
+                        
+                        Text("Track your subscriptions")
+                            .font(.custom("Inter-Bold", size: 16))
+                            .tracking(-0.32)
+                            .foregroundColor(themeService.textPrimaryColor)
+                        
+                        Spacer()
+                        
+                        Text("12")
+                            .font(.custom("Inter-Regular", size: 16))
+                            .tracking(-0.32)
+                            .foregroundColor(themeService.textSecondaryColor)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeService.textTertiaryColor)
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(themeService.cardBackgroundColor)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                
+                // Delete card button
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    hasCard = false
+                }) {
+                    HStack {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(hex: "E30000"))
+                        
+                        Text("Delete card")
+                            .font(.custom("Inter-Medium", size: 16))
+                            .foregroundColor(Color(hex: "E30000"))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
             }
-            .buttonStyle(PlainButtonStyle())
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
             
             Spacer()
         }
@@ -402,10 +552,143 @@ struct CardEmptyStateCard: View {
                     .background(Color(hex: "000000"))
                     .cornerRadius(20)
             }
+            .buttonStyle(PressedButtonStyle())
         }
         .padding(.horizontal, 40)
         .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Card Waitlist
+
+struct CardWaitlistView: View {
+    @ObservedObject private var themeService = ThemeService.shared
+    @State private var hasJoinedWaitlist = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Card preview (orange)
+            SwiftUICardView(
+                isLocked: .constant(false),
+                cardColor: Color(hex: "FF5113"),
+                cardStyle: "orange",
+                showCardNumber: false
+            )
+            .frame(height: 240)
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            
+            // Waitlist content
+            VStack(spacing: 32) {
+                // Text content
+                VStack(spacing: 8) {
+                    Text(hasJoinedWaitlist
+                         ? "You're on the waitlist"
+                         : "Join the waitlist to be the first to get your Sling Card")
+                        .font(.custom("Inter-Bold", size: 32))
+                        .tracking(-0.64)
+                        .lineSpacing(1)
+                        .foregroundColor(themeService.textPrimaryColor)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 313)
+                        .animation(.easeInOut(duration: 0.3), value: hasJoinedWaitlist)
+                    
+                    Text(hasJoinedWaitlist
+                         ? "We'll notify you when it's your turn to create your card."
+                         : "We're rolling out the Sling Card to everyone soon. Be the first to know when it's available.")
+                        .font(.custom("Inter-Regular", size: 16))
+                        .tracking(-0.32)
+                        .lineSpacing(8)
+                        .foregroundColor(themeService.textSecondaryColor)
+                        .multilineTextAlignment(.center)
+                        .animation(.easeInOut(duration: 0.3), value: hasJoinedWaitlist)
+                }
+                
+                // Join waitlist button
+                if !hasJoinedWaitlist {
+                    Button(action: {
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            hasJoinedWaitlist = true
+                        }
+                    }) {
+                        Text("Join the waitlist")
+                            .font(.custom("Inter-Bold", size: 16))
+                            .tracking(-0.32)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color(hex: "000000"))
+                            .cornerRadius(20)
+                    }
+                    .buttonStyle(PressedButtonStyle())
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                }
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 24)
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+// MARK: - Card Detail Inline Card (MVP)
+
+struct CardDetailInlineCard: View {
+    let label: String
+    let value: String
+    var copyable: Bool = false
+    @State private var copied = false
+    
+    var body: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(label)
+                    .font(.custom("Inter-Medium", size: 13))
+                    .foregroundColor(Color.black.opacity(0.4))
+                
+                Text(value)
+                    .font(.custom("Inter-Medium", size: 16))
+                    .foregroundColor(Color(hex: "080808"))
+            }
+            
+            Spacer()
+            
+            if copyable {
+                Button(action: {
+                    UIPasteboard.general.string = value.replacingOccurrences(of: "\n", with: ", ")
+                    copied = true
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        copied = false
+                    }
+                }) {
+                    if copied {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "57CE43"))
+                    } else {
+                        Image("IconCopy")
+                            .renderingMode(.template)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 20, height: 20)
+                            .foregroundColor(Color(hex: "080808"))
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "FCFCFC"))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(hex: "F7F7F7"), lineWidth: 1)
+        )
+        .cornerRadius(16)
     }
 }
 
@@ -1174,6 +1457,13 @@ extension Array {
     }
 }
 
+struct SpendViewPreviewWrapper: View {
+    @State private var heroState: HeroAnimationState = .idle
+    var body: some View {
+        SpendView(showSubscriptionsOverlay: .constant(false), showCardStyleSelection: .constant(false), heroAnimationState: $heroState)
+    }
+}
+
 #Preview {
-    SpendView(showSubscriptionsOverlay: .constant(false))
+    SpendViewPreviewWrapper()
 }

@@ -145,6 +145,7 @@ struct sling_test_app_2App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     @State private var showScreenshotMode = false
+    @State private var selectedVariant: AppVariant? = nil
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     
     // Initialize flip detector on app launch
@@ -157,20 +158,49 @@ struct sling_test_app_2App: App {
     
     var body: some Scene {
         WindowGroup {
-            if isLoggedIn {
-                ContentView()
-                    .fullScreenCover(isPresented: $showScreenshotMode) {
-                        ScreenshotModeView()
-                    }
-                    .onAppear {
-                        // Auto-open screenshot mode if launched with argument
-                        if isScreenshotMode {
-                            showScreenshotMode = true
+            Group {
+                if let variant = selectedVariant {
+                    appView(for: variant)
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                } else {
+                    AppPickerView(onSelectVariant: { variant in
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                            selectedVariant = variant
                         }
-                    }
-            } else {
-                LoginView(isLoggedIn: $isLoggedIn)
+                    })
+                }
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.9), value: selectedVariant)
+            .fullScreenCover(isPresented: $showScreenshotMode) {
+                ScreenshotModeView()
+            }
+            .onAppear {
+                // Auto-open screenshot mode if launched with argument
+                if isScreenshotMode {
+                    showScreenshotMode = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .returnToAppPicker)) { _ in
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    selectedVariant = nil
+                }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func appView(for variant: AppVariant) -> some View {
+        switch variant {
+        case .newNavMVP:
+            ContentView()
+                .environment(\.selectedAppVariant, variant)
+        case .investmentsMVP:
+            ContentView()
+                .environment(\.selectedAppVariant, variant)
+        case .future:
+            // Placeholder — shouldn't be reachable since card is disabled
+            ContentView()
+                .environment(\.selectedAppVariant, variant)
         }
     }
 }

@@ -13,6 +13,7 @@ struct BuyConfirmView: View {
     @State private var isButtonLoading = false
     @State private var quoteTimeRemaining: Int = 30
     @State private var currentStockPrice: Double? = nil
+    @State private var showSharesInfo = false
     
     // Timer for quote countdown
     let quoteTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -145,11 +146,19 @@ struct BuyConfirmView: View {
                         isHighlighted: true
                     )
                     
-                    // Estimated shares
-                    DetailRow(
-                        label: "Estimated shares",
-                        value: String(format: "%.2f", numberOfShares)
-                    )
+                    // Estimated shares (tappable)
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        showSharesInfo = true
+                    }) {
+                        DetailRow(
+                            label: "Estimated shares",
+                            value: String(format: "%.2f", numberOfShares),
+                            isHighlighted: true
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.top, 16)
                 .padding(.bottom, 32)
@@ -200,6 +209,12 @@ struct BuyConfirmView: View {
             // Initialize with current price
             currentStockPrice = OndoService.shared.tokenData[stock.iconName]?.currentPrice ?? 100
         }
+        .overlay {
+            if showSharesInfo {
+                EstimatedSharesInfoSheet(isPresented: $showSharesInfo)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: showSharesInfo)
         .onReceive(quoteTimer) { _ in
             // Don't count down if loading
             guard !isButtonLoading else { return }
@@ -214,19 +229,26 @@ struct BuyConfirmView: View {
     }
     
     private func refreshQuote() {
-        // Get fresh price from service
-        let newPrice = OndoService.shared.tokenData[stock.iconName]?.currentPrice ?? 100
-        
-        // Add small random variation to simulate real market movement (±0.5%)
-        let variation = Double.random(in: -0.005...0.005)
-        currentStockPrice = newPrice * (1 + variation)
-        
-        // Reset timer
-        quoteTimeRemaining = 30
-        
-        // Haptic feedback to indicate refresh
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
+        // Fetch fresh price data from API
+        Task {
+            await OndoService.shared.fetchToken(iconName: stock.iconName)
+            
+            await MainActor.run {
+                // Get updated price from service
+                let newPrice = OndoService.shared.tokenData[stock.iconName]?.currentPrice ?? currentStockPrice ?? 100
+                
+                // Add small random variation to simulate real market movement (±0.5%)
+                let variation = Double.random(in: -0.005...0.005)
+                currentStockPrice = newPrice * (1 + variation)
+                
+                // Reset timer
+                quoteTimeRemaining = 30
+                
+                // Haptic feedback to indicate refresh
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+            }
+        }
     }
 }
 
@@ -415,4 +437,132 @@ struct DetailRow: View {
         isPresented: .constant(true),
         isBuyFlowPresented: .constant(true)
     )
+}
+
+// MARK: - Estimated Shares Info Sheet
+
+struct EstimatedSharesInfoSheet: View {
+    @Binding var isPresented: Bool
+    @State private var showCard = false
+    @State private var dragOffset: CGFloat = 0
+    
+    private var deviceCornerRadius: CGFloat {
+        UIScreen.displayCornerRadius
+    }
+    
+    private var stretchScale: CGFloat {
+        guard dragOffset > 0 else { return 1.0 }
+        let stretchAmount = dragOffset / 150.0 * 0.08
+        return 1.0 + min(stretchAmount, 0.08)
+    }
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // Dimmed background
+            Color.black.opacity(showCard ? 0.4 : 0)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    dismissSheet()
+                }
+                .animation(.easeOut(duration: 0.25), value: showCard)
+            
+            // Sheet content
+            if showCard {
+                VStack(spacing: 0) {
+                    // Drawer handle
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.black.opacity(0.15))
+                        .frame(width: 36, height: 5)
+                        .padding(.top, 8)
+                        .padding(.bottom, 32)
+                    
+                    // Content
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("What are estimated shares?")
+                            .font(.custom("Inter-Bold", size: 24))
+                            .tracking(-0.48)
+                            .foregroundColor(Color(hex: "080808"))
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("When you buy a stock, the number of shares you receive is estimated based on the current market price at the time of your order.")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .tracking(-0.32)
+                                .foregroundColor(Color(hex: "7B7B7B"))
+                            
+                            Text("The final number of shares may vary slightly due to price movements between when you place your order and when it's executed. The actual shares will be confirmed once the order is complete.")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .tracking(-0.32)
+                                .foregroundColor(Color(hex: "7B7B7B"))
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        
+                        // Done button
+                        Button(action: {
+                            dismissSheet()
+                        }) {
+                            Text("Done")
+                                .font(.custom("Inter-Bold", size: 16))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: DesignSystem.Button.height)
+                                .background(Color(hex: "080808"))
+                                .cornerRadius(DesignSystem.CornerRadius.large)
+                        }
+                        .padding(.top, 8)
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 32)
+                }
+                .frame(maxWidth: .infinity)
+                .background(Color(hex: "F2F2F2"))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 40,
+                        bottomLeadingRadius: deviceCornerRadius,
+                        bottomTrailingRadius: deviceCornerRadius,
+                        topTrailingRadius: 40,
+                        style: .continuous
+                    )
+                )
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .scaleEffect(x: 1.0, y: stretchScale, anchor: .bottom)
+                .offset(y: min(0, -dragOffset))
+                .transition(.move(edge: .bottom))
+                .gesture(
+                    DragGesture(minimumDistance: 5)
+                        .onChanged { value in
+                            let translation = value.translation.height
+                            if translation > 0 {
+                                dragOffset = -translation
+                            }
+                        }
+                        .onEnded { value in
+                            if value.translation.height > 100 {
+                                dismissSheet()
+                            } else {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    dragOffset = 0
+                                }
+                            }
+                        }
+                )
+            }
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                showCard = true
+            }
+        }
+    }
+    
+    private func dismissSheet() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            showCard = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            isPresented = false
+        }
+    }
 }

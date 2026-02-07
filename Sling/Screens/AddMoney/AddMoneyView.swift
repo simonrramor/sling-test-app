@@ -138,18 +138,18 @@ struct AddMoneyView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack(spacing: 16) {
-                    // Back button
+                    // Close button
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
                         isPresented = false
                     }) {
-                        Image("ArrowLeft")
-                            .renderingMode(.template)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(themeService.textSecondaryColor)
                             .frame(width: 24, height: 24)
                     }
-                    .accessibilityLabel("Go back")
+                    .accessibilityLabel("Close")
                     
                     // Sling logo
                     Image("SlingBalanceLogo")

@@ -1,0 +1,12 @@
+[
+  {
+    "moduleId": "org.jetbrains.kotlinx:atomicfu:0.23.1",
+    "file": "/Users/simonamor/Desktop/sling-test-app-2/.kotlin/metadata/kotlinTransformedCInteropMetadataLibraries/org.jetbrains.kotlinx-atomicfu-0.23.1-nativeMain-cinterop/org.jetbrains.kotlinx_atomicfu-cinterop-interop-wFq7cg.klib",
+    "sourceSetName": "nativeMain"
+  },
+  {
+    "moduleId": "io.ktor:ktor-utils:2.3.8",
+    "file": "/Users/simonamor/Desktop/sling-test-app-2/.kotlin/metadata/kotlinTransformedCInteropMetadataLibraries/io.ktor-ktor-utils-2.3.8-iosMain-cinterop/io.ktor_ktor-utils-cinterop-threadUtils-kaBnRw.klib",
+    "sourceSetName": "iosMain"
+  }
+]

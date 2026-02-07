@@ -4,7 +4,9 @@ struct SwiftUICardView: View {
     @Binding var isLocked: Bool
     var cardColor: Color = Color(hex: "FF5113")
     var cardStyle: String = "orange"
+    var backgroundImage: String? = nil  // Optional PNG asset name for image backgrounds
     var showCardNumber: Bool = true
+    var fixedWidth: CGFloat? = nil  // Use fixed dimensions instead of GeometryReader
     var onTap: (() -> Void)? = nil
     
     // 3D rotation state
@@ -15,26 +17,39 @@ struct SwiftUICardView: View {
     // Card dimensions (690x432 ratio = 1.597:1)
     private let cardAspectRatio: CGFloat = 690.0 / 432.0
     
+    /// Check if we should use an image background
+    private var hasImageBackground: Bool {
+        backgroundImage != nil
+    }
+    
     var body: some View {
         GeometryReader { geometry in
-            let cardWidth = min(geometry.size.width - 48, 345)
+            let cardWidth = fixedWidth ?? min(geometry.size.width - 48, 345)
             let cardHeight = cardWidth / cardAspectRatio
             
             ZStack {
                 // Card content
                 ZStack {
-                    // Card background
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(cardColor)
-                        .frame(width: cardWidth, height: cardHeight)
-                    
-                    // Sling logo watermark - centered
-                    Image("SlingLogo")
-                        .resizable()
-                        .renderingMode(.template)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: cardWidth * 0.73)
-                        .foregroundColor(Color.white.opacity(0.08))
+                    // Card background - either image or color
+                    if let imageName = backgroundImage {
+                        Image(imageName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: cardWidth, height: cardHeight)
+                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                    } else {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(cardColor)
+                            .frame(width: cardWidth, height: cardHeight)
+                        
+                        // Sling logo watermark - centered (only for solid colors)
+                        Image("SlingLogo")
+                            .resizable()
+                            .renderingMode(.template)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: cardWidth * 0.73)
+                            .foregroundColor(Color.white.opacity(0.08))
+                    }
                     
                     // Small Sling logo - top left, 16px from edges
                     VStack {

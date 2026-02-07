@@ -5,6 +5,8 @@ import Lottie
 /// A unified loading button that shrinks to a circle when tapped
 /// Optionally shows a Lottie loader animation
 struct LoadingButton: View {
+    @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
+    
     let title: String
     
     /// Binding to track loading state externally
@@ -29,12 +31,27 @@ struct LoadingButton: View {
     private let buttonHeight = DesignSystem.Button.height
     private let circleSize = DesignSystem.Button.loadingCircleSize
     
+    // Map card style to button color
+    private var buttonColor: Color {
+        switch selectedCardStyle {
+        case "orange": return Color(hex: "FF5113")
+        case "blue": return Color(hex: "0887DC")
+        case "green": return Color(hex: "34C759")
+        case "purple": return Color(hex: "AF52DE")
+        case "pink": return Color(hex: "FF2D55")
+        case "teal": return Color(hex: "5AC8FA")
+        case "indigo": return Color(hex: "5856D6")
+        case "black": return Color(hex: "1C1C1E")
+        default: return Color(hex: DesignSystem.Colors.primary)
+        }
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 // Button background
                 RoundedRectangle(cornerRadius: isLoading ? circleSize / 2 : DesignSystem.CornerRadius.large)
-                    .fill(Color(hex: DesignSystem.Colors.primary))
+                    .fill(buttonColor)
                     .frame(
                         width: isLoading ? circleSize : geometry.size.width,
                         height: isLoading ? circleSize : buttonHeight

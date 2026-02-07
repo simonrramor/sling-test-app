@@ -5,11 +5,10 @@ enum Tab: String, CaseIterable {
     case home = "Home"
     case card = "Card"
     case invest = "Invest"
-    case savings = "Savings"
     
-    // Tabs that appear in the left pill (no invest or transfer - they're separate)
+    // Tabs that appear in the left pill
     static var pillTabs: [Tab] {
-        [.home, .card, .savings]
+        [.home, .card, .invest]
     }
 }
 
@@ -18,12 +17,20 @@ struct BottomNavView: View {
     var onTabChange: ((Tab) -> Void)? = nil
     var onTransferTap: (() -> Void)? = nil
     @ObservedObject private var themeService = ThemeService.shared
+    @Environment(\.selectedAppVariant) private var selectedAppVariant
+    
+    private var visibleTabs: [Tab] {
+        if selectedAppVariant == .newNavMVP {
+            return [.home, .card]
+        }
+        return Tab.pillTabs
+    }
     
     var body: some View {
         HStack {
-            // Left pill container with 3 tabs
+            // Left pill container with tabs
             HStack(spacing: 0) {
-                ForEach(Tab.pillTabs, id: \.self) { tab in
+                ForEach(visibleTabs, id: \.self) { tab in
                     PillTabButton(
                         tab: tab,
                         isSelected: selectedTab == tab,
@@ -63,7 +70,6 @@ struct PillTabButton: View {
         case .home: return "NavHomeFilled"
         case .card: return "NavCardFilled"
         case .invest: return "NavInvest"
-        case .savings: return "NavSavings"
         }
     }
     
@@ -102,20 +108,42 @@ struct PillTabButton: View {
                         .fill(isSelected ? selectedBackgroundColor : Color.clear)
                 )
         }
-        .buttonStyle(NoFeedbackButtonStyle())
+        .buttonStyle(NavPressStyle())
         .accessibilityLabel(tab.rawValue)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
-#Preview {
+// MARK: - Nav Press Style
+
+struct NavPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+    }
+}
+
+#Preview("iPhone 15 Pro") {
     ZStack {
         Color(hex: DesignSystem.Colors.backgroundLight)
             .ignoresSafeArea()
-        
         VStack {
             Spacer()
             BottomNavView(selectedTab: .constant(.home))
         }
     }
+    .previewDevice(PreviewDevice(rawValue: "iPhone 15 Pro"))
+}
+
+#Preview("iPhone 13") {
+    ZStack {
+        Color(hex: DesignSystem.Colors.backgroundLight)
+            .ignoresSafeArea()
+        VStack {
+            Spacer()
+            BottomNavView(selectedTab: .constant(.home))
+        }
+    }
+    .previewDevice(PreviewDevice(rawValue: "iPhone 13"))
 }

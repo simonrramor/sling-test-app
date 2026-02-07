@@ -158,7 +158,47 @@ struct SendView: View {
                             .padding(.vertical, 8)
                         }
                         .padding(.top, 16)
+                        .padding(.bottom, 8)
+                        
+                        // Send via link row - only in send mode
+                        if mode == .send {
+                        Button(action: {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            // TODO: Open send via link flow
+                        }) {
+                            HStack(spacing: 16) {
+                                Image(systemName: "link")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(Color(hex: "080808"))
+                                    .frame(width: 24, height: 24)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Send to anyone using a link")
+                                        .font(.custom("Inter-Bold", size: 16))
+                                        .tracking(-0.32)
+                                        .foregroundColor(Color(hex: "080808"))
+                                    
+                                    Text("Even if they don't use Sling")
+                                        .font(.custom("Inter-Regular", size: 14))
+                                        .tracking(-0.28)
+                                        .foregroundColor(Color(hex: "7B7B7B"))
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(themeService.textTertiaryColor)
+                            }
+                            .padding(16)
+                            .background(Color(hex: "F7F7F7"))
+                            .cornerRadius(16)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 16)
+                        }
                     }
                     
                     // All contacts list

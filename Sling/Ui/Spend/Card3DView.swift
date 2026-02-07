@@ -11,6 +11,7 @@ struct Card3DView: UIViewRepresentable {
     var backgroundColor: Color = Color(red: 0.949, green: 0.949, blue: 0.949)  // Default to grey theme
     var cardColor: Color = Color(hex: "FF5113")  // Card color (default orange)
     var cardStyle: String = "orange"  // Card style string for reliable asset loading
+    var backgroundImage: String? = nil  // Optional PNG asset name for image backgrounds
     var onTap: (() -> Void)? = nil  // Callback for tap events
     
     func makeUIView(context: Context) -> SCNView {
@@ -221,6 +222,11 @@ struct Card3DView: UIViewRepresentable {
     }
     
     private func createCardFrontImage(color: UIColor) -> UIImage {
+        // If we have an image background, use it directly
+        if let imageName = backgroundImage, let bgImage = UIImage(named: imageName) {
+            return createImageBackgroundCard(backgroundImage: bgImage)
+        }
+        
         // For orange, use the complete original asset
         if cardStyle == "orange" {
             return UIImage(named: "SlingCardFront") ?? UIImage()
@@ -288,6 +294,73 @@ struct Card3DView: UIViewRepresentable {
             
             // === VISA LOGO: bottom-right, measured from orange card ===
             // Height ~30px, right padding 32px, aligned with dots vertically
+            if let visaLogo = UIImage(named: "VisaLogo") {
+                let visaHeight: CGFloat = 30 * scale
+                let visaWidth = visaHeight * (visaLogo.size.width / visaLogo.size.height)
+                let visaX = size.width - visaWidth - sidePadding
+                let visaY = size.height - bottomPadding - visaHeight
+                let visaRect = CGRect(x: visaX, y: visaY, width: visaWidth, height: visaHeight)
+                visaLogo.withTintColor(.white, renderingMode: .alwaysTemplate).draw(in: visaRect)
+            }
+        }
+    }
+    
+    /// Creates a card front image from a PNG background image
+    private func createImageBackgroundCard(backgroundImage: UIImage) -> UIImage {
+        // Use standard card size (690x432 to match aspect ratio)
+        let size = CGSize(width: 690, height: 432)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        return renderer.image { context in
+            // Fill with a base color first to avoid any transparency issues
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            
+            // Draw the background image, scaled to FILL (cover entire card)
+            // Simply draw the image to fill the entire card since aspect ratios match
+            backgroundImage.draw(in: CGRect(origin: .zero, size: size))
+            
+            // Scale factor
+            let scale = size.width / 690.0
+            
+            // === LOGO: top-left ===
+            if let slingLogo = UIImage(named: "SlingLogo")?.withRenderingMode(.alwaysTemplate) {
+                let logoSize: CGFloat = 55 * scale
+                let logoX: CGFloat = 32 * scale
+                let logoY: CGFloat = 32 * scale
+                let logoRect = CGRect(x: logoX, y: logoY, width: logoSize, height: logoSize)
+                slingLogo.withTintColor(.white).draw(in: logoRect)
+            }
+            
+            // === BOTTOM CONTENT ===
+            let bottomPadding: CGFloat = 35 * scale
+            let sidePadding: CGFloat = 32 * scale
+            
+            // Draw 4 dots
+            let dotDiameter: CGFloat = 6 * scale
+            let dotSpacing: CGFloat = 8 * scale
+            let dotY: CGFloat = size.height - bottomPadding - dotDiameter
+            
+            UIColor.white.withAlphaComponent(0.8).setFill()
+            for i in 0..<4 {
+                let dotX = sidePadding + CGFloat(i) * dotSpacing
+                let dotRect = CGRect(x: dotX, y: dotY, width: dotDiameter, height: dotDiameter)
+                UIBezierPath(ovalIn: dotRect).fill()
+            }
+            
+            // Draw "9543"
+            let cardNumber = "9543"
+            let fontSize: CGFloat = 24 * scale
+            let font = UIFont.systemFont(ofSize: fontSize, weight: .medium)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: UIColor.white.withAlphaComponent(0.8)
+            ]
+            let numberX = sidePadding + (4 * dotSpacing) + (12 * scale)
+            let numberY = size.height - bottomPadding - fontSize + (2 * scale)
+            cardNumber.draw(at: CGPoint(x: numberX, y: numberY), withAttributes: attributes)
+            
+            // === VISA LOGO: bottom-right ===
             if let visaLogo = UIImage(named: "VisaLogo") {
                 let visaHeight: CGFloat = 30 * scale
                 let visaWidth = visaHeight * (visaLogo.size.width / visaLogo.size.height)

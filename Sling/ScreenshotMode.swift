@@ -20,7 +20,7 @@ struct ScreenshotModeView: View {
     let screens: [(name: String, id: String, view: AnyView)] = [
         ("Home", "home", AnyView(HomeView())),
         ("Invest", "invest", AnyView(ScreenshotInvestWrapper())),
-        ("Spend", "spend", AnyView(SpendView(showSubscriptionsOverlay: .constant(false)))),
+        ("Spend", "spend", AnyView(ScreenshotSpendWrapper())),
         ("Activity", "activity", AnyView(ActivityView())),
         ("Settings", "settings", AnyView(ScreenshotSettingsWrapper())),
         ("Search", "search", AnyView(SearchView())),
@@ -207,6 +207,13 @@ struct ScreenshotInvestWrapper: View {
     @State private var isPresented = true
     var body: some View {
         InvestView(isPresented: $isPresented)
+    }
+}
+
+struct ScreenshotSpendWrapper: View {
+    @State private var heroState: HeroAnimationState = .idle
+    var body: some View {
+        SpendView(showSubscriptionsOverlay: .constant(false), showCardStyleSelection: .constant(false), heroAnimationState: $heroState)
     }
 }
 
