@@ -145,7 +145,7 @@ struct sling_test_app_2App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     @State private var showScreenshotMode = false
-    @State private var selectedVariant: AppVariant? = nil
+    @State private var selectedVariant: AppVariant? = .newNavMVP
     @AppStorage("isLoggedIn") private var isLoggedIn = false
     
     // Initialize flip detector on app launch

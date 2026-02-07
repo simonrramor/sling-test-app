@@ -84,7 +84,7 @@ struct HeaderView: View {
                             .foregroundColor(Color("TextPrimary"))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(Color("BackgroundTertiary"))
+                            .background(Color.white)
                             .cornerRadius(12)
                     }
                     .transition(buttonTransition)
@@ -101,7 +101,7 @@ struct HeaderView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Color("TextPrimary"))
                             .frame(width: 36, height: 36)
-                            .background(Color("BackgroundTertiary"))
+                            .background(Color.white)
                             .cornerRadius(12)
                     }
                     .accessibilityLabel("Search")
@@ -121,7 +121,7 @@ struct HeaderView: View {
                         .frame(width: 20, height: 20)
                         .foregroundColor(Color("TextPrimary"))
                         .frame(width: 36, height: 36)
-                        .background(Color("BackgroundTertiary"))
+                        .background(Color.white)
                         .cornerRadius(12)
                 }
                 .accessibilityLabel("Scan QR Code")
@@ -139,7 +139,7 @@ struct HeaderView: View {
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(Color("TextPrimary"))
                                 .frame(width: 36, height: 36)
-                                .background(Color("BackgroundTertiary"))
+                                .background(Color.white)
                                 .cornerRadius(12)
                             
                             // Status dot indicator

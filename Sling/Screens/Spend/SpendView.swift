@@ -51,9 +51,9 @@ struct SpendView: View {
     @Environment(\.selectedAppVariant) private var selectedAppVariant
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     
-    // Spending data in USD (base currency)
-    private let spentThisMonthUSD: Double = 3430
-    @State private var spentThisMonthDisplay: Double = 3430
+    // Spending data in USD (base currency) - persisted, starts at 0 for new cards
+    @AppStorage("cardSpendingUSD") private var cardSpendingUSD: Double = 0
+    @State private var spentThisMonthDisplay: Double = 0
     @State private var exchangeRate: Double = 1.0
     
     private let exchangeRateService = ExchangeRateService.shared
@@ -174,9 +174,11 @@ struct SpendView: View {
                             
                             CardEmptyStateCard(onGetCard: {
                                 if selectedAppVariant == .newNavMVP {
-                                    // MVP: skip card selection, create card directly
+                                    // MVP: skip card selection, create orange card directly
                                     let generator = UINotificationFeedbackGenerator()
                                     generator.notificationOccurred(.success)
+                                    selectedCardStyle = "orange"
+                                    cardSpendingUSD = 0
                                     hasCard = true
                                 } else {
                                     // #region agent log
@@ -207,9 +209,16 @@ struct SpendView: View {
                 .presentationBackground(Color.white)
         }
         .onAppear {
+            // MVP: always force orange card style
+            if selectedAppVariant == .newNavMVP && selectedCardStyle != "orange" {
+                selectedCardStyle = "orange"
+            }
             fetchExchangeRate()
         }
         .onChange(of: displayCurrencyService.displayCurrency) { _, _ in
+            fetchExchangeRate()
+        }
+        .onChange(of: cardSpendingUSD) { _, _ in
             fetchExchangeRate()
         }
     }
@@ -217,7 +226,7 @@ struct SpendView: View {
     private func fetchExchangeRate() {
         let currency = displayCurrencyService.displayCurrency
         guard currency != "USD" else {
-            spentThisMonthDisplay = spentThisMonthUSD
+            spentThisMonthDisplay = cardSpendingUSD
             exchangeRate = 1.0
             return
         }
@@ -226,7 +235,7 @@ struct SpendView: View {
             if let rate = await exchangeRateService.getRate(from: "USD", to: currency) {
                 await MainActor.run {
                     exchangeRate = rate
-                    spentThisMonthDisplay = spentThisMonthUSD * rate
+                    spentThisMonthDisplay = cardSpendingUSD * rate
                 }
             }
         }

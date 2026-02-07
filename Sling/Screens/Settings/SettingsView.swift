@@ -370,6 +370,10 @@ struct SettingsView: View {
         UserDefaults.standard.removeObject(forKey: "hasSentMoney")
         UserDefaults.standard.removeObject(forKey: "hasSetupAccount")
         UserDefaults.standard.removeObject(forKey: "hasCard")
+        UserDefaults.standard.removeObject(forKey: "hasSeenCardTab")
+        UserDefaults.standard.removeObject(forKey: "hasUsedTransferButton")
+        UserDefaults.standard.removeObject(forKey: "cardSpendingUSD")
+        UserDefaults.standard.removeObject(forKey: "unlockedAccounts")
         
         // Reset card style to default orange
         UserDefaults.standard.removeObject(forKey: "selectedCardStyle")
@@ -1220,6 +1224,7 @@ struct TestsSettingsView: View {
     @State private var showMorseBot = false
     @State private var showBotComparison = false
     @State private var showBlobsTest = false
+    @State private var showButtonPulse = false
     
     var body: some View {
         ZStack {
@@ -1302,14 +1307,24 @@ struct TestsSettingsView: View {
                         SettingsRow(
                             iconSystem: "circle.grid.2x2",
                             title: "Blobs",
-                            position: .bottom,
+                            position: .middle,
                             onTap: { showBlobsTest = true }
+                        )
+                        
+                        SettingsRow(
+                            iconSystem: "waveform.circle.fill",
+                            title: "Button Pulse",
+                            position: .bottom,
+                            onTap: { showButtonPulse = true }
                         )
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showButtonPulse) {
+            ButtonPulseSettingsView(isPresented: $showButtonPulse)
         }
         .fullScreenCover(isPresented: $showCardTest) {
             CardTestView(isPresented: $showCardTest)

@@ -18,12 +18,23 @@ struct BottomNavView: View {
     var onTransferTap: (() -> Void)? = nil
     @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.selectedAppVariant) private var selectedAppVariant
+    @AppStorage("hasSeenCardTab") private var hasSeenCardTab = false
     
     private var visibleTabs: [Tab] {
         if selectedAppVariant == .newNavMVP {
             return [.home, .card]
         }
         return Tab.pillTabs
+    }
+    
+    /// Tabs that should show a badge dot
+    private func showBadge(for tab: Tab) -> Bool {
+        switch tab {
+        case .card:
+            return !hasSeenCardTab
+        default:
+            return false
+        }
     }
     
     var body: some View {
@@ -34,9 +45,16 @@ struct BottomNavView: View {
                     PillTabButton(
                         tab: tab,
                         isSelected: selectedTab == tab,
+                        showBadge: showBadge(for: tab),
                         onTap: {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
+                            // Dismiss badge on tap
+                            if tab == .card && !hasSeenCardTab {
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    hasSeenCardTab = true
+                                }
+                            }
                             onTabChange?(tab)
                             selectedTab = tab
                         }
@@ -62,6 +80,7 @@ struct BottomNavView: View {
 struct PillTabButton: View {
     let tab: Tab
     let isSelected: Bool
+    var showBadge: Bool = false
     let onTap: () -> Void
     @ObservedObject private var themeService = ThemeService.shared
     
@@ -107,6 +126,15 @@ struct PillTabButton: View {
                     Capsule()
                         .fill(isSelected ? selectedBackgroundColor : Color.clear)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if showBadge {
+                        Circle()
+                            .fill(Color(hex: "FF5113"))
+                            .frame(width: 10, height: 10)
+                            .offset(x: -6, y: 4)
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                }
         }
         .buttonStyle(NavPressStyle())
         .accessibilityLabel(tab.rawValue)

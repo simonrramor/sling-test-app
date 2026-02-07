@@ -6,6 +6,7 @@ struct ReceiveSalaryView: View {
     @AppStorage("hasSetupAccount") private var hasSetupAccount = false
     @State private var showBRLDetails = false
     @State private var showUSDDetails = false
+    @State private var showMXNDetails = false
     @State private var showEURDetails = false
     @State private var showGBPDetails = false
     
@@ -79,6 +80,15 @@ struct ReceiveSalaryView: View {
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
                             
+                            // Mexican Peso
+                            CurrencyAccountRow(
+                                currencyName: "Mexican peso",
+                                transferType: "CLABE transfer",
+                                currencyIcon: "FlagMX",
+                                position: .middle,
+                                onTap: { showMXNDetails = true }
+                            )
+                            
                             // Euro
                             CurrencyAccountRow(
                                 currencyName: "Euro",
@@ -130,6 +140,20 @@ struct ReceiveSalaryView: View {
                     ("Bank name", "Lead Bank", false),
                     ("Beneficiary name", "Brendon Arnold", false),
                     ("Bank address", "1801 Main St.\nKansas City\nMO 64108", true)
+                ]
+            )
+        }
+        .fullScreenCover(isPresented: $showMXNDetails) {
+            CurrencyAccountDetailsSheet(
+                isPresented: $showMXNDetails,
+                title: "MXN account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0% fee"), ("arrow.down", "$500 MXN min"), ("clock", "Instant")],
+                details: [
+                    ("CLABE", "0211 8000 1234 5678 90", true),
+                    ("Beneficiary name", "Brendon Arnold", false),
+                    ("Bank", "Sling MX", false),
+                    ("Reference", "SLING-BA2026", true)
                 ]
             )
         }

@@ -12,6 +12,8 @@ struct HomeView: View {
     @State private var showSetup = false
     @State private var showAllActivity = false
     @State private var selectedAccountCurrency: String? = nil
+    @State private var onboardingCurrency: String? = nil
+    @State private var showAllAccountDetails = false
     @ObservedObject private var activityService = ActivityService.shared
     @ObservedObject private var themeService = ThemeService.shared
     @Environment(\.selectedAppVariant) private var selectedAppVariant
@@ -53,6 +55,13 @@ struct HomeView: View {
                     VirtualAccountsCarousel(
                         onAccountTap: { currency in
                             selectedAccountCurrency = currency
+                        },
+                        onLockedAccountTap: { currency in
+                            if currency == "ALL" {
+                                showAllAccountDetails = true
+                            } else {
+                                onboardingCurrency = currency
+                            }
                         }
                     )
                     .padding(.top, 12)
@@ -165,6 +174,38 @@ struct HomeView: View {
         .fullScreenCover(item: $selectedAccountCurrency) { currency in
             currencyAccountDetailsSheet(for: currency)
         }
+        .fullScreenCover(isPresented: $showAllAccountDetails) {
+            AllAccountDetailsView(
+                isPresented: $showAllAccountDetails,
+                onOpenOnboarding: { currency in
+                    showAllAccountDetails = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        onboardingCurrency = currency
+                    }
+                },
+                onOpenDetails: { currency in
+                    showAllAccountDetails = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        selectedAccountCurrency = currency
+                    }
+                }
+            )
+        }
+        .fullScreenCover(item: $onboardingCurrency) { currency in
+            AccountOnboardingView(
+                currency: currency,
+                onCreateAccount: {
+                    onboardingCurrency = nil
+                    // Small delay so dismiss animation completes before showing details
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        selectedAccountCurrency = currency
+                    }
+                },
+                onDismiss: {
+                    onboardingCurrency = nil
+                }
+            )
+        }
     }
     
     @ViewBuilder
@@ -215,6 +256,19 @@ struct HomeView: View {
                     ("Bank address", "Finanzplatz 1\n60311 Frankfurt\nGermany", true)
                 ]
             )
+        case "MXN":
+            CurrencyAccountDetailsSheet(
+                isPresented: dismissBinding,
+                title: "MXN account details",
+                subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
+                infoBadges: [("percent", "0% fee"), ("arrow.down", "$500 MXN min"), ("clock", "Instant")],
+                details: [
+                    ("CLABE", "0211 8000 1234 5678 90", true),
+                    ("Beneficiary name", "Brendon Arnold", false),
+                    ("Bank", "Sling MX", false),
+                    ("Reference", "SLING-BA2026", true)
+                ]
+            )
         case "GBP":
             CurrencyAccountDetailsSheet(
                 isPresented: dismissBinding,
@@ -244,11 +298,14 @@ struct GetStartedSection: View {
     @AppStorage("hasAddedMoney") private var hasAddedMoney = false
     @AppStorage("hasSentMoney") private var hasSentMoney = false
     @AppStorage("hasSetupAccount") private var hasSetupAccount = false
+    @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
+    @AppStorage("cardSpendingUSD") private var cardSpendingUSD: Double = 0
     
     let onAddMoney: () -> Void
     let onSendMoney: () -> Void
     let onSetup: () -> Void
     
+    @Environment(\.selectedAppVariant) private var selectedAppVariant
     @State private var showAccountDetails = false
     @State private var showCardStyleSelection = false
     
@@ -348,7 +405,16 @@ struct GetStartedSection: View {
                             subtitle: "Get your new virtual debit card, and start spending around the world.",
                             buttonTitle: "Create Sling Card",
                             action: {
-                                showCardStyleSelection = true
+                                if selectedAppVariant == .newNavMVP {
+                                    // MVP: skip card selection, create orange card directly
+                                    let generator = UINotificationFeedbackGenerator()
+                                    generator.notificationOccurred(.success)
+                                    selectedCardStyle = "orange"
+                                    cardSpendingUSD = 0
+                                    hasCard = true
+                                } else {
+                                    showCardStyleSelection = true
+                                }
                             }
                         )
                     }
@@ -1041,14 +1107,43 @@ struct AllActivityView: View {
 
 struct VirtualAccountsCarousel: View {
     let onAccountTap: (String) -> Void
+    var onLockedAccountTap: ((String) -> Void)? = nil
+    @AppStorage("unlockedAccounts") private var unlockedAccountsRaw = "USD"
     
-    // Virtual accounts data
-    private let accounts: [(currency: String, label: String, lastFour: String, flagAsset: String)] = [
-        ("BRL", "BRL account details", "8900", "FlagBR"),
-        ("USD", "USD account details", "6789", "FlagUS"),
-        ("EUR", "EUR account details", "0130", "FlagEUR"),
-        ("GBP", "GBP account details", "9268", "FlagGB")
+    // All available accounts in display order
+    private static let allAccounts: [(currency: String, label: String, lastFour: String)] = [
+        ("USD", "USD account details", "6789"),
+        ("BRL", "BRL account details", "8900"),
+        ("MXN", "MXN account details", "4521"),
+        ("EUR", "EUR account details", "0130"),
+        ("GBP", "GBP account details", "9268")
     ]
+    
+    private var unlockedCurrencies: Set<String> {
+        Set(unlockedAccountsRaw.split(separator: ",").map(String.init))
+    }
+    
+    private func isUnlocked(_ currency: String) -> Bool {
+        unlockedCurrencies.contains(currency)
+    }
+    
+    private func unlockAccount(_ currency: String) {
+        var currencies = unlockedCurrencies
+        currencies.insert(currency)
+        unlockedAccountsRaw = currencies.sorted().joined(separator: ",")
+    }
+    
+    private var visibleAccounts: [(currency: String, label: String, lastFour: String)] {
+        Self.allAccounts.filter { isUnlocked($0.currency) }
+    }
+    
+    private var hasLockedAccounts: Bool {
+        Self.allAccounts.contains { !isUnlocked($0.currency) }
+    }
+    
+    private var firstLockedCurrency: String? {
+        Self.allAccounts.first { !isUnlocked($0.currency) }?.currency
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -1057,7 +1152,8 @@ struct VirtualAccountsCarousel: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(accounts, id: \.currency) { account in
+                    // Show unlocked accounts
+                    ForEach(visibleAccounts, id: \.currency) { account in
                         Button(action: {
                             let generator = UIImpactFeedbackGenerator(style: .light)
                             generator.impactOccurred()
@@ -1071,15 +1167,17 @@ struct VirtualAccountsCarousel: View {
                         .buttonStyle(PlainButtonStyle())
                     }
                     
-                    // Add new account card
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .light)
-                        generator.impactOccurred()
-                        // TODO: Open add new account flow
-                    }) {
-                        AddNewAccountCard()
+                    // "Get more" card if there are still locked accounts
+                    if hasLockedAccounts {
+                        Button(action: {
+                            let generator = UIImpactFeedbackGenerator(style: .light)
+                            generator.impactOccurred()
+                            onLockedAccountTap?("ALL")
+                        }) {
+                            GetMoreAccountsCard()
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
                 .scrollTargetLayout()
                 .padding(.horizontal, horizontalInset)
@@ -1087,6 +1185,392 @@ struct VirtualAccountsCarousel: View {
             .scrollTargetBehavior(.viewAligned)
         }
         .frame(height: 88)
+    }
+}
+
+// MARK: - All Account Details View
+
+struct AllAccountDetailsView: View {
+    @Binding var isPresented: Bool
+    var onOpenOnboarding: (String) -> Void
+    var onOpenDetails: (String) -> Void
+    @AppStorage("unlockedAccounts") private var unlockedAccountsRaw = "USD"
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    private let allCurrencies: [(code: String, name: String, transferType: String, secondaryText: String?, icon: String)] = [
+        ("BRL", "Brazilian real", "Pix transfer", nil, "FlagBR"),
+        ("USD", "US dollar", "ACH or Wire transfer", nil, "FlagUS"),
+        ("MXN", "Mexican peso", "CLABE transfer", nil, "FlagMX"),
+        ("EUR", "Euro", "IBAN", "SEPA transfer", "FlagEUR"),
+        ("GBP", "British pound", "Sort code & Account number", nil, "FlagGB")
+    ]
+    
+    private var unlockedCurrencies: Set<String> {
+        Set(unlockedAccountsRaw.split(separator: ",").map(String.init))
+    }
+    
+    private var unlockedRows: [(code: String, name: String, transferType: String, secondaryText: String?, icon: String)] {
+        allCurrencies.filter { unlockedCurrencies.contains($0.code) }
+    }
+    
+    private var lockedRows: [(code: String, name: String, transferType: String, secondaryText: String?, icon: String)] {
+        allCurrencies.filter { !unlockedCurrencies.contains($0.code) }
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.white.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(themeService.textPrimaryColor)
+                            .frame(width: 32, height: 32)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Title and subtitle
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Your account details")
+                                .font(.custom("Inter-Bold", size: 28))
+                                .tracking(-0.56)
+                                .foregroundColor(themeService.textPrimaryColor)
+                            
+                            Text("Send money to these details, or share them to get paid. Funds arrive as digital dollars in your Sling Balance.")
+                                .font(.custom("Inter-Regular", size: 16))
+                                .foregroundColor(themeService.textSecondaryColor)
+                                .lineSpacing(4)
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Currency rows
+                        VStack(spacing: 0) {
+                            // Unlocked accounts
+                            ForEach(Array(unlockedRows.enumerated()), id: \.element.code) { index, row in
+                                let isLast = index == unlockedRows.count - 1 && lockedRows.isEmpty
+                                CurrencyAccountRow(
+                                    currencyName: row.name,
+                                    transferType: row.transferType,
+                                    secondaryText: row.secondaryText,
+                                    currencyIcon: row.icon,
+                                    position: index == 0 ? .top : (isLast ? .bottom : .middle),
+                                    onTap: { onOpenDetails(row.code) }
+                                )
+                            }
+                            
+                            // "Get new account details" section header
+                            if !lockedRows.isEmpty {
+                                HStack {
+                                    Text("Get new account details")
+                                        .font(.custom("Inter-Bold", size: 14))
+                                        .foregroundColor(themeService.textSecondaryColor)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                
+                                // Locked accounts
+                                ForEach(Array(lockedRows.enumerated()), id: \.element.code) { index, row in
+                                    CurrencyAccountRow(
+                                        currencyName: row.name,
+                                        transferType: row.transferType,
+                                        secondaryText: row.secondaryText,
+                                        currencyIcon: row.icon,
+                                        position: index == lockedRows.count - 1 ? .bottom : .middle,
+                                        onTap: { onOpenOnboarding(row.code) }
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 40)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Get More Accounts Card
+
+struct GetMoreAccountsCard: View {
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Get more account details")
+                    .font(.custom("Inter-Bold", size: 18))
+                    .tracking(-0.36)
+                    .foregroundColor(Color(hex: "080808"))
+                
+                Text("Receive money in more currencies")
+                    .font(.custom("Inter-Medium", size: 14))
+                    .tracking(-0.28)
+                    .foregroundColor(Color(hex: "7B7B7B"))
+            }
+            
+            Spacer()
+            
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: 24))
+                .foregroundColor(Color(hex: "FF5113"))
+        }
+        .padding(16)
+        .frame(width: 353)
+        .frame(maxHeight: .infinity)
+        .background(.white)
+        .cornerRadius(24)
+    }
+}
+
+// MARK: - Account Onboarding View
+
+struct AccountOnboardingView: View {
+    let currency: String
+    let onCreateAccount: () -> Void
+    let onDismiss: () -> Void
+    
+    @AppStorage("unlockedAccounts") private var unlockedAccountsRaw = "USD"
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    private func unlockAccount() {
+        var currencies = Set(unlockedAccountsRaw.split(separator: ",").map(String.init))
+        currencies.insert(currency)
+        unlockedAccountsRaw = currencies.sorted().joined(separator: ",")
+    }
+    
+    // Currency-specific content
+    private var accountTypeName: String {
+        switch currency {
+        case "BRL": return "Pix key"
+        case "MXN": return "CLABE"
+        case "EUR": return "IBAN"
+        case "GBP": return "sort code"
+        case "USD": return "routing number"
+        default: return "account"
+        }
+    }
+    
+    private var currencyCode: String { currency }
+    
+    private var flagEmoji: String {
+        switch currency {
+        case "BRL": return "🇧🇷"
+        case "MXN": return "🇲🇽"
+        case "EUR": return "🇪🇺"
+        case "GBP": return "🇬🇧"
+        case "USD": return "🇺🇸"
+        default: return "🌐"
+        }
+    }
+    
+    private var benefits: [(icon: String, text: String)] {
+        switch currency {
+        case "BRL":
+            return [
+                ("person.2", "Get paid by clients or employers"),
+                ("building.columns", "Add money from your bank account"),
+                ("dollarsign.circle", "Hold money in digital dollars"),
+                ("checkmark.shield", "No management fees")
+            ]
+        case "MXN":
+            return [
+                ("person.2", "Get paid by clients or employers"),
+                ("building.columns", "Add money from your Mexican bank"),
+                ("dollarsign.circle", "Hold money in digital dollars"),
+                ("checkmark.shield", "No management fees")
+            ]
+        case "EUR":
+            return [
+                ("person.2", "Receive SEPA payments from anyone"),
+                ("building.columns", "Add money from your EU bank"),
+                ("dollarsign.circle", "Hold money in digital dollars"),
+                ("checkmark.shield", "No management fees")
+            ]
+        case "GBP":
+            return [
+                ("person.2", "Get paid by UK clients or employers"),
+                ("building.columns", "Add money from your UK bank"),
+                ("dollarsign.circle", "Hold money in digital dollars"),
+                ("checkmark.shield", "No management fees")
+            ]
+        default:
+            return [
+                ("person.2", "Get paid by clients or employers"),
+                ("building.columns", "Add money from your bank account"),
+                ("dollarsign.circle", "Hold money in digital dollars"),
+                ("checkmark.shield", "No management fees")
+            ]
+        }
+    }
+    
+    var body: some View {
+        ZStack {
+            Color.white.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Back button
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        onDismiss()
+                    }) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(Color(hex: "080808"))
+                            .frame(width: 44, height: 44)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Illustration: two overlapping cards with flag
+                        ZStack {
+                            // Bank card (back)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(hex: "1C1C1E"))
+                                    .frame(width: 72, height: 72)
+                                
+                                Image(systemName: "building.columns.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.white)
+                            }
+                            .offset(x: -20, y: 0)
+                            .rotationEffect(.degrees(-8))
+                            
+                            // Details card (front)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(hex: "1C1C1E"))
+                                    .frame(width: 72, height: 72)
+                                
+                                VStack(spacing: 4) {
+                                    ForEach(0..<3, id: \.self) { _ in
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.white.opacity(0.4))
+                                            .frame(width: 36, height: 4)
+                                    }
+                                }
+                            }
+                            .offset(x: 20, y: 0)
+                            .rotationEffect(.degrees(5))
+                            
+                            // Account number preview
+                            HStack(spacing: 2) {
+                                Text("••••")
+                                    .font(.custom("Inter-Bold", size: 11))
+                                    .foregroundColor(Color(hex: "7B7B7B"))
+                                Text("7241")
+                                    .font(.custom("Inter-Bold", size: 11))
+                                    .foregroundColor(Color(hex: "080808"))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.white)
+                            .cornerRadius(8)
+                            .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+                            .offset(x: 20, y: -36)
+                            
+                            // Flag badge
+                            Text(flagEmoji)
+                                .font(.system(size: 18))
+                                .offset(x: -28, y: 36)
+                            
+                            // Green checkmark
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: "57CE43"))
+                                    .frame(width: 20, height: 20)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                            .offset(x: 44, y: 36)
+                        }
+                        .frame(height: 140)
+                        .padding(.top, 24)
+                        
+                        // Title
+                        Text("Get your own \(accountTypeName) to receive \(currencyCode)")
+                            .font(.custom("Inter-Bold", size: 32))
+                            .tracking(-0.64)
+                            .foregroundColor(Color(hex: "080808"))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 24)
+                        
+                        // Subtitle
+                        Text("Money sent to your \(accountTypeName) arrives as **digital dollars** in your Sling Balance. By opening this account, you agree to our **user terms**.")
+                            .font(.custom("Inter-Regular", size: 16))
+                            .tracking(-0.32)
+                            .lineSpacing(4)
+                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 12)
+                        
+                        // Benefits list
+                        VStack(spacing: 0) {
+                            ForEach(Array(benefits.enumerated()), id: \.offset) { _, benefit in
+                                HStack(spacing: 16) {
+                                    Image(systemName: benefit.icon)
+                                        .font(.system(size: 20))
+                                        .foregroundColor(Color(hex: "5AC8FA"))
+                                        .frame(width: 28, height: 28)
+                                    
+                                    Text(benefit.text)
+                                        .font(.custom("Inter-Bold", size: 16))
+                                        .tracking(-0.32)
+                                        .foregroundColor(Color(hex: "080808"))
+                                    
+                                    Spacer()
+                                }
+                                .padding(.vertical, 16)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 16)
+                    }
+                }
+                
+                // CTA button pinned at bottom
+                Button(action: {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
+                    unlockAccount()
+                    onCreateAccount()
+                }) {
+                    Text("Create account details")
+                        .font(.custom("Inter-Bold", size: 16))
+                        .tracking(-0.32)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color(hex: "080808"))
+                        .cornerRadius(20)
+                }
+                .buttonStyle(PressedButtonStyle())
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+            }
+        }
     }
 }
 
@@ -1178,9 +1662,7 @@ struct AddNewAccountCard: View {
 struct SpentThisMonthCard: View {
     @ObservedObject private var displayCurrencyService = DisplayCurrencyService.shared
     @AppStorage("hasCard") private var hasCard = false
-    
-    // Mock spending data in USD
-    private let spentThisMonthUSD: Double = 3430
+    @AppStorage("cardSpendingUSD") private var cardSpendingUSD: Double = 0
     
     private var currencySymbol: String {
         ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
@@ -1188,12 +1670,12 @@ struct SpentThisMonthCard: View {
     
     private var formattedAmount: String {
         if displayCurrencyService.displayCurrency == "USD" {
-            return spentThisMonthUSD.asCurrency("$")
+            return cardSpendingUSD.asCurrency("$")
         }
         if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrencyService.displayCurrency) {
-            return (spentThisMonthUSD * rate).asCurrency(currencySymbol)
+            return (cardSpendingUSD * rate).asCurrency(currencySymbol)
         }
-        return spentThisMonthUSD.asCurrency("$")
+        return cardSpendingUSD.asCurrency("$")
     }
     
     var body: some View {
@@ -1234,11 +1716,32 @@ struct SpentThisMonthCard: View {
 // MARK: - Mini Card Thumbnail
 
 struct MiniCardThumbnail: View {
+    @AppStorage("selectedCardStyle") private var selectedCardStyle = "orange"
+    
+    private var cardOption: CardBackgroundOption? {
+        CardBackgroundOption.option(for: selectedCardStyle)
+    }
+    
     var body: some View {
         ZStack {
-            // Orange background
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color(hex: "FF5113"))
+            // Background: color or image based on selected style
+            if let option = cardOption {
+                switch option.type {
+                case .color(let color):
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(color)
+                case .image(let horizontal, _):
+                    Image(horizontal)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 56, height: 36)
+                        .clipped()
+                        .cornerRadius(6)
+                }
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(hex: "FF5113"))
+            }
             
             // Sling logo watermark
             Image("SlingLogo")
