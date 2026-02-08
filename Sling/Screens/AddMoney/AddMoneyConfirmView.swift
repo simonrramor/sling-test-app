@@ -31,12 +31,9 @@ struct AddMoneyConfirmView: View {
         )
     }
     
-    /// Amount received after fee deduction
+    /// Amount received = what the user asked for (fee is added to withdrawal, not deducted from received)
     private var amountAfterFee: Double {
-        if depositFee.isFree {
-            return destinationAmount
-        }
-        return max(0, destinationAmount - depositFee.amount)
+        return destinationAmount
     }
     
     // Extract avatar asset name from account icon type
@@ -71,32 +68,8 @@ struct AddMoneyConfirmView: View {
         return amountAfterFee.asUSD
     }
     
-    /// Convert linked account amount (minus fee) directly to display currency
+    /// You receive = exactly what the user asked for (the sourceAmount in display currency)
     private var youReceiveAmount: Double {
-        let displayCurrency = displayCurrencyService.displayCurrency
-        
-        // If display currency matches linked account currency, just return amount minus fee
-        if displayCurrency == sourceCurrency {
-            return amountExchangedAfterFee
-        }
-        
-        // Convert from linked account currency (e.g., GBP) directly to display currency (e.g., EUR)
-        if let rate = ExchangeRateService.shared.getCachedRate(from: sourceCurrency, to: displayCurrency) {
-            return amountExchangedAfterFee * rate
-        }
-        
-        // Fallback rates for common pairs
-        let fallbackRates: [String: [String: Double]] = [
-            "GBP": ["EUR": 1.16, "USD": 1.27],
-            "EUR": ["GBP": 0.86, "USD": 1.09],
-            "USD": ["GBP": 0.79, "EUR": 0.92]
-        ]
-        
-        if let rate = fallbackRates[sourceCurrency]?[displayCurrency] {
-            return amountExchangedAfterFee * rate
-        }
-        
-        // Fallback to sourceAmount if no rate available
         return sourceAmount
     }
     
@@ -135,31 +108,29 @@ struct AddMoneyConfirmView: View {
         return youReceiveAmount
     }
     
-    /// Formatted linked account amount (what will be taken from bank)
-    var formattedLinkedAccountAmount: String {
-        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
-        return linkedAccountAmount.asCurrency(symbol)
+    /// Fee converted to linked account (bank) currency
+    private var feeInLinkedCurrency: Double {
+        if depositFee.isFree { return 0 }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) {
+            return 0.50 * rate
+        }
+        let fallback: [String: Double] = ["GBP": 0.79, "EUR": 0.92]
+        return 0.50 * (fallback[sourceCurrency] ?? 1.0)
     }
     
-    /// Amount exchanged after fee deduction (in linked account/bank currency)
+    /// Total withdrawn from bank = amount needed + fee (user pays more so they receive exactly what they asked for)
+    private var totalWithdrawn: Double {
+        linkedAccountAmount + feeInLinkedCurrency
+    }
+    
+    /// Formatted total withdrawn (what will be taken from bank including fee)
+    var formattedLinkedAccountAmount: String {
+        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
+        return totalWithdrawn.asCurrency(symbol)
+    }
+    
+    /// Amount actually exchanged (= linkedAccountAmount, before fee is added)
     private var amountExchangedAfterFee: Double {
-        if depositFee.isFree {
-            return linkedAccountAmount
-        }
-        // Convert the $0.50 fee to linked account currency and subtract
-        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) {
-            let feeInLinkedCurrency = 0.50 * rate
-            return max(0, linkedAccountAmount - feeInLinkedCurrency)
-        }
-        // Fallback rates from USD
-        let fallbackRatesFromUSD: [String: Double] = [
-            "GBP": 0.79,
-            "EUR": 0.92
-        ]
-        if let rate = fallbackRatesFromUSD[sourceCurrency] {
-            let feeInLinkedCurrency = 0.50 * rate
-            return max(0, linkedAccountAmount - feeInLinkedCurrency)
-        }
         return linkedAccountAmount
     }
     
@@ -168,23 +139,28 @@ struct AddMoneyConfirmView: View {
         return amountExchangedAfterFee.asCurrency(symbol)
     }
     
-    /// Exchange rate from linked account currency to display currency
+    /// Formatted fee in linked account currency
+    var formattedFeeInLinkedCurrency: String {
+        let symbol = ExchangeRateService.symbol(for: sourceCurrency)
+        return feeInLinkedCurrency.asCurrency(symbol)
+    }
+    
+    /// Exchange rate: source (bank) currency on left, destination (display) currency on right
+    /// Money flows FROM bank TO Sling balance, so bank currency is the starting currency
     var formattedExchangeRate: String {
         let displayCurrency = displayCurrencyService.displayCurrency
-        let sourceSymbol = ExchangeRateService.symbol(for: sourceCurrency)
-        let destSymbol = ExchangeRateService.symbol(for: displayCurrency)
+        let displaySymbol = ExchangeRateService.symbol(for: displayCurrency)
+        let bankSymbol = ExchangeRateService.symbol(for: sourceCurrency)
         
-        // If same currency, show 1:1
         if displayCurrency == sourceCurrency {
-            return "\(sourceSymbol)1 = \(destSymbol)1"
+            return "\(bankSymbol)1 = \(displaySymbol)1"
         }
         
-        // Get direct rate from linked account to display currency
+        // Rate: 1 bank currency = X display currency
         if let rate = ExchangeRateService.shared.getCachedRate(from: sourceCurrency, to: displayCurrency) {
-            return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", rate))"
+            return "\(bankSymbol)1 = \(displaySymbol)\(String(format: "%.2f", rate))"
         }
         
-        // Fallback rates for common pairs
         let fallbackRates: [String: [String: Double]] = [
             "GBP": ["EUR": 1.16, "USD": 1.27],
             "EUR": ["GBP": 0.86, "USD": 1.09],
@@ -192,11 +168,30 @@ struct AddMoneyConfirmView: View {
         ]
         
         if let rate = fallbackRates[sourceCurrency]?[displayCurrency] {
-            return "\(sourceSymbol)1 = \(destSymbol)\(String(format: "%.2f", rate))"
+            return "\(bankSymbol)1 = \(displaySymbol)\(String(format: "%.2f", rate))"
         }
         
-        // Last resort fallback
-        return "\(sourceSymbol)1 = \(exchangeRate.asUSD)"
+        return "\(bankSymbol)1 = \(displaySymbol)\(String(format: "%.2f", 1.0 / exchangeRate))"
+    }
+    
+    /// Attributed title with green amount
+    private var addMoneyTitle: AttributedString {
+        var result = AttributedString("Add ")
+        result.foregroundColor = UIColor(Color(hex: "080808"))
+        var amount = AttributedString(shortInputAmount)
+        amount.foregroundColor = UIColor(Color(hex: "57CE43"))
+        var suffix = AttributedString(" from \(sourceAccount.name)")
+        suffix.foregroundColor = UIColor(Color(hex: "080808"))
+        return result + amount + suffix
+    }
+    
+    /// Short formatted amount for title (no decimals for whole numbers)
+    private var shortInputAmount: String {
+        if sourceAmount.truncatingRemainder(dividingBy: 1) == 0 {
+            let symbol = ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
+            return "\(symbol)\(Int(sourceAmount))"
+        }
+        return formattedInputAmount
     }
     
     var body: some View {
@@ -205,9 +200,8 @@ struct AddMoneyConfirmView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 16) {
-                    // Back button
+                // Header - back arrow only
+                HStack {
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
@@ -220,198 +214,135 @@ struct AddMoneyConfirmView: View {
                     }
                     .accessibilityLabel("Go back")
                     
-                    // Sling logo
-                    Image("SlingBalanceLogo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 40, height: 40)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.black.opacity(0.06), lineWidth: 1)
-                        )
-                    
-                    // Title
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Add to")
-                            .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        Text("Sling Balance")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-                .frame(height: 64)
+                .padding(.horizontal, 24)
+                .frame(height: 48)
                 .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
-                // Amount display - centered (shows original input amount in display currency)
-                Text(formattedInputAmount)
-                    .font(.custom("Inter-Bold", size: 56))
-                    .foregroundColor(themeService.textPrimaryColor)
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                
-                Spacer()
-                
-                // Details section
-                VStack(spacing: 4) {
-                    // From row
-                    HStack {
-                        Text("From")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 8) {
-                            // Account icon
-                            switch sourceAccount.iconType {
-                            case .asset(let assetName):
-                                Image(assetName)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 20, height: 20)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                            }
-                            
-                            Text(sourceAccount.name)
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textPrimaryColor)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 16)
-                    
-                    // Transfer speed row
-                    HStack {
-                        Text("Transfer speed")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text("Instant")
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 16)
-                    
-                    // Divider
-                    Rectangle()
-                        .fill(Color(hex: "EDEDED"))
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 4)
-                    
-                    // Total withdrawn row (in linked account/bank currency)
-                    HStack {
-                        Text("Total withdrawn")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text(formattedLinkedAccountAmount)
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 16)
-                    
-                    // Fees row
-                    FeeRow(fee: depositFee, paymentInstrumentCurrency: sourceCurrency, onTap: { showFeesSheet = true })
-                    
-                    // Amount exchanged row (only show when there's a fee)
-                    if !depositFee.isFree {
-                        HStack {
-                            Text("Amount exchanged")
-                                .font(.custom("Inter-Regular", size: 16))
-                                .foregroundColor(themeService.textSecondaryColor)
-                            
-                            Spacer()
-                            
-                            Text(formattedAmountExchanged)
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(themeService.textPrimaryColor)
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 16)
+                // Main content - icon and title
+                VStack(alignment: .leading, spacing: 24) {
+                    // Source account icon
+                    switch sourceAccount.iconType {
+                    case .asset(let assetName):
+                        Image(assetName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 56, height: 56)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                            )
                     }
                     
-                    // Exchange rate row (only show if currencies differ)
-                    if hasCurrencyDifference {
-                        HStack {
-                            Text("Exchange rate")
-                                .font(.custom("Inter-Regular", size: 16))
-                                .foregroundColor(themeService.textSecondaryColor)
-                            
-                            Spacer()
-                            
-                            Text(formattedExchangeRate)
-                                .font(.custom("Inter-Medium", size: 16))
-                                .foregroundColor(Color(hex: "FF5113"))
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 16)
-                    }
-                    
-                    // You receive row (in display currency, after fees)
-                    HStack {
-                        Text("You receive")
-                            .font(.custom("Inter-Regular", size: 16))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        
-                        Spacer()
-                        
-                        Text(formattedAmountAfterFeeInDisplayCurrency)
-                            .font(.custom("Inter-Medium", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 16)
+                    // Title: "Add €100 from Monzo bank Limited"
+                    Text(addMoneyTitle)
+                        .font(.custom("Inter-Bold", size: 32))
+                        .tracking(-0.64)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 40)
-                .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 40)
+                .padding(.bottom, isButtonLoading ? 0 : 16)
                 
-                // Add button with smooth loading animation
+                Spacer()
+                    .frame(maxHeight: isButtonLoading ? .infinity : 0)
+                
+                // Details section - fades out when loading
+                if !isButtonLoading {
+                    VStack(spacing: 4) {
+                        // Transfer speed
+                        InfoListItem(label: "Transfer speed", detail: "Instant")
+                        
+                        // Divider
+                        Rectangle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 1)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                        
+                        // Total withdrawn (bank currency, includes fee)
+                        InfoListItem(label: "Total withdrawn", detail: formattedLinkedAccountAmount)
+                        
+                        // Fees (red, in bank currency)
+                        if !depositFee.isFree {
+                            HStack {
+                                Text("Fees")
+                                    .font(.custom("Inter-Regular", size: 16))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                
+                                Spacer()
+                                
+                                Text("-\(formattedFeeInLinkedCurrency)")
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(Color(hex: "E30000"))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
+                        } else {
+                            InfoListItem(label: "Fees", detail: "No fee")
+                        }
+                        
+                        // Amount exchanged (after fee deducted)
+                        if !depositFee.isFree {
+                            InfoListItem(label: "Amount exchanged", detail: formattedAmountExchanged)
+                        }
+                        
+                        // Exchange rate (only when currencies differ)
+                        if hasCurrencyDifference {
+                            HStack {
+                                Text("Exchange rate")
+                                    .font(.custom("Inter-Regular", size: 16))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                
+                                Spacer()
+                                
+                                Text(formattedExchangeRate)
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(Color(hex: "FF5113"))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
+                        }
+                        
+                        // You receive
+                        InfoListItem(label: "You receive", detail: formattedAmountAfterFeeInDisplayCurrency)
+                    }
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
+                    .padding(.horizontal, 24)
+                    .transition(.opacity)
+                }
+                
+                Spacer()
+                    .frame(height: 16)
+                
+                // Orange CTA button
                 LoadingButton(
                     title: "Add \(formattedAmountAfterFeeInDisplayCurrency)",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Add money to portfolio (converted to USD for storage)
                     portfolioService.addCash(amountToStoreInUSD)
-                    
-                    // Record the transaction in activity feed
                     activityService.recordAddMoney(
                         fromAccountName: sourceAccount.name,
                         fromAccountAvatar: sourceAccountAvatar,
                         amount: amountAfterFee,
                         currency: slingCurrency
                     )
-                    
-                    // Mark as completed for Get Started cards
                     hasAddedMoney = true
-                    
-                    // Navigate home and complete
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 24)
+                .padding(.bottom, 16)
             }
-            
         }
-        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isButtonLoading)
         .fullScreenCover(isPresented: $showFeesSheet) {
             FeesSettingsView(isPresented: $showFeesSheet)
         }

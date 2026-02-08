@@ -66,6 +66,23 @@ struct TransferBetweenAccountsView: View {
         fromCurrency != toCurrency
     }
     
+    // MARK: - Fee helpers for input screen
+    
+    private var hasTransferInputFee: Bool {
+        !FeeService.shared.calculateFee(for: .withdrawal, paymentInstrumentCurrency: fromCurrency).isFree
+    }
+    
+    private var transferInputFeeInSource: Double {
+        if !hasTransferInputFee { return 0 }
+        let feeUSD = 0.50
+        if fromCurrency == "USD" { return feeUSD }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: fromCurrency) {
+            return feeUSD * rate
+        }
+        let fallback: [String: Double] = ["EUR": 0.92, "GBP": 0.79]
+        return feeUSD * (fallback[fromCurrency] ?? 1.0)
+    }
+    
     // MARK: - Formatted amounts
     
     private var formattedSourceAmount: String {
@@ -73,6 +90,11 @@ struct TransferBetweenAccountsView: View {
         let value = showingSourceCurrency ? amountValue : sourceAmount
         if amountString.isEmpty || value == 0 {
             return "\(symbol)0"
+        }
+        // When source is secondary (user typing destination), show with fee
+        if !showingSourceCurrency && hasTransferInputFee {
+            let totalWithFee = value + transferInputFeeInSource
+            return "\(totalWithFee.asCurrency(symbol)) inc. fee"
         }
         return value.asCurrency(symbol)
     }
@@ -433,13 +455,32 @@ struct TransferConfirmView: View {
         }
     }
     
+    /// Attributed title with green amount
+    private var transferTitle: AttributedString {
+        var result = AttributedString("Move ")
+        result.foregroundColor = UIColor(Color(hex: "080808"))
+        var amount = AttributedString(shortDestAmount)
+        amount.foregroundColor = UIColor(Color(hex: "57CE43"))
+        var suffix = AttributedString(" from \(sourceAccount.name) to \(destinationAccount.name)")
+        suffix.foregroundColor = UIColor(Color(hex: "080808"))
+        return result + amount + suffix
+    }
+    
+    /// Short formatted amount for title
+    private var shortDestAmount: String {
+        if destinationAmount.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(destinationSymbol)\(Int(destinationAmount))"
+        }
+        return formattedDestinationAmount
+    }
+    
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 16) {
+                // Header - back arrow only
+                HStack {
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
@@ -451,80 +492,92 @@ struct TransferConfirmView: View {
                             .frame(width: 24, height: 24)
                     }
                     
-                    AccountIconView(iconType: destinationAccount.iconType)
-                    
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Transfer to")
-                            .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        Text(destinationAccount.name)
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-                .frame(height: 64)
+                .padding(.horizontal, 24)
+                .frame(height: 48)
                 .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
-                // Amount display
-                VStack(spacing: 4) {
-                    Text(formattedDestinationAmount)
-                        .font(.custom("Inter-Bold", size: 56))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
+                // Main content - icon and title
+                VStack(alignment: .leading, spacing: 24) {
+                    // Destination account icon
+                    AccountIconView(iconType: destinationAccount.iconType)
                     
-                    // Show source equivalent if different currency
-                    if sourceCurrency != destinationCurrency {
-                        Text(formattedSourceAmount)
-                            .font(.custom("Inter-Medium", size: 18))
-                            .foregroundColor(themeService.textSecondaryColor)
+                    // Title: "Move €100 from Wise to Monzo bank Limited"
+                    Text(transferTitle)
+                        .font(.custom("Inter-Bold", size: 32))
+                        .tracking(-0.64)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 40)
+                .padding(.bottom, isButtonLoading ? 0 : 16)
+                
+                Spacer()
+                    .frame(maxHeight: isButtonLoading ? .infinity : 0)
+                
+                // Details section - fades out when loading
+                if !isButtonLoading {
+                    VStack(spacing: 4) {
+                        // Transfer speed
+                        InfoListItem(label: "Transfer speed", detail: "Instant")
+                        
+                        // Divider
+                        Rectangle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 1)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                        
+                        // Total withdrawn
+                        InfoListItem(label: "Total withdrawn", detail: formattedSourceAmount)
+                        
+                        // Fees
+                        FeeRow(fee: transferFee, paymentInstrumentCurrency: sourceCurrency, onTap: { showFeesSheet = true })
+                        
+                        // Amount exchanged
+                        if !transferFee.isFree {
+                            InfoListItem(label: "Amount exchanged", detail: formattedSourceAmount)
+                        }
+                        
+                        // Exchange rate (source currency on left - money flows from source to destination)
+                        if sourceCurrency != destinationCurrency {
+                            HStack {
+                                Text("Exchange rate")
+                                    .font(.custom("Inter-Regular", size: 16))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                
+                                Spacer()
+                                
+                                Text("\(sourceSymbol)1 = \(destinationSymbol)\(String(format: "%.2f", exchangeRate))")
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(Color(hex: "FF5113"))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
+                        }
+                        
+                        // Recipient gets
+                        InfoListItem(label: "Recipient gets", detail: formattedDestinationAmount)
                     }
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
+                    .padding(.horizontal, 24)
+                    .transition(.opacity)
                 }
                 
                 Spacer()
+                    .frame(height: 16)
                 
-                // Details section
-                VStack(spacing: 0) {
-                    DetailRow(label: "To", value: destinationAccount.name)
-                    DetailRow(label: "From", value: sourceAccount.name)
-                    DetailRow(label: "Speed", value: "1-3 business days")
-                    
-                    Rectangle()
-                        .fill(Color.black.opacity(0.06))
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    
-                    DetailRow(label: "You send", value: formattedSourceAmount)
-                    
-                    // Fee row
-                    FeeRow(fee: transferFee, paymentInstrumentCurrency: sourceCurrency, onTap: { showFeesSheet = true })
-                    
-                    // Exchange rate (if different currencies)
-                    if sourceCurrency != destinationCurrency {
-                        DetailRow(label: "Exchange rate", value: formattedExchangeRate)
-                    }
-                    
-                    DetailRow(label: "They receive", value: formattedDestinationAmount)
-                }
-                .padding(.vertical, 16)
-                .padding(.horizontal, 16)
-                .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
-                
-                // Transfer button with loading animation
+                // Orange CTA button
                 LoadingButton(
-                    title: "Transfer \(formattedDestinationAmount)",
+                    title: "Move \(shortDestAmount)",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Record outbound activity (from source account)
                     activityService.addActivity(
                         avatar: destinationIconName,
                         titleLeft: destinationAccount.name,
@@ -532,8 +585,6 @@ struct TransferConfirmView: View {
                         titleRight: "-\(formattedSourceAmount)",
                         subtitleRight: sourceCurrency != destinationCurrency ? formattedDestinationAmount : ""
                     )
-                    
-                    // Record inbound activity (to destination account)
                     activityService.addActivity(
                         avatar: sourceIconName,
                         titleLeft: sourceAccount.name,
@@ -541,16 +592,14 @@ struct TransferConfirmView: View {
                         titleRight: "+\(formattedDestinationAmount)",
                         subtitleRight: sourceCurrency != destinationCurrency ? formattedSourceAmount : ""
                     )
-                    
-                    // Navigate home and complete
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isButtonLoading)
         .fullScreenCover(isPresented: $showFeesSheet) {
             FeesSettingsView(isPresented: $showFeesSheet)
         }

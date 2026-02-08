@@ -47,18 +47,39 @@ struct WithdrawView: View {
         sourceCurrency != destinationCurrency
     }
     
-    /// Formatted source/display currency amount (EUR - what user is withdrawing FROM)
+    /// Whether a fee applies to this withdrawal
+    private var hasWithdrawFee: Bool {
+        !FeeService.shared.calculateFee(for: .withdrawal, paymentInstrumentCurrency: destinationCurrency).isFree
+    }
+    
+    /// Fee in display currency
+    private var withdrawFeeInDisplayCurrency: Double {
+        if !hasWithdrawFee { return 0 }
+        let feeUSD = 0.50
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) {
+            return feeUSD * rate
+        }
+        let fallback: [String: Double] = ["EUR": 0.92, "GBP": 0.79]
+        return feeUSD * (fallback[sourceCurrency] ?? 1.0)
+    }
+    
+    /// Formatted source/display currency amount (EUR - what user is withdrawing FROM, includes fee)
     var formattedSourceAmount: String {
         let value = showingDestinationCurrency ? usdAmount : amountValue
         if amountString.isEmpty || value == 0 {
             return "\(sourceSymbol)0"
         }
         // Convert from USD storage to display currency
+        var displayAmount: Double
         if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: sourceCurrency) {
-            let displayAmount = showingDestinationCurrency ? (usdAmount * rate) : amountValue
-            return displayAmount.asCurrency(sourceSymbol)
+            displayAmount = showingDestinationCurrency ? (usdAmount * rate) : amountValue
+        } else {
+            displayAmount = value
         }
-        return value.asCurrency(sourceSymbol)
+        // Add fee to the display amount
+        let totalWithFee = displayAmount + withdrawFeeInDisplayCurrency
+        let base = totalWithFee.asCurrency(sourceSymbol)
+        return hasWithdrawFee && totalWithFee > 0 ? "\(base) inc. fee" : displayAmount.asCurrency(sourceSymbol)
     }
     
     /// Formatted destination currency amount (GBP - where money goes TO)
@@ -495,6 +516,14 @@ struct WithdrawConfirmView: View {
         ExchangeRateService.symbol(for: destinationCurrency)
     }
     
+    private var displayCurrency: String {
+        DisplayCurrencyService.shared.displayCurrency
+    }
+    
+    private var displaySymbol: String {
+        ExchangeRateService.symbol(for: displayCurrency)
+    }
+    
     /// Calculate fee for this withdrawal
     private var withdrawalFee: FeeResult {
         feeService.calculateFee(
@@ -511,19 +540,57 @@ struct WithdrawConfirmView: View {
         return usdAmount + withdrawalFee.amount
     }
     
-    /// Formatted destination currency amount (what user receives)
+    /// Convert USD to display currency
+    private func usdToDisplay(_ usd: Double) -> Double {
+        if displayCurrency == "USD" { return usd }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: displayCurrency) {
+            return usd * rate
+        }
+        let fallback: [String: Double] = ["EUR": 0.92, "GBP": 0.79]
+        return usd * (fallback[displayCurrency] ?? 1.0)
+    }
+    
+    /// Formatted destination currency amount (what recipient receives)
     var formattedDestinationAmount: String {
         destinationAmount.asCurrency(destinationSymbol)
     }
     
-    /// Formatted USD amount (storage currency)
-    var formattedUSDAmount: String {
-        usdAmount.asUSD
+    /// Exchange rate from display currency to destination currency
+    private var displayToDestRate: Double {
+        let baseInDisplay = usdToDisplay(usdAmount)
+        guard baseInDisplay > 0 else { return 1.0 }
+        return destinationAmount / baseInDisplay
     }
     
-    /// Formatted total deducted in USD
-    var formattedTotalDeducted: String {
-        totalDeductedUSD.asUSD
+    /// Amount exchanged in display currency (derived from destination / rate so math is exact)
+    private var amountExchangedDisplay: Double {
+        guard displayToDestRate > 0 else { return usdToDisplay(usdAmount) }
+        return destinationAmount / displayToDestRate
+    }
+    
+    /// Fee in display currency
+    private var feeDisplay: Double {
+        usdToDisplay(withdrawalFee.isFree ? 0 : withdrawalFee.amount)
+    }
+    
+    /// Total withdrawn = amount exchanged + fee (computed from chain so it adds up)
+    private var totalWithdrawnDisplay: Double {
+        amountExchangedDisplay + feeDisplay
+    }
+    
+    /// Formatted total withdrawn in display currency
+    var formattedTotalWithdrawnDisplay: String {
+        totalWithdrawnDisplay.asCurrency(displaySymbol)
+    }
+    
+    /// Formatted base/exchanged amount in display currency
+    var formattedBaseAmountDisplay: String {
+        amountExchangedDisplay.asCurrency(displaySymbol)
+    }
+    
+    /// Formatted fee in display currency
+    var formattedFeeDisplay: String {
+        feeDisplay.asCurrency(displaySymbol)
     }
     
     var destinationAccountIcon: String {
@@ -533,14 +600,33 @@ struct WithdrawConfirmView: View {
         }
     }
     
+    /// Attributed title with green amount
+    private var withdrawTitle: AttributedString {
+        var result = AttributedString("Withdraw ")
+        result.foregroundColor = UIColor(Color(hex: "080808"))
+        var amount = AttributedString(shortDestinationAmount)
+        amount.foregroundColor = UIColor(Color(hex: "57CE43"))
+        var suffix = AttributedString(" to \(destinationAccount.name)")
+        suffix.foregroundColor = UIColor(Color(hex: "080808"))
+        return result + amount + suffix
+    }
+    
+    /// Short formatted amount for title
+    private var shortDestinationAmount: String {
+        if destinationAmount.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(destinationSymbol)\(Int(destinationAmount))"
+        }
+        return formattedDestinationAmount
+    }
+    
     var body: some View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 16) {
+                // Header - back arrow only
+                HStack {
                     Button(action: {
                         let generator = UIImpactFeedbackGenerator(style: .light)
                         generator.impactOccurred()
@@ -553,101 +639,124 @@ struct WithdrawConfirmView: View {
                     }
                     .accessibilityLabel("Go back")
                     
-                    AccountIconView(iconType: destinationAccount.iconType)
-                    
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Withdraw to")
-                            .font(.custom("Inter-Regular", size: 14))
-                            .foregroundColor(themeService.textSecondaryColor)
-                        Text(destinationAccount.name)
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                    }
-                    
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-                .frame(height: 64)
+                .padding(.horizontal, 24)
+                .frame(height: 48)
                 .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
                 
                 Spacer()
                 
-                // Amount display - show destination currency as primary
-                VStack(spacing: 4) {
-                    Text(formattedDestinationAmount)
-                        .font(.custom("Inter-Bold", size: 56))
-                        .foregroundColor(themeService.textPrimaryColor)
-                        .minimumScaleFactor(0.5)
-                        .lineLimit(1)
+                // Main content - icon and title
+                VStack(alignment: .leading, spacing: 24) {
+                    // Destination account icon
+                    AccountIconView(iconType: destinationAccount.iconType)
                     
-                    // Show USD equivalent if different currency
-                    if destinationCurrency != "USD" {
-                        Text(formattedUSDAmount)
-                            .font(.custom("Inter-Medium", size: 18))
-                            .foregroundColor(themeService.textSecondaryColor)
+                    // Title: "Withdraw €100 to Monzo bank Limited"
+                    Text(withdrawTitle)
+                        .font(.custom("Inter-Bold", size: 32))
+                        .tracking(-0.64)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 40)
+                .padding(.bottom, isButtonLoading ? 0 : 16)
+                
+                Spacer()
+                    .frame(maxHeight: isButtonLoading ? .infinity : 0)
+                
+                // Details section - fades out when loading
+                if !isButtonLoading {
+                    VStack(spacing: 4) {
+                        // Transfer speed
+                        InfoListItem(label: "Transfer speed", detail: "Instant")
+                        
+                        // Divider
+                        Rectangle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 1)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                        
+                        // Total withdrawn (in display currency, includes fee)
+                        InfoListItem(label: "Total withdrawn", detail: formattedTotalWithdrawnDisplay)
+                        
+                        // Fees (red, in display currency)
+                        if !withdrawalFee.isFree {
+                            HStack {
+                                Text("Fees")
+                                    .font(.custom("Inter-Regular", size: 16))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                
+                                Spacer()
+                                
+                                Text("-\(formattedFeeDisplay)")
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(Color(hex: "E30000"))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
+                        } else {
+                            InfoListItem(label: "Fees", detail: "No fee")
+                        }
+                        
+                        // Amount exchanged (in display currency, after fee)
+                        if !withdrawalFee.isFree {
+                            InfoListItem(label: "Amount exchanged", detail: formattedBaseAmountDisplay)
+                        }
+                        
+                        // Exchange rate (source/display currency on left - money flows from balance)
+                        if displayCurrency != destinationCurrency {
+                            HStack {
+                                Text("Exchange rate")
+                                    .font(.custom("Inter-Regular", size: 16))
+                                    .foregroundColor(themeService.textSecondaryColor)
+                                
+                                Spacer()
+                                
+                                Text("\(displaySymbol)1 = \(destinationSymbol)\(String(format: "%.2f", displayToDestRate))")
+                                    .font(.custom("Inter-Medium", size: 16))
+                                    .foregroundColor(Color(hex: "FF5113"))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 16)
+                        }
+                        
+                        // Recipient gets (in destination currency)
+                        InfoListItem(label: "Recipient gets", detail: formattedDestinationAmount)
                     }
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
+                    .padding(.horizontal, 24)
+                    .transition(.opacity)
                 }
                 
                 Spacer()
+                    .frame(height: 16)
                 
-                // Details section
-                VStack(spacing: 0) {
-                    DetailRow(label: "To", value: destinationAccount.name)
-                    DetailRow(label: "Speed", value: "1-2 business days")
-                    
-                    Rectangle()
-                        .fill(Color.black.opacity(0.06))
-                        .frame(height: 1)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                    
-                    DetailRow(label: "You receive", value: formattedDestinationAmount)
-                    
-                    if destinationCurrency != "USD" {
-                        DetailRow(label: "From balance", value: formattedUSDAmount)
-                    }
-                    
-                    // Fee row
-                    FeeRow(fee: withdrawalFee, paymentInstrumentCurrency: destinationCurrency, onTap: { showFeesSheet = true })
-                    
-                    // Total deducted (if fee applies)
-                    if !withdrawalFee.isFree {
-                        DetailRow(label: "Total from balance", value: formattedTotalDeducted)
-                    }
-                }
-                .padding(.vertical, 16)
-                .padding(.horizontal, 16)
-                .opacity(isButtonLoading ? 0 : 1)
-                .animation(.easeOut(duration: 0.3), value: isButtonLoading)
-                
-                // Withdraw button with smooth loading animation
+                // Orange CTA button
                 LoadingButton(
-                    title: "Withdraw \(formattedDestinationAmount)",
+                    title: "Withdraw \(shortDestinationAmount)",
                     isLoadingBinding: $isButtonLoading,
                     showLoader: true
                 ) {
-                    // Perform withdrawal (deduct total USD including fee)
                     portfolioService.deductCash(totalDeductedUSD)
-                    
-                    // Record activity
                     ActivityService.shared.addActivity(
                         avatar: destinationAccountIcon,
                         titleLeft: destinationAccount.name,
                         subtitleLeft: "Withdrawal",
                         titleRight: "-\(formattedDestinationAmount)",
-                        subtitleRight: formattedUSDAmount
+                        subtitleRight: formattedBaseAmountDisplay
                     )
-                    
-                    // Navigate home and complete
                     NotificationCenter.default.post(name: .navigateToHome, object: nil)
                     onComplete()
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: isButtonLoading)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isButtonLoading)
         .fullScreenCover(isPresented: $showFeesSheet) {
             FeesSettingsView(isPresented: $showFeesSheet)
         }

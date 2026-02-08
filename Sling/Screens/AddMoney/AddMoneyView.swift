@@ -64,10 +64,27 @@ struct AddMoneyView: View {
         return "\(symbol)\(formattedNumber)"
     }
     
-    /// Formatted linked account amount (small/secondary - what will be charged to bank)
+    /// Fee in linked account currency
+    private var feeInLinkedCurrency: Double {
+        let fee = FeeService.shared.calculateFee(for: .deposit, paymentInstrumentCurrency: linkedAccountCurrency)
+        if fee.isFree { return 0 }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: linkedAccountCurrency) {
+            return 0.50 * rate
+        }
+        let fallback: [String: Double] = ["GBP": 0.79, "EUR": 0.92]
+        return 0.50 * (fallback[linkedAccountCurrency] ?? 1.0)
+    }
+    
+    /// Whether a fee applies to this deposit
+    private var hasFee: Bool {
+        !FeeService.shared.calculateFee(for: .deposit, paymentInstrumentCurrency: linkedAccountCurrency).isFree
+    }
+    
+    /// Formatted linked account amount (small/secondary - what will be charged to bank, including fee)
     var formattedLinkedAccountAmount: String {
         let symbol = ExchangeRateService.symbol(for: linkedAccountCurrency)
-        if usdAmount == 0 && amountString.isEmpty {
+        let totalAmount = usdAmount + feeInLinkedCurrency
+        if totalAmount == 0 && amountString.isEmpty {
             return "\(symbol)0"
         }
         let formatter = NumberFormatter()
@@ -76,8 +93,9 @@ struct AddMoneyView: View {
         formatter.maximumFractionDigits = 2
         formatter.usesGroupingSeparator = true
         formatter.groupingSeparator = ","
-        let formattedNumber = formatter.string(from: NSNumber(value: usdAmount)) ?? NumberFormatService.shared.formatNumber(usdAmount)
-        return "\(symbol)\(formattedNumber)"
+        let formattedNumber = formatter.string(from: NSNumber(value: totalAmount)) ?? NumberFormatService.shared.formatNumber(totalAmount)
+        let base = "\(symbol)\(formattedNumber)"
+        return hasFee && totalAmount > 0 ? "\(base) inc. fee" : base
     }
     
     /// Legacy property names for compatibility

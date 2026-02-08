@@ -4,11 +4,35 @@ struct ReceiveSalaryView: View {
     @Binding var isPresented: Bool
     @ObservedObject private var themeService = ThemeService.shared
     @AppStorage("hasSetupAccount") private var hasSetupAccount = false
-    @State private var showBRLDetails = false
-    @State private var showUSDDetails = false
-    @State private var showMXNDetails = false
-    @State private var showEURDetails = false
-    @State private var showGBPDetails = false
+    @AppStorage("unlockedAccounts") private var unlockedAccountsRaw = "USD"
+    @State private var selectedDetailsCurrency: String? = nil
+    @State private var onboardingCurrency: String? = nil
+    
+    private let allCurrencies: [(code: String, name: String, transferType: String, secondaryText: String?, icon: String)] = [
+        ("BRL", "Brazilian real", "Pix transfer", nil, "FlagBR"),
+        ("USD", "US dollar", "ACH or Wire transfer", nil, "FlagUS"),
+        ("MXN", "Mexican peso", "CLABE transfer", nil, "FlagMX"),
+        ("EUR", "Euro", "IBAN", "SEPA transfer", "FlagEUR"),
+        ("GBP", "British pound", "Sort code & Account number", nil, "FlagGB")
+    ]
+    
+    private var unlockedCurrencies: Set<String> {
+        Set(unlockedAccountsRaw.split(separator: ",").map(String.init))
+    }
+    
+    private var unlockedRows: [(code: String, name: String, transferType: String, secondaryText: String?, icon: String)] {
+        allCurrencies.filter { unlockedCurrencies.contains($0.code) }
+    }
+    
+    private var lockedRows: [(code: String, name: String, transferType: String, secondaryText: String?, icon: String)] {
+        allCurrencies.filter { !unlockedCurrencies.contains($0.code) }
+    }
+    
+    private func unlockAccount(_ currency: String) {
+        var currencies = unlockedCurrencies
+        currencies.insert(currency)
+        unlockedAccountsRaw = currencies.sorted().joined(separator: ",")
+    }
     
     var body: some View {
         ZStack {
@@ -50,63 +74,43 @@ struct ReceiveSalaryView: View {
                         }
                         .padding(.horizontal, 24)
                         
-                        // Currency options
+                        // Currency rows - dynamic based on unlocked state
                         VStack(spacing: 0) {
-                            // Brazilian Real
-                            CurrencyAccountRow(
-                                currencyName: "Brazilian real",
-                                transferType: "Pix transfer",
-                                currencyIcon: "FlagBR",
-                                position: .top,
-                                onTap: { showBRLDetails = true }
-                            )
-                            
-                            // US Dollar
-                            CurrencyAccountRow(
-                                currencyName: "US dollar",
-                                transferType: "ACH or Wire transfer",
-                                currencyIcon: "FlagUS",
-                                position: .middle,
-                                onTap: { showUSDDetails = true }
-                            )
-                            
-                            // Section header
-                            HStack {
-                                Text("Get new account details")
-                                    .font(.custom("Inter-Bold", size: 14))
-                                    .foregroundColor(themeService.textSecondaryColor)
-                                Spacer()
+                            // Unlocked accounts
+                            ForEach(Array(unlockedRows.enumerated()), id: \.element.code) { index, row in
+                                let isLast = index == unlockedRows.count - 1 && lockedRows.isEmpty
+                                CurrencyAccountRow(
+                                    currencyName: row.name,
+                                    transferType: row.transferType,
+                                    secondaryText: row.secondaryText,
+                                    currencyIcon: row.icon,
+                                    position: index == 0 ? .top : (isLast ? .bottom : .middle),
+                                    onTap: { selectedDetailsCurrency = row.code }
+                                )
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
                             
-                            // Mexican Peso
-                            CurrencyAccountRow(
-                                currencyName: "Mexican peso",
-                                transferType: "CLABE transfer",
-                                currencyIcon: "FlagMX",
-                                position: .middle,
-                                onTap: { showMXNDetails = true }
-                            )
-                            
-                            // Euro
-                            CurrencyAccountRow(
-                                currencyName: "Euro",
-                                transferType: "IBAN",
-                                secondaryText: "SEPA transfer",
-                                currencyIcon: "FlagEUR",
-                                position: .middle,
-                                onTap: { showEURDetails = true }
-                            )
-                            
-                            // British Pound
-                            CurrencyAccountRow(
-                                currencyName: "British pound",
-                                transferType: "Sort code & Account number",
-                                currencyIcon: "FlagGB",
-                                position: .bottom,
-                                onTap: { showGBPDetails = true }
-                            )
+                            // "Get new account details" section
+                            if !lockedRows.isEmpty {
+                                HStack {
+                                    Text("Get new account details")
+                                        .font(.custom("Inter-Bold", size: 14))
+                                        .foregroundColor(themeService.textSecondaryColor)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                
+                                ForEach(Array(lockedRows.enumerated()), id: \.element.code) { index, row in
+                                    CurrencyAccountRow(
+                                        currencyName: row.name,
+                                        transferType: row.transferType,
+                                        secondaryText: row.secondaryText,
+                                        currencyIcon: row.icon,
+                                        position: index == lockedRows.count - 1 ? .bottom : .middle,
+                                        onTap: { onboardingCurrency = row.code }
+                                    )
+                                }
+                            }
                         }
                         .padding(.horizontal, 8)
                     }
@@ -115,9 +119,40 @@ struct ReceiveSalaryView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showBRLDetails) {
+        .fullScreenCover(item: $selectedDetailsCurrency) { currency in
+            currencyDetailsSheet(for: currency)
+        }
+        .fullScreenCover(item: $onboardingCurrency) { currency in
+            AccountOnboardingView(
+                currency: currency,
+                onCreateAccount: {
+                    unlockAccount(currency)
+                    onboardingCurrency = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        selectedDetailsCurrency = currency
+                    }
+                },
+                onDismiss: {
+                    onboardingCurrency = nil
+                }
+            )
+        }
+        .onAppear {
+            hasSetupAccount = true
+        }
+    }
+    
+    @ViewBuilder
+    private func currencyDetailsSheet(for currency: String) -> some View {
+        let dismissBinding = Binding<Bool>(
+            get: { selectedDetailsCurrency != nil },
+            set: { if !$0 { selectedDetailsCurrency = nil } }
+        )
+        
+        switch currency {
+        case "BRL":
             CurrencyAccountDetailsSheet(
-                isPresented: $showBRLDetails,
+                isPresented: dismissBinding,
                 title: "BRL account details",
                 subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
                 infoBadges: [("percent", "0% fee"), ("arrow.down", "R$10 min"), ("clock", "Instant")],
@@ -127,10 +162,9 @@ struct ReceiveSalaryView: View {
                     ("Account Holder", "Brendon Arnold", false)
                 ]
             )
-        }
-        .fullScreenCover(isPresented: $showUSDDetails) {
+        case "USD":
             CurrencyAccountDetailsSheet(
-                isPresented: $showUSDDetails,
+                isPresented: dismissBinding,
                 title: "US account details",
                 subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
                 infoBadges: [("percent", "0.25% fee"), ("arrow.down", "$2 min"), ("clock", "1-3 business days")],
@@ -142,10 +176,9 @@ struct ReceiveSalaryView: View {
                     ("Bank address", "1801 Main St.\nKansas City\nMO 64108", true)
                 ]
             )
-        }
-        .fullScreenCover(isPresented: $showMXNDetails) {
+        case "MXN":
             CurrencyAccountDetailsSheet(
-                isPresented: $showMXNDetails,
+                isPresented: dismissBinding,
                 title: "MXN account details",
                 subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
                 infoBadges: [("percent", "0% fee"), ("arrow.down", "$500 MXN min"), ("clock", "Instant")],
@@ -156,10 +189,9 @@ struct ReceiveSalaryView: View {
                     ("Reference", "SLING-BA2026", true)
                 ]
             )
-        }
-        .fullScreenCover(isPresented: $showEURDetails) {
+        case "EUR":
             CurrencyAccountDetailsSheet(
-                isPresented: $showEURDetails,
+                isPresented: dismissBinding,
                 title: "EUR account details",
                 subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
                 infoBadges: [("percent", "0.25% fee"), ("arrow.down", "€2 min"), ("clock", "1-2 business days")],
@@ -171,10 +203,9 @@ struct ReceiveSalaryView: View {
                     ("Bank address", "Finanzplatz 1\n60311 Frankfurt\nGermany", true)
                 ]
             )
-        }
-        .fullScreenCover(isPresented: $showGBPDetails) {
+        case "GBP":
             CurrencyAccountDetailsSheet(
-                isPresented: $showGBPDetails,
+                isPresented: dismissBinding,
                 title: "GBP account details",
                 subtitle: "Money sent to these details will be converted to digital dollars and added to your Sling Wallet.",
                 infoBadges: [("percent", "0.25% fee"), ("arrow.down", "£2 min"), ("clock", "Same day")],
@@ -187,9 +218,8 @@ struct ReceiveSalaryView: View {
                     ("Bank address", "1 Bank Street\nLondon E14 5JP", true)
                 ]
             )
-        }
-        .onAppear {
-            hasSetupAccount = true
+        default:
+            EmptyView()
         }
     }
 }

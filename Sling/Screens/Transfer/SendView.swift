@@ -255,9 +255,33 @@ struct SendAmountView: View {
     
     @State private var amountString: String = ""
     @State private var showConfirmation = false
+    @State private var selectedPaymentAccount: PaymentAccount = .slingBalance
+    @State private var showAccountPicker = false
     
     private let portfolioService = PortfolioService.shared
     private let displayCurrencyService = DisplayCurrencyService.shared
+    
+    /// Whether the user is paying from a linked bank account (not Sling Balance)
+    private var payFromBank: Bool {
+        selectedPaymentAccount.id != PaymentAccount.slingBalance.id
+    }
+    
+    /// Bank name for the confirm screen
+    private var linkedBankName: String {
+        selectedPaymentAccount.name
+    }
+    
+    /// Bank icon asset name
+    private var linkedBankIcon: String {
+        switch selectedPaymentAccount.iconType {
+        case .asset(let name): return name
+        }
+    }
+    
+    /// Bank currency
+    private var linkedBankCurrency: String {
+        selectedPaymentAccount.currency
+    }
     
     var currencySymbol: String {
         ExchangeRateService.symbol(for: displayCurrencyService.displayCurrency)
@@ -268,7 +292,35 @@ struct SendAmountView: View {
     }
     
     var isOverBalance: Bool {
-        mode == .send && amountValue > portfolioService.cashBalance
+        mode == .send && !payFromBank && amountValue > portfolioService.cashBalance
+    }
+    
+    /// Whether the bank currency differs from display currency
+    private var bankCurrencyDiffers: Bool {
+        payFromBank && linkedBankCurrency != displayCurrencyService.displayCurrency && !linkedBankCurrency.isEmpty
+    }
+    
+    /// Converted amount in the bank's currency
+    private var bankCurrencyAmount: Double {
+        guard bankCurrencyDiffers, amountValue > 0 else { return 0 }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: displayCurrencyService.displayCurrency, to: linkedBankCurrency) {
+            return amountValue * rate
+        }
+        let fallback: [String: [String: Double]] = [
+            "EUR": ["GBP": 0.86, "USD": 1.09, "MXN": 18.5, "BRL": 5.5],
+            "GBP": ["EUR": 1.16, "USD": 1.27],
+            "USD": ["GBP": 0.79, "EUR": 0.92]
+        ]
+        if let rate = fallback[displayCurrencyService.displayCurrency]?[linkedBankCurrency] {
+            return amountValue * rate
+        }
+        return amountValue
+    }
+    
+    /// Formatted bank currency amount
+    private var formattedBankAmount: String {
+        let symbol = ExchangeRateService.symbol(for: linkedBankCurrency)
+        return bankCurrencyAmount.asCurrency(symbol)
     }
     
     var formattedAmount: String {
@@ -357,19 +409,32 @@ struct SendAmountView: View {
                             .font(.custom("Inter-Medium", size: 14))
                             .foregroundColor(Color(hex: "E30000"))
                             .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    } else if bankCurrencyDiffers && amountValue > 0 {
+                        Text(formattedBankAmount)
+                            .font(.custom("Inter-Medium", size: 18))
+                            .foregroundColor(Color(hex: "7B7B7B"))
+                            .transition(.opacity)
                     }
                 }
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOverBalance)
+                .animation(.easeInOut(duration: 0.2), value: bankCurrencyDiffers)
                 
                 Spacer()
                 
-                // Payment source (Sling balance)
-                PaymentInstrumentRow(
-                    iconName: "SlingBalanceLogo",
-                    title: "Sling balance",
-                    subtitleParts: [formattedBalance],
-                    showMenu: true
-                )
+                // Payment source (tappable to open account picker)
+                Button(action: {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    showAccountPicker = true
+                }) {
+                    PaymentInstrumentRow(
+                        iconName: payFromBank ? linkedBankIcon : "SlingBalanceLogo",
+                        title: payFromBank ? linkedBankName : "Sling balance",
+                        subtitleParts: payFromBank ? [selectedPaymentAccount.accountNumber] : [formattedBalance],
+                        showMenu: true
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
                 
@@ -391,21 +456,126 @@ struct SendAmountView: View {
                 .padding(.bottom, 24)
             }
             
+            // Account picker overlay
+            if showAccountPicker {
+                SendAccountPickerOverlay(
+                    selectedAccount: $selectedPaymentAccount,
+                    isPresented: $showAccountPicker
+                )
+                .transition(.opacity)
+            }
+            
             // Confirmation overlay
             if showConfirmation {
-                SendConfirmView(
-                    contact: contact,
-                    amount: amountValue,
-                    mode: mode,
-                    isPresented: $showConfirmation,
-                    onComplete: {
-                        onDismissAll()
-                    }
-                )
-                .transition(.fluidConfirm)
+                if payFromBank && mode == .send {
+                    SendConfirmFromBankView(
+                        contact: contact,
+                        amount: amountValue,
+                        bankName: linkedBankName,
+                        bankIcon: linkedBankIcon,
+                        bankCurrency: linkedBankCurrency,
+                        isPresented: $showConfirmation,
+                        onComplete: {
+                            onDismissAll()
+                        }
+                    )
+                    .transition(.fluidConfirm)
+                } else {
+                    SendConfirmView(
+                        contact: contact,
+                        amount: amountValue,
+                        mode: mode,
+                        isPresented: $showConfirmation,
+                        onComplete: {
+                            onDismissAll()
+                        }
+                    )
+                    .transition(.fluidConfirm)
+                }
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: showConfirmation)
+        .animation(.easeInOut(duration: 0.25), value: showAccountPicker)
+    }
+}
+
+// MARK: - Send Account Picker Overlay
+
+struct SendAccountPickerOverlay: View {
+    @Binding var selectedAccount: PaymentAccount
+    @Binding var isPresented: Bool
+    @ObservedObject private var themeService = ThemeService.shared
+    
+    @State private var sheetOffset: CGFloat = 500
+    @State private var backgroundOpacity: Double = 0
+    
+    // Payment sources: Sling Balance first, then linked bank accounts
+    private var paymentSources: [PaymentAccount] {
+        [.slingBalance] + PaymentAccount.allAccounts.filter { !$0.isAddNew && $0.name != "Apple pay" }
+    }
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.black.opacity(backgroundOpacity)
+                .ignoresSafeArea()
+                .onTapGesture { dismissDrawer() }
+            
+            VStack(spacing: 0) {
+                // Handle
+                RoundedRectangle(cornerRadius: 2.5)
+                    .fill(Color(hex: "D9D9D9"))
+                    .frame(width: 36, height: 5)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                
+                Text("Pay from")
+                    .font(.custom("Inter-Bold", size: 20))
+                    .foregroundColor(themeService.textPrimaryColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                
+                VStack(spacing: 0) {
+                    ForEach(paymentSources) { account in
+                        AccountRow(
+                            account: account,
+                            isSelected: account.id == selectedAccount.id,
+                            onTap: {
+                                dismissDrawer()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                    selectedAccount = account
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 24)
+            }
+            .frame(maxWidth: .infinity)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 40))
+            .padding(.horizontal, 8)
+            .padding(.bottom, 16)
+            .offset(y: sheetOffset)
+        }
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                sheetOffset = 0
+                backgroundOpacity = 0.4
+            }
+        }
+    }
+    
+    private func dismissDrawer() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            sheetOffset = 500
+            backgroundOpacity = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            isPresented = false
+        }
     }
 }
 
