@@ -300,7 +300,7 @@ struct SendAmountView: View {
         payFromBank && linkedBankCurrency != displayCurrencyService.displayCurrency && !linkedBankCurrency.isEmpty
     }
     
-    /// Converted amount in the bank's currency
+    /// Base converted amount in the bank's currency (before fee)
     private var bankCurrencyAmount: Double {
         guard bankCurrencyDiffers, amountValue > 0 else { return 0 }
         if let rate = ExchangeRateService.shared.getCachedRate(from: displayCurrencyService.displayCurrency, to: linkedBankCurrency) {
@@ -317,9 +317,23 @@ struct SendAmountView: View {
         return amountValue
     }
     
-    /// Formatted bank currency amount
+    /// Fee in bank currency (same logic as deposit: $0.50 converted)
+    private var sendFromBankFee: Double {
+        guard bankCurrencyDiffers else { return 0 }
+        let feeUSD = 0.50
+        if linkedBankCurrency == "USD" { return feeUSD }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: linkedBankCurrency) {
+            return feeUSD * rate
+        }
+        let fallback: [String: Double] = ["GBP": 0.79, "EUR": 0.92, "MXN": 17.15, "BRL": 5.12]
+        return feeUSD * (fallback[linkedBankCurrency] ?? 1.0)
+    }
+    
+    /// Formatted bank currency amount (includes fee when applicable)
     private var formattedBankAmount: String {
         let symbol = ExchangeRateService.symbol(for: linkedBankCurrency)
+        let totalWithFee = bankCurrencyAmount + sendFromBankFee
+        let base = totalWithFee.asCurrency(symbol)
         return bankCurrencyAmount.asCurrency(symbol)
     }
     
@@ -416,27 +430,38 @@ struct SendAmountView: View {
                             .transition(.opacity)
                     }
                 }
+                .padding(.horizontal, 32)
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOverBalance)
                 .animation(.easeInOut(duration: 0.2), value: bankCurrencyDiffers)
                 
                 Spacer()
                 
-                // Payment source (tappable to open account picker)
-                Button(action: {
-                    let generator = UIImpactFeedbackGenerator(style: .light)
-                    generator.impactOccurred()
-                    showAccountPicker = true
-                }) {
+                // Payment source - tappable for send, static for request
+                if mode == .send {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        showAccountPicker = true
+                    }) {
+                        PaymentInstrumentRow(
+                            iconName: payFromBank ? linkedBankIcon : "SlingBalanceLogo",
+                            title: payFromBank ? linkedBankName : "Sling balance",
+                            subtitleParts: payFromBank ? [selectedPaymentAccount.accountNumber] : [formattedBalance],
+                            showMenu: true
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                } else {
                     PaymentInstrumentRow(
-                        iconName: payFromBank ? linkedBankIcon : "SlingBalanceLogo",
-                        title: payFromBank ? linkedBankName : "Sling balance",
-                        subtitleParts: payFromBank ? [selectedPaymentAccount.accountNumber] : [formattedBalance],
-                        showMenu: true
+                        iconName: "SlingBalanceLogo",
+                        title: "Sling balance",
+                        subtitleParts: [formattedBalance]
                     )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
                 
                 // Number pad
                 NumberPadView(amountString: $amountString)

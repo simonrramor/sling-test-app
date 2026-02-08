@@ -95,7 +95,7 @@ struct AddMoneyView: View {
         formatter.groupingSeparator = ","
         let formattedNumber = formatter.string(from: NSNumber(value: totalAmount)) ?? NumberFormatService.shared.formatNumber(totalAmount)
         let base = "\(symbol)\(formattedNumber)"
-        return hasFee && totalAmount > 0 ? "\(base) inc. fee" : base
+        return base
     }
     
     /// Legacy property names for compatibility
@@ -316,6 +316,7 @@ struct AddMoneyView: View {
         .onChange(of: selectedAccount.id) { _, _ in
             // Reset to source currency when account changes
             showingSourceCurrency = true
+            isOverLimit = false
             sourceAmount = amountValue
             usdAmount = 0
             updateAmounts()

@@ -79,7 +79,7 @@ struct WithdrawView: View {
         // Add fee to the display amount
         let totalWithFee = displayAmount + withdrawFeeInDisplayCurrency
         let base = totalWithFee.asCurrency(sourceSymbol)
-        return hasWithdrawFee && totalWithFee > 0 ? "\(base) inc. fee" : displayAmount.asCurrency(sourceSymbol)
+        return base
     }
     
     /// Formatted destination currency amount (GBP - where money goes TO)

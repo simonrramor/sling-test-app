@@ -91,12 +91,20 @@ struct TransferBetweenAccountsView: View {
         if amountString.isEmpty || value == 0 {
             return "\(symbol)0"
         }
-        // When source is secondary (user typing destination), show with fee
-        if !showingSourceCurrency && hasTransferInputFee {
-            let totalWithFee = value + transferInputFeeInSource
-            return "\(totalWithFee.asCurrency(symbol)) inc. fee"
-        }
+        // Always show with fee when applicable (source pays the fee)
         return value.asCurrency(symbol)
+    }
+    
+    /// Fee converted to destination currency
+    private var transferInputFeeInDest: Double {
+        if !hasTransferInputFee { return 0 }
+        let feeUSD = 0.50
+        if toCurrency == "USD" { return feeUSD }
+        if let rate = ExchangeRateService.shared.getCachedRate(from: "USD", to: toCurrency) {
+            return feeUSD * rate
+        }
+        let fallback: [String: Double] = ["EUR": 0.92, "GBP": 0.79, "MXN": 17.15, "BRL": 5.12]
+        return feeUSD * (fallback[toCurrency] ?? 1.0)
     }
     
     private var formattedDestinationAmount: String {

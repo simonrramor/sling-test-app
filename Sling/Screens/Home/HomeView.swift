@@ -1307,15 +1307,25 @@ struct AllAccountDetailsView: View {
 // MARK: - Get More Accounts Card
 
 struct GetMoreAccountsCard: View {
+    @AppStorage("unlockedAccounts") private var unlockedAccountsRaw = "USD"
+    
+    private let allCurrencies = ["USD", "BRL", "MXN", "EUR", "GBP"]
+    
+    private var availableTickers: String {
+        let unlocked = Set(unlockedAccountsRaw.split(separator: ",").map(String.init))
+        let locked = allCurrencies.filter { !unlocked.contains($0) }
+        return locked.joined(separator: " · ")
+    }
+    
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Get more account details")
+                Text("Get other account details")
                     .font(.custom("Inter-Bold", size: 18))
                     .tracking(-0.36)
                     .foregroundColor(Color(hex: "080808"))
                 
-                Text("Receive money in more currencies")
+                Text(availableTickers)
                     .font(.custom("Inter-Medium", size: 14))
                     .tracking(-0.28)
                     .foregroundColor(Color(hex: "7B7B7B"))
