@@ -59,25 +59,24 @@ struct AnimatedCurrencySwapView: View {
 
 // MARK: - Currency Amount Slot
 
-/// A single amount slot. Renders at 18pt and scales UP when prominent.
-/// Small state is pixel-perfect 18pt. Large state is scaled up (looks great for large text).
+/// A single amount slot. Renders at 60pt, scales down for small state.
 private struct CurrencyAmountSlot: View {
     let amount: String
     let isProminent: Bool
     let prominentColor: Color
     let subduedColor: Color
     
-    // 48 / 18 = 2.667
-    private let largeScale: CGFloat = 48.0 / 18.0
+    private let smallScale: CGFloat = 0.55
     
     var body: some View {
         Text(amount)
-            .font(.custom("Inter-Bold", size: 18))
+            .font(.custom("Inter-Bold", size: 60))
             .foregroundColor(isProminent ? prominentColor : subduedColor)
+            .minimumScaleFactor(0.5)
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .center)
-            .scaleEffect(isProminent ? largeScale : 1.0)
-            .frame(height: isProminent ? 56 : 24)
+            .scaleEffect(isProminent ? 1.0 : smallScale)
+            .frame(height: isProminent ? 70 : 28)
             .clipped()
     }
 }

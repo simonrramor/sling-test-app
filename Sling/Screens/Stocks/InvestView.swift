@@ -47,6 +47,8 @@ struct InvestView: View {
     @State private var isDragging = false
     @State private var dragProgress: CGFloat = 1.0
     @State private var selectedStock: Stock? = nil
+    @State private var showAllStocks = false
+    @State private var showAllCrypto = false
     @State private var exchangeRate: Double = 1.0
     
     private let exchangeRateService = ExchangeRateService.shared
@@ -63,6 +65,55 @@ struct InvestView: View {
         ("Tesla Inc", "StockTesla", "Tesla, Inc. is an electric vehicle and clean energy company founded by Elon Musk. It designs and manufactures electric cars, battery storage systems, and solar products, pioneering the transition to sustainable energy."),
         ("Visa", "StockVisa", "Visa Inc. is a global payments technology company that facilitates electronic funds transfers worldwide through its branded credit, debit, and prepaid cards. It operates one of the world's largest retail electronic payments networks.")
     ]
+    
+    // Crypto definitions - top 20 cryptocurrencies
+    let cryptoDefinitions: [(name: String, symbol: String, price: Double, change: Double, iconName: String)] = [
+        ("Bitcoin", "BTC", 97_432.50, 2.14, "CryptoBitcoin"),
+        ("Ethereum", "ETH", 3_245.80, -1.23, "CryptoEthereum"),
+        ("Solana", "SOL", 198.45, 5.67, "CryptoSolana"),
+        ("XRP", "XRP", 2.48, 3.21, "CryptoXRP"),
+        ("Cardano", "ADA", 0.98, -0.45, "CryptoCardano"),
+        ("Avalanche", "AVAX", 38.72, 4.12, "CryptoAvalanche"),
+        ("Polkadot", "DOT", 7.85, -2.31, "CryptoPolkadot"),
+        ("Chainlink", "LINK", 18.92, 1.87, "CryptoChainlink"),
+        ("Polygon", "MATIC", 0.52, -3.15, "CryptoPolygon"),
+        ("Dogecoin", "DOGE", 0.32, 8.43, "CryptoDogecoin"),
+        ("Litecoin", "LTC", 108.25, 0.92, "CryptoLitecoin"),
+        ("Uniswap", "UNI", 12.34, -1.56, "CryptoUniswap"),
+        ("Stellar", "XLM", 0.38, 2.78, "CryptoStellar"),
+        ("Cosmos", "ATOM", 9.12, -0.89, "CryptoCosmos"),
+        ("Near Protocol", "NEAR", 5.67, 6.23, "CryptoNear"),
+        ("Aptos", "APT", 11.45, 3.45, "CryptoAptos"),
+        ("Arbitrum", "ARB", 1.23, -2.67, "CryptoArbitrum"),
+        ("Optimism", "OP", 2.15, 1.34, "CryptoOptimism"),
+        ("Sui", "SUI", 3.78, 4.56, "CryptoSui"),
+        ("Render", "RNDR", 7.89, -1.12, "CryptoRender")
+    ]
+    
+    var allCrypto: [Stock] {
+        cryptoDefinitions.map { crypto in
+            Stock(
+                name: crypto.name,
+                symbol: crypto.symbol,
+                price: crypto.price.asUSD,
+                change: String(format: "%.2f%%", abs(crypto.change)),
+                isPositive: crypto.change >= 0,
+                iconName: crypto.iconName,
+                description: ""
+            )
+        }
+    }
+    
+    // Yield-bearing stablecoin definitions
+    var stablecoins: [Stock] {
+        [
+            Stock(name: "USDY", symbol: "Ondo", price: "$1.00", change: "5.20% APY", isPositive: true, iconName: "StablecoinUSDY"),
+            Stock(name: "sDAI", symbol: "MakerDAO", price: "$1.00", change: "5.00% APY", isPositive: true, iconName: "StablecoinSDAI"),
+            Stock(name: "aUSDC", symbol: "Aave", price: "$1.00", change: "4.65% APY", isPositive: true, iconName: "StablecoinAUSDC"),
+            Stock(name: "cUSDC", symbol: "Compound", price: "$1.00", change: "4.12% APY", isPositive: true, iconName: "StablecoinCUSDC"),
+            Stock(name: "sUSDe", symbol: "Ethena", price: "$1.00", change: "8.70% APY", isPositive: true, iconName: "StablecoinSUSDe")
+        ]
+    }
     
     // Build stocks from Ondo service data
     var allStocks: [Stock] {
@@ -291,13 +342,17 @@ struct InvestView: View {
                 
                 // Your Stocks Section (owned stocks)
                 if !ownedStocks.isEmpty {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Your stocks")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .accessibilityAddTraits(.isHeader)
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("Your stocks")
+                                .font(.custom("Inter-Bold", size: 24))
+                                .tracking(-0.48)
+                                .foregroundColor(themeService.textPrimaryColor)
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
                         
                         ForEach(ownedStocks) { stock in
                             ListRow(
@@ -310,7 +365,6 @@ struct InvestView: View {
                                     selectedStock = stock
                                 }
                             ) {
-                                // Value and Change
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text(portfolioService.holdingValue(for: stock.iconName).asUSD)
                                         .font(.custom("Inter-Bold", size: 16))
@@ -328,51 +382,176 @@ struct InvestView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 8)
+                    .background(themeService.backgroundSecondaryColor)
+                    .cornerRadius(24)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
                 }
                 
                 // Available Stocks Section (stocks not yet owned)
                 if !stocksToBrowse.isEmpty {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(isPortfolioEmpty ? "Stocks" : "Browse stocks")
-                            .font(.custom("Inter-Bold", size: 16))
-                            .foregroundColor(themeService.textPrimaryColor)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .accessibilityAddTraits(.isHeader)
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text(isPortfolioEmpty ? "Stocks" : "Browse stocks")
+                                .font(.custom("Inter-Bold", size: 24))
+                                .tracking(-0.48)
+                                .foregroundColor(themeService.textPrimaryColor)
+                            
+                            Spacer()
+                            
+                            if stocksToBrowse.count > 5 {
+                                Button(action: { showAllStocks = true }) {
+                                    Text("See all")
+                                        .font(.custom("Inter-Bold", size: 14))
+                                        .foregroundColor(themeService.textPrimaryColor)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
+                                        )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 8)
                         
-                        ForEach(stocksToBrowse) { stock in
+                        ForEach(stocksToBrowse.prefix(5)) { stock in
+                            ListRow(
+                                iconName: stock.iconName,
+                                title: stock.name,
+                                subtitle: stock.symbol,
+                                iconStyle: .rounded,
+                                isButton: true,
+                                onTap: {
+                                    selectedStock = stock
+                                }
+                            ) {
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(stock.price)
+                                        .font(.custom("Inter-Bold", size: 16))
+                                        .foregroundColor(themeService.textPrimaryColor)
+                                    
+                                    HStack(spacing: 4) {
+                                        Image(systemName: stock.isPositive ? "arrow.up" : "arrow.down")
+                                            .font(.system(size: 10, weight: .bold))
+                                        Text(stock.change)
+                                            .font(.custom("Inter-Regular", size: 14))
+                                    }
+                                    .foregroundColor(stock.isPositive ? Color(hex: "57CE43") : Color(hex: "E30000"))
+                                }
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .background(themeService.backgroundSecondaryColor)
+                    .cornerRadius(24)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                }
+                
+                // Crypto Section
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("Crypto")
+                            .font(.custom("Inter-Bold", size: 24))
+                            .tracking(-0.48)
+                            .foregroundColor(themeService.textPrimaryColor)
+                        
+                        Spacer()
+                        
+                        if allCrypto.count > 5 {
+                            Button(action: { showAllCrypto = true }) {
+                                Text("See all")
+                                    .font(.custom("Inter-Bold", size: 14))
+                                    .foregroundColor(themeService.textPrimaryColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(themeService.currentTheme == .dark ? Color(hex: "3A3A3C") : Color(hex: "F0F0F0"))
+                                    )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    
+                    ForEach(allCrypto.prefix(5)) { crypto in
                         ListRow(
-                            iconName: stock.iconName,
-                            title: stock.name,
-                            subtitle: stock.symbol,
+                            iconName: crypto.iconName,
+                            title: crypto.name,
+                            subtitle: crypto.symbol,
                             iconStyle: .rounded,
                             isButton: true,
                             onTap: {
-                                selectedStock = stock
+                                selectedStock = crypto
                             }
                         ) {
-                            // Price and Change
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(stock.price)
+                                Text(crypto.price)
                                     .font(.custom("Inter-Bold", size: 16))
                                     .foregroundColor(themeService.textPrimaryColor)
                                 
                                 HStack(spacing: 4) {
-                                    Image(systemName: stock.isPositive ? "arrow.up" : "arrow.down")
+                                    Image(systemName: crypto.isPositive ? "arrow.up" : "arrow.down")
                                         .font(.system(size: 10, weight: .bold))
-                                    Text(stock.change)
+                                    Text(crypto.change)
                                         .font(.custom("Inter-Regular", size: 14))
                                 }
-                                .foregroundColor(stock.isPositive ? Color(hex: "57CE43") : Color(hex: "E30000"))
+                                .foregroundColor(crypto.isPositive ? Color(hex: "57CE43") : Color(hex: "E30000"))
                             }
                         }
                     }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 16)
                 }
+                .padding(.vertical, 8)
+                .background(themeService.backgroundSecondaryColor)
+                .cornerRadius(24)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                
+                // Yield-bearing Stablecoins Section
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("Yield-bearing stablecoins")
+                            .font(.custom("Inter-Bold", size: 24))
+                            .tracking(-0.48)
+                            .foregroundColor(themeService.textPrimaryColor)
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    
+                    ForEach(stablecoins) { coin in
+                        ListRow(
+                            iconName: coin.iconName,
+                            title: coin.name,
+                            subtitle: coin.symbol,
+                            iconStyle: .rounded,
+                            isButton: true,
+                            onTap: {
+                                selectedStock = coin
+                            }
+                        ) {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(coin.price)
+                                    .font(.custom("Inter-Bold", size: 16))
+                                    .foregroundColor(themeService.textPrimaryColor)
+                                
+                                Text(coin.change)
+                                    .font(.custom("Inter-Medium", size: 14))
+                                    .foregroundColor(Color(hex: "57CE43"))
+                            }
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                .background(themeService.backgroundSecondaryColor)
+                .cornerRadius(24)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
                 
                 // Bottom padding for scroll content to clear nav bar
                 Spacer()
@@ -381,6 +560,12 @@ struct InvestView: View {
         }
         .fullScreenCover(item: $selectedStock) { stock in
             StockDetailView(stock: stock)
+        }
+        .fullScreenCover(isPresented: $showAllStocks) {
+            BrowseStocksView(isPresented: $showAllStocks)
+        }
+        .fullScreenCover(isPresented: $showAllCrypto) {
+            CryptoListView(isPresented: $showAllCrypto, cryptos: allCrypto)
         }
         .onAppear {
             Task {
@@ -488,6 +673,86 @@ struct StartInvestingCard: View {
         )
         .fullScreenCover(isPresented: $showStockList) {
             BrowseStocksView(isPresented: $showStockList)
+        }
+    }
+}
+
+// MARK: - Crypto List View (full list)
+
+struct CryptoListView: View {
+    @Binding var isPresented: Bool
+    let cryptos: [Stock]
+    @ObservedObject private var themeService = ThemeService.shared
+    @State private var selectedCrypto: Stock? = nil
+    
+    var body: some View {
+        ZStack {
+            themeService.backgroundColor
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: {
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        isPresented = false
+                    }) {
+                        Image("ArrowLeft")
+                            .renderingMode(.template)
+                            .foregroundColor(themeService.textSecondaryColor)
+                            .frame(width: 24, height: 24)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Crypto")
+                        .font(.custom("Inter-Bold", size: 18))
+                        .foregroundColor(themeService.textPrimaryColor)
+                    
+                    Spacer()
+                    
+                    Color.clear.frame(width: 24, height: 24)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 56)
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(cryptos) { crypto in
+                            ListRow(
+                                iconName: crypto.iconName,
+                                title: crypto.name,
+                                subtitle: crypto.symbol,
+                                iconStyle: .rounded,
+                                isButton: true,
+                                onTap: {
+                                    selectedCrypto = crypto
+                                }
+                            ) {
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(crypto.price)
+                                        .font(.custom("Inter-Bold", size: 16))
+                                        .foregroundColor(themeService.textPrimaryColor)
+                                    
+                                    HStack(spacing: 4) {
+                                        Image(systemName: crypto.isPositive ? "arrow.up" : "arrow.down")
+                                            .font(.system(size: 10, weight: .bold))
+                                        Text(crypto.change)
+                                            .font(.custom("Inter-Regular", size: 14))
+                                    }
+                                    .foregroundColor(crypto.isPositive ? Color(hex: "57CE43") : Color(hex: "E30000"))
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 40)
+                }
+            }
+        }
+        .fullScreenCover(item: $selectedCrypto) { crypto in
+            StockDetailView(stock: crypto)
         }
     }
 }
